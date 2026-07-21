@@ -47,7 +47,7 @@ export const NewCourseSchema = z.object({
 })
 
 export const NewMapSchema = z.object({
-  workshop_id: z.number().int().nonnegative(),
+  workshop_id: z.number().int().safe().nonnegative(),
   description: z.string().nullable(),
   state: MapStateSchema,
   mappers: z.array(z.string().min(1)).min(1),

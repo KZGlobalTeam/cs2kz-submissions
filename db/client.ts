@@ -1,21 +1,29 @@
-import { drizzle } from 'drizzle-orm/neon-http'
-import { neon } from '@neondatabase/serverless'
+import { Pool, neonConfig } from '@neondatabase/serverless'
+import { drizzle } from 'drizzle-orm/neon-serverless'
 
 import * as schema from './schema'
 
-let database: ReturnType<typeof drizzle<typeof schema>> | null = null
+if (!neonConfig.webSocketConstructor && typeof globalThis.WebSocket !== 'undefined') {
+  neonConfig.webSocketConstructor = globalThis.WebSocket
+}
+
+function createDatabase() {
+  const connectionString = process.env.DATABASE_URL
+  if (!connectionString) {
+    throw new Error('DATABASE_URL is not configured')
+  }
+
+  const pool = new Pool({ connectionString })
+  return drizzle({ client: pool, schema })
+}
+
+let database: ReturnType<typeof createDatabase> | null = null
 
 export function useDb() {
   if (database) {
     return database
   }
 
-  const connectionString = process.env.DATABASE_URL
-  if (!connectionString) {
-    throw new Error('DATABASE_URL is not configured')
-  }
-
-  const sql = neon(connectionString)
-  database = drizzle(sql, { schema })
+  database = createDatabase()
   return database
 }

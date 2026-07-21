@@ -1,4 +1,5 @@
 import {
+  bigint,
   index,
   integer,
   pgEnum,
@@ -25,7 +26,7 @@ export const submissions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     workshopUrl: text('workshop_url').notNull(),
-    workshopId: integer('workshop_id').notNull(),
+    workshopId: bigint('workshop_id', { mode: 'number' }).notNull(),
     mapName: text('map_name').notNull(),
     notes: text('notes'),
     status: submissionStatusEnum('status').default('pending').notNull(),

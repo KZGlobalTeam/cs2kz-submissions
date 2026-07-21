@@ -11,7 +11,8 @@ export function extractWorkshopId(workshopUrl: string): number | null {
   for (const pattern of WORKSHOP_ID_PATTERNS) {
     const match = trimmedUrl.match(pattern)
     if (match) {
-      return Number(match[1])
+      const id = Number(match[1])
+      return Number.isSafeInteger(id) ? id : null
     }
   }
 
@@ -21,7 +22,8 @@ export function extractWorkshopId(workshopUrl: string): number | null {
     if (!id) {
       return null
     }
-    return Number(id)
+    const parsedId = Number(id)
+    return Number.isSafeInteger(parsedId) ? parsedId : null
   } catch {
     return null
   }

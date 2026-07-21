@@ -5,7 +5,7 @@ import { createError } from 'h3'
 
 let client: SupabaseClient | null = null
 
-function getStorageConfig() {
+export function getStorageConfig() {
   const supabaseUrl = process.env.NUXT_SUPABASE_URL
   const serviceRoleKey = process.env.NUXT_SUPABASE_SERVICE_ROLE_KEY
   const bucket = process.env.NUXT_SUPABASE_STORAGE_BUCKET
@@ -14,6 +14,13 @@ function getStorageConfig() {
     throw createError({
       statusCode: 500,
       statusMessage: 'Supabase Storage is not configured',
+    })
+  }
+
+  if (serviceRoleKey.startsWith('sb_publishable_')) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'NUXT_SUPABASE_SERVICE_ROLE_KEY must use a Supabase secret/service_role key, not a publishable key',
     })
   }
 
