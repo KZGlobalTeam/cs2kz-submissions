@@ -12,7 +12,6 @@ export default defineEventHandler(async (event) => {
     .select({
       id: users.id,
       steamId64: users.steamId64,
-      steamId: users.steamId,
       displayName: users.displayName,
       role: userRoles.role,
     })

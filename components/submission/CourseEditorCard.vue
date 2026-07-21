@@ -1,25 +1,6 @@
 <script setup lang="ts">
 import MapperListField from './MapperListField.vue'
-
-interface MapperInput {
-  steamId64: string
-  steamId: string
-  displayName: string
-}
-
-interface CourseImage {
-  url: string
-  mime: string
-  width: number
-  height: number
-  sizeBytes: number
-}
-
-interface CourseInput {
-  name: string
-  image: CourseImage | null
-  mappers: MapperInput[]
-}
+import type { CourseInput } from '~/composables/useSubmissionForm'
 
 const props = defineProps<{
   course: CourseInput
@@ -30,6 +11,8 @@ const emit = defineEmits<{
   update: [value: CourseInput]
   remove: []
 }>()
+
+const toast = useToast()
 
 const uploading = shallowRef(false)
 
@@ -46,7 +29,11 @@ async function onFileChange(event: Event) {
 
   const bitmap = await createImageBitmap(file)
   if (file.type !== 'image/jpeg' || bitmap.width !== 1920 || bitmap.height !== 1080) {
-    alert('课程图片必须是 JPG 且分辨率为 1920x1080')
+    toast.add({
+      color: 'error',
+      title: 'Invalid image',
+      description: 'Course image must be a JPG at 1920x1080.',
+    })
     return
   }
 
@@ -67,32 +54,45 @@ async function onFileChange(event: Event) {
 </script>
 
 <template>
-  <section class="rounded-[1.5rem] border border-white/5 bg-black/20 p-5">
+  <section class="rounded-lg border border-white/5 bg-black/20 p-4">
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-lg font-semibold">Course {{ index + 1 }}</h3>
-      <button class="secondary-button text-xs" type="button" @click="emit('remove')">
-        Remove Course
-      </button>
+      <UButton
+        size="xs"
+        variant="ghost"
+        color="error"
+        icon="i-lucide-trash"
+        label="Remove Course"
+        @click="emit('remove')"
+      />
     </div>
 
     <div class="grid gap-4">
-      <div>
-        <label class="field-label">Course Name</label>
-        <input
-          :value="course.name"
-          class="field-input"
+      <UFormField label="Course Name" required>
+        <UInput
+          :model-value="course.name"
           placeholder="Course 1"
-          @input="updateCourse({ name: ($event.target as HTMLInputElement).value })"
-        >
-      </div>
+          class="w-full"
+          @update:model-value="updateCourse({ name: $event })"
+        />
+      </UFormField>
 
-      <div>
-        <label class="field-label">Course Image (JPG, 1920x1080)</label>
-        <input class="field-input" type="file" accept=".jpg,.jpeg,image/jpeg" @change="onFileChange">
-        <p class="mt-2 text-xs text-muted">
-          {{ uploading ? 'Uploading...' : course.image?.url ?? 'No image uploaded yet' }}
+      <UFormField label="Course Image (JPG, 1920x1080)" required>
+        <UInput
+          type="file"
+          accept=".jpg,.jpeg,image/jpeg"
+          :ui="{ base: 'file:mr-3 file:rounded-md file:border-0 file:bg-white/5 file:px-3 file:py-1' }"
+          @change="onFileChange"
+        />
+        <p class="mt-2 flex items-center gap-2 text-xs text-muted">
+          <UIcon
+            v-if="uploading"
+            name="i-lucide-loader-circle"
+            class="animate-spin"
+          />
+          <span>{{ uploading ? 'Uploading…' : (course.image?.url ?? 'No image uploaded yet') }}</span>
         </p>
-      </div>
+      </UFormField>
 
       <MapperListField
         :model-value="course.mappers"

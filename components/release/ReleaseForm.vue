@@ -27,20 +27,19 @@ async function createRelease() {
 </script>
 
 <template>
-  <section class="panel rounded-[1.5rem] p-5">
-    <div class="mb-4">
-      <h2 class="text-xl font-semibold">Create Release</h2>
-      <p class="mt-2 text-sm text-muted">将 approved submissions 组织进一个 release，并导出 JSON。</p>
-    </div>
-
+  <UCard>
+    <h2 class="mb-4 text-lg font-semibold">Create Release</h2>
     <div class="grid gap-4">
-      <input v-model="name" class="field-input" placeholder="Release name" />
-      <textarea v-model="notes" class="field-input min-h-24" placeholder="Notes" />
+      <UInput v-model="name" placeholder="Release name" class="w-full" />
+      <UTextarea v-model="notes" :rows="3" placeholder="Notes" class="w-full" />
       <div class="flex justify-end">
-        <button class="primary-button" type="button" :disabled="creating" @click="createRelease">
-          {{ creating ? 'Creating...' : 'Create Release' }}
-        </button>
+        <UButton
+          label="Create Release"
+          icon="i-lucide-plus"
+          :loading="creating"
+          @click="createRelease"
+        />
       </div>
     </div>
-  </section>
+  </UCard>
 </template>

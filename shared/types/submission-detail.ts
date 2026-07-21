@@ -11,7 +11,6 @@ export interface SubmissionDetailMapper {
   submissionId?: string
   courseId?: string
   steamId64: string
-  steamId: string
   displayNameSnapshot: string
 }
 

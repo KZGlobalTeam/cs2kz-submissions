@@ -36,7 +36,6 @@ export async function getCurrentUser(event: H3Event): Promise<SessionUser | null
   return {
     id: user.id,
     steamId64: user.steamId64,
-    steamId: user.steamId,
     name: user.displayName,
     avatarUrl: user.avatarUrl,
     profileUrl: user.profileUrl,

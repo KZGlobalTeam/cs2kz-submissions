@@ -26,6 +26,11 @@ const selfVote = props.votes.find(
 const { form } = useVoteForm(props.courses, selfVote)
 const saving = shallowRef(false)
 
+const decisionOptions = [
+  { label: 'Yes', value: 'yes' },
+  { label: 'No', value: 'no' },
+]
+
 const courseFilters = computed(() =>
   props.courses.map((course) => ({
     course,
@@ -47,8 +52,8 @@ async function submitVote() {
       method: 'PUT',
       body: {
         approvalDecision: form.approvalDecision,
-        rejectionReason: form.rejectionReason || null,
-        rejectionExplanation: form.rejectionExplanation || null,
+        rejectionReason: form.approvalDecision === 'no' ? (form.rejectionReason || null) : null,
+        rejectionExplanation: form.approvalDecision === 'no' ? (form.rejectionExplanation || null) : null,
         filters: form.filters.map((filter) => ({
           ...filter,
           notes: filter.notes || null,
@@ -63,43 +68,18 @@ async function submitVote() {
 </script>
 
 <template>
-  <section class="panel rounded-[1.5rem] p-5">
-    <div class="mb-5">
-      <h2 class="text-xl font-semibold">Approver Vote</h2>
-      <p class="mt-2 text-sm text-muted">对地图整体给出 Yes/No，并对每个 course 的 CKZ/VNL filter 进行标注。</p>
-    </div>
+  <UCard>
+    <h2 class="mb-4 text-xl font-semibold">Approver Vote</h2>
 
-    <div class="grid gap-4">
-      <VoteSummaryPanel :votes="votes" :exclude-user-id="currentUserId" />
-
-      <div class="grid gap-4 lg:grid-cols-2">
-        <div>
-          <label class="field-label">Status of Approval</label>
-          <select v-model="form.approvalDecision" class="field-input">
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </div>
-
-        <div v-if="form.approvalDecision === 'no'">
-          <label class="field-label">Rejection Reason</label>
-          <input v-model="form.rejectionReason" class="field-input" placeholder="Reason">
-        </div>
-      </div>
-
-      <div v-if="form.approvalDecision === 'no'">
-        <label class="field-label">Explanation</label>
-        <textarea v-model="form.rejectionExplanation" class="field-input min-h-24" placeholder="Explain why the map should not be approved" />
-      </div>
-
+    <div class="space-y-6">
       <div
         v-for="entry in courseFilters"
         :key="entry.course.id"
-        class="rounded-[1.5rem] border border-white/5 bg-white/5 p-4"
+        class="rounded-lg border border-white/5 bg-white/3 p-4"
       >
         <div class="mb-4 flex items-start justify-between gap-4">
           <h3 class="text-lg font-semibold">{{ entry.course.name }}</h3>
-          <img :src="entry.course.imageUrl" :alt="entry.course.name" class="h-28 w-52 rounded-2xl object-cover">
+          <img :src="entry.course.imageUrl" :alt="entry.course.name" class="h-20 w-36 rounded-md object-cover">
         </div>
 
         <CourseFilterVoteTable
@@ -110,11 +90,42 @@ async function submitVote() {
         />
       </div>
 
+      <div class="rounded-lg border border-white/5 bg-white/3 p-4">
+        <p class="mb-2 text-sm font-semibold">Status of Approval</p>
+        <URadioGroup
+          v-model="form.approvalDecision"
+          :items="decisionOptions"
+          value-key="value"
+          orientation="horizontal"
+        />
+
+        <div class="mt-3">
+          <VoteSummaryPanel :votes="votes" :exclude-user-id="currentUserId" />
+        </div>
+
+        <div v-if="form.approvalDecision === 'no'" class="mt-4 space-y-3">
+          <UFormField label="Rejection Reason" required>
+            <UInput v-model="form.rejectionReason" placeholder="Reason" class="w-full" />
+          </UFormField>
+          <UFormField label="Explanation">
+            <UTextarea
+              v-model="form.rejectionExplanation"
+              :rows="3"
+              placeholder="Explain why the map should not be approved"
+              class="w-full"
+            />
+          </UFormField>
+        </div>
+      </div>
+
       <div class="flex justify-end">
-        <button class="primary-button" type="button" :disabled="saving" @click="submitVote">
-          {{ saving ? 'Saving...' : 'Save Vote' }}
-        </button>
+        <UButton
+          label="Save Vote"
+          icon="i-lucide-save"
+          :loading="saving"
+          @click="submitVote"
+        />
       </div>
     </div>
-  </section>
+  </UCard>
 </template>

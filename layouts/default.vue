@@ -1,5 +1,6 @@
 <script setup lang="ts">
-const { session, refreshSession, logout, isApprover, isLeadApprover } = useSession()
+const { session, refreshSession, logout, isApprover, isLeadApprover, pending } =
+  useSession()
 
 await callOnce(async () => {
   await refreshSession()
@@ -7,15 +8,12 @@ await callOnce(async () => {
 
 const navigation = computed(() => {
   const items = [
-    { label: 'Submissions', to: '/submissions' },
-    { label: 'New Submission', to: '/submissions/new' },
+    { label: isApprover.value ? 'Submissions' : 'My Submissions', to: '/submissions' },
   ]
 
   if (isLeadApprover.value) {
     items.push({ label: 'Releases', to: '/releases' })
     items.push({ label: 'Approvers', to: '/admin/approvers' })
-  } else if (isApprover.value) {
-    items.push({ label: 'Review Queue', to: '/submissions' })
   }
 
   return items
@@ -25,52 +23,58 @@ const navigation = computed(() => {
 <template>
   <div class="min-h-screen">
     <div class="mx-auto flex min-h-screen max-w-7xl gap-6 px-4 py-6 lg:px-6">
-      <aside class="panel hidden w-72 rounded-[1.5rem] p-5 lg:block">
-        <div class="mb-8">
+      <aside class="hidden w-64 shrink-0 lg:block">
+        <div class="mb-6">
           <p class="text-xs uppercase tracking-[0.35em] text-muted">CS2KZ</p>
-          <h1 class="mt-3 text-2xl font-semibold">Map Review Console</h1>
-          <p class="mt-2 text-sm text-muted">
-            Mapper 提交、Approver 审核、Lead 发布导出。
-          </p>
+          <h1 class="mt-2 text-xl font-semibold">Map Review Console</h1>
         </div>
 
-        <nav class="space-y-2">
-          <NuxtLink
-            v-for="item in navigation"
-            :key="item.to"
-            :to="item.to"
-            class="block rounded-2xl border border-white/5 px-4 py-3 text-sm text-zinc-200 transition hover:border-accent/40 hover:bg-white/5"
-          >
-            {{ item.label }}
-          </NuxtLink>
-        </nav>
+        <UNavigationMenu
+          :items="navigation"
+          orientation="vertical"
+          class="w-full"
+        />
+
+        <div v-if="pending" class="mt-6 flex items-center gap-2 text-xs text-muted">
+          <UIcon name="i-lucide-loader-circle" class="animate-spin" />
+          Loading session…
+        </div>
       </aside>
 
-      <div class="flex-1">
-        <header class="panel mb-6 flex items-center justify-between rounded-[1.5rem] px-5 py-4">
-          <div>
-            <p class="text-xs uppercase tracking-[0.35em] text-muted">Control Room</p>
-            <p class="mt-2 text-sm text-zinc-300">
-              {{ session.user ? `当前用户：${session.user.name}` : '未登录' }}
-            </p>
+      <div class="min-w-0 flex-1">
+        <header class="mb-6 flex items-center justify-between rounded-lg border border-white/5 bg-panel/60 px-4 py-3">
+          <div class="flex items-center gap-3">
+            <UAvatar
+              v-if="session.user?.avatarUrl"
+              :src="session.user.avatarUrl"
+              :alt="session.user.name"
+              size="sm"
+            />
+            <div class="text-sm">
+              <p v-if="session.user" class="text-zinc-200">
+                Signed in as <span class="font-medium">{{ session.user.name }}</span>
+              </p>
+              <p v-else class="text-muted">Not signed in</p>
+            </div>
           </div>
 
-          <div class="flex items-center gap-3">
-            <NuxtLink
+          <div class="flex items-center gap-2">
+            <UButton
               v-if="!session.user"
               to="/"
-              class="secondary-button text-sm"
-            >
-              登录
-            </NuxtLink>
-            <button
+              variant="outline"
+              size="sm"
+              label="Sign in"
+            />
+            <UButton
               v-else
-              class="secondary-button text-sm"
-              type="button"
+              variant="outline"
+              size="sm"
+              icon="i-lucide-log-out"
+              label="Sign out"
+              :loading="pending"
               @click="logout"
-            >
-              退出登录
-            </button>
+            />
           </div>
         </header>
 

@@ -11,7 +11,6 @@ export type ApprovalDecision = 'yes' | 'no'
 
 export interface SteamMapperInput {
   steamId64: string
-  steamId: string
   displayName: string
 }
 
@@ -92,7 +91,6 @@ export interface ReleaseExportMap {
 export interface SessionUser {
   id: string
   steamId64: string
-  steamId: string
   name: string
   avatarUrl: string | null
   profileUrl: string | null

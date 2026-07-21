@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { courseFilterTierValues } from '~/shared/schemas/cs2kz'
+import {
+  numberToTier,
+  tierCount,
+  tierToNumber,
+} from '~/shared/schemas/cs2kz'
 import type { CourseFilterTier, Mode } from '~/shared/schemas/cs2kz'
 import type { SubmissionDetailVote } from '~/shared/types/submission-detail'
 
@@ -26,6 +30,16 @@ const emit = defineEmits<{
   'update:modelValue': [value: FilterRow[]]
 }>()
 
+const tierOptions = Array.from({ length: tierCount }, (_, i) => ({
+  label: String(i + 1),
+  value: String(i + 1),
+}))
+
+const rankedOptions = [
+  { label: 'Ranked', value: 'true' },
+  { label: 'Unranked', value: 'false' },
+]
+
 function updateRow(index: number, patch: Partial<FilterRow>) {
   emit(
     'update:modelValue',
@@ -35,32 +49,31 @@ function updateRow(index: number, patch: Partial<FilterRow>) {
   )
 }
 
-// Extract values in script so templates stay free of TS `as` casts.
-function tierFromEvent(event: Event): Tier {
-  return (event.target as HTMLSelectElement).value as Tier
+function setNubTier(index: number, value: string) {
+  updateRow(index, { nubTier: numberToTier(Number(value)) })
 }
 
-function checkedFromEvent(event: Event): boolean {
-  return (event.target as HTMLInputElement).checked
+function setProTier(index: number, value: string) {
+  updateRow(index, { proTier: numberToTier(Number(value)) })
 }
 
-function textFromEvent(event: Event): string {
-  return (event.target as HTMLTextAreaElement).value
+function setRanked(index: number, value: string) {
+  updateRow(index, { isRanked: value === 'true' })
 }
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-3">
     <div
       v-for="(row, index) in modelValue"
       :key="`${row.courseId}-${row.mode}`"
-      class="rounded-3xl border border-white/5 bg-black/20 p-4"
+      class="rounded-lg border border-white/5 bg-black/20 p-4"
     >
-      <div class="mb-3 flex items-center justify-between">
+      <div class="mb-3 flex items-center justify-between gap-3">
         <p class="text-sm font-semibold">
           {{ row.mode === 'classic' ? 'CKZ' : 'VNL' }} Filter
         </p>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-4">
           <OtherApproverVotes
             :votes="votes"
             :current-user-id="currentUserId"
@@ -68,20 +81,19 @@ function textFromEvent(event: Event): string {
             :mode="row.mode"
             field="isRanked"
           />
-          <label class="flex items-center gap-2 text-sm text-zinc-300">
-            <input
-              :checked="row.isRanked"
-              type="checkbox"
-              @change="updateRow(index, { isRanked: checkedFromEvent($event) })"
-            >
-            Ranked
-          </label>
+          <URadioGroup
+            :model-value="row.isRanked ? 'true' : 'false'"
+            :items="rankedOptions"
+            value-key="value"
+            orientation="horizontal"
+            @update:model-value="setRanked(index, $event)"
+          />
         </div>
       </div>
 
-      <div class="grid gap-4 lg:grid-cols-2">
+      <div class="space-y-3">
         <div>
-          <div class="mb-2 flex items-center justify-between">
+          <div class="mb-1.5 flex items-center justify-between gap-2">
             <span class="text-sm text-muted">Nub Tier</span>
             <OtherApproverVotes
               :votes="votes"
@@ -91,17 +103,17 @@ function textFromEvent(event: Event): string {
               field="nubTier"
             />
           </div>
-          <select
-            class="field-input"
-            :value="row.nubTier"
-            @change="updateRow(index, { nubTier: tierFromEvent($event) })"
-          >
-            <option v-for="tier in courseFilterTierValues" :key="tier" :value="tier">{{ tier }}</option>
-          </select>
+          <USelect
+            :model-value="String(tierToNumber(row.nubTier))"
+            :items="tierOptions"
+            value-key="value"
+            class="w-32"
+            @update:model-value="setNubTier(index, $event)"
+          />
         </div>
 
         <div>
-          <div class="mb-2 flex items-center justify-between">
+          <div class="mb-1.5 flex items-center justify-between gap-2">
             <span class="text-sm text-muted">Pro Tier</span>
             <OtherApproverVotes
               :votes="votes"
@@ -111,32 +123,33 @@ function textFromEvent(event: Event): string {
               field="proTier"
             />
           </div>
-          <select
-            class="field-input"
-            :value="row.proTier"
-            @change="updateRow(index, { proTier: tierFromEvent($event) })"
-          >
-            <option v-for="tier in courseFilterTierValues" :key="tier" :value="tier">{{ tier }}</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="mt-4">
-        <div class="mb-2 flex items-center justify-between">
-          <span class="text-sm text-muted">Notes</span>
-          <OtherApproverVotes
-            :votes="votes"
-            :current-user-id="currentUserId"
-            :course-id="row.courseId"
-            :mode="row.mode"
-            field="notes"
+          <USelect
+            :model-value="String(tierToNumber(row.proTier))"
+            :items="tierOptions"
+            value-key="value"
+            class="w-32"
+            @update:model-value="setProTier(index, $event)"
           />
         </div>
-        <textarea
-          class="field-input min-h-24"
-          :value="row.notes"
-          @input="updateRow(index, { notes: textFromEvent($event) })"
-        />
+
+        <div>
+          <div class="mb-1.5 flex items-center justify-between gap-2">
+            <span class="text-sm text-muted">Notes</span>
+            <OtherApproverVotes
+              :votes="votes"
+              :current-user-id="currentUserId"
+              :course-id="row.courseId"
+              :mode="row.mode"
+              field="notes"
+            />
+          </div>
+          <UTextarea
+            :model-value="row.notes"
+            :rows="2"
+            class="w-full"
+            @update:model-value="updateRow(index, { notes: $event })"
+          />
+        </div>
       </div>
     </div>
   </div>

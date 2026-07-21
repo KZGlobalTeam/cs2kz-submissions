@@ -39,7 +39,6 @@ export async function createSubmission(
       input.mappers.map((mapper) => ({
         submissionId: submission.id,
         steamId64: mapper.steamId64,
-        steamId: mapper.steamId,
         displayNameSnapshot: mapper.displayName,
       })),
     )
@@ -70,7 +69,6 @@ export async function createSubmission(
         course.mappers.map((mapper) => ({
           courseId: createdCourse.id,
           steamId64: mapper.steamId64,
-          steamId: mapper.steamId,
           displayNameSnapshot: mapper.displayName,
         })),
       )

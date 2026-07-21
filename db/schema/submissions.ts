@@ -53,7 +53,6 @@ export const submissionMappers = pgTable(
       .notNull()
       .references(() => submissions.id, { onDelete: 'cascade' }),
     steamId64: text('steam_id64').notNull(),
-    steamId: text('steam_id').notNull(),
     displayNameSnapshot: text('display_name_snapshot').notNull(),
   },
   (table) => [
@@ -98,7 +97,6 @@ export const submissionCourseMappers = pgTable(
       .notNull()
       .references(() => submissionCourses.id, { onDelete: 'cascade' }),
     steamId64: text('steam_id64').notNull(),
-    steamId: text('steam_id').notNull(),
     displayNameSnapshot: text('display_name_snapshot').notNull(),
   },
   (table) => [

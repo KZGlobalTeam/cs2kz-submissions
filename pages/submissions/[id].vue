@@ -5,7 +5,6 @@ import ApproverVoteForm from '~/components/review/ApproverVoteForm.vue'
 import CoursesReadonly from '~/components/review/CoursesReadonly.vue'
 import LeadDecisionPanel from '~/components/review/LeadDecisionPanel.vue'
 import MapInfoPanel from '~/components/review/MapInfoPanel.vue'
-import ReviewPanelTabs from '~/components/review/ReviewPanelTabs.vue'
 
 type PanelMode = 'vote' | 'approve'
 
@@ -23,7 +22,7 @@ await callOnce(async () => {
   await refreshSession()
 })
 
-const { data: details, refresh } = await useAsyncData<SubmissionDetailResponse>(
+const { data: details, status, refresh } = await useAsyncData<SubmissionDetailResponse>(
   `submission-${submissionId.value}`,
   () => $fetch<SubmissionDetailResponse>(`/api/submissions/${submissionId.value}`),
 )
@@ -35,17 +34,6 @@ function refreshDetails() {
 const userId = computed(() => session.value.user?.id ?? '')
 
 const isPending = computed(() => details.value?.submission.status === 'pending')
-
-const tabs = computed<Array<{ id: PanelMode; label: string }>>(() => {
-  const list: Array<{ id: PanelMode; label: string }> = []
-  if (hasApproverRole.value) {
-    list.push({ id: 'vote', label: 'Vote' })
-  }
-  if (isLeadApprover.value) {
-    list.push({ id: 'approve', label: 'Approve' })
-  }
-  return list
-})
 
 const defaultMode = computed<PanelMode | null>(() => {
   if (isLeadApprover.value) {
@@ -59,22 +47,17 @@ const defaultMode = computed<PanelMode | null>(() => {
 
 const mode = computed<PanelMode | null>(() => {
   const query = route.query.mode
-  const allowed = tabs.value.map((tab) => tab.id)
-  if ((query === 'vote' || query === 'approve') && allowed.includes(query)) {
-    return query
+  if (query === 'vote' && hasApproverRole.value) {
+    return 'vote'
+  }
+  if (query === 'approve' && isLeadApprover.value) {
+    return 'approve'
   }
   return defaultMode.value
 })
 
-const tabMode = computed<PanelMode>({
-  get: () => mode.value ?? 'vote',
-  set: (value) => {
-    void router.replace({ query: { ...route.query, mode: value } })
-  },
-})
-
 const showReadonlyCourses = computed(
-  () => !isPending.value || mode.value === null || tabs.value.length === 0,
+  () => !isPending.value || mode.value === null,
 )
 
 // Remount the forms after a payload refresh so they re-seed from the latest
@@ -96,24 +79,28 @@ async function onSaved() {
 
 onMounted(() => {
   const query = route.query.mode
-  const allowed = tabs.value.map((tab) => tab.id)
-  const valid =
-    (query === 'vote' || query === 'approve') && allowed.includes(query)
-  if (!valid && defaultMode.value) {
+  if (
+    !((query === 'vote' && hasApproverRole.value) ||
+       (query === 'approve' && isLeadApprover.value)) &&
+    defaultMode.value
+  ) {
     void router.replace({ query: { ...route.query, mode: defaultMode.value } })
   }
 })
 </script>
 
 <template>
-  <section v-if="details" class="grid gap-6">
-    <MapInfoPanel :submission="details.submission" :mappers="details.mappers" />
+  <section v-if="status === 'pending'" class="grid gap-6">
+    <UCard>
+      <div class="flex items-center gap-3 text-muted">
+        <UIcon name="i-lucide-loader-circle" class="animate-spin" />
+        <span class="text-sm">Loading submission…</span>
+      </div>
+    </UCard>
+  </section>
 
-    <ReviewPanelTabs
-      v-if="isPending && tabs.length"
-      v-model="tabMode"
-      :tabs="tabs"
-    />
+  <section v-else-if="details" class="grid gap-6">
+    <MapInfoPanel :submission="details.submission" :mappers="details.mappers" />
 
     <ApproverVoteForm
       v-if="isPending && mode === 'vote' && hasApproverRole"

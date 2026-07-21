@@ -6,7 +6,6 @@ import { requireAuth } from '~/server/utils/permissions'
 
 const mapperSchema = z.object({
   steamId64: z.string().min(1),
-  steamId: z.string().min(1),
   displayName: z.string().min(1),
 })
 

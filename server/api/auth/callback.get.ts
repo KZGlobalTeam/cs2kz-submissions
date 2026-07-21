@@ -7,14 +7,12 @@ import {
   fetchSteamProfile,
   verifySteamAssertion,
 } from '~/server/utils/steam-openid'
-import { steamId64ToSteamId } from '~/shared/utils/steam'
 
 import { db } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const steamId64 = await verifySteamAssertion(getRequestURL(event).toString())
   const steamProfile = await fetchSteamProfile(steamId64)
-  const steamId = steamId64ToSteamId(steamId64)
 
   const [existingUser] = await db()
     .select()
@@ -28,7 +26,6 @@ export default defineEventHandler(async (event) => {
     await db()
       .update(users)
       .set({
-        steamId,
         displayName: steamProfile.personaName,
         avatarUrl: steamProfile.avatarUrl,
         profileUrl: steamProfile.profileUrl,
@@ -40,7 +37,6 @@ export default defineEventHandler(async (event) => {
       .insert(users)
       .values({
         steamId64,
-        steamId,
         displayName: steamProfile.personaName,
         avatarUrl: steamProfile.avatarUrl,
         profileUrl: steamProfile.profileUrl,

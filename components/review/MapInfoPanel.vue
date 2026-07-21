@@ -26,22 +26,27 @@ const rejectedAtLabel = computed(() =>
 )
 
 const isDecided = computed(() => props.submission.status !== 'pending')
+
+const statusColor = computed(() =>
+  props.submission.status === 'approved'
+    ? 'success'
+    : props.submission.status === 'rejected'
+      ? 'error'
+      : 'neutral',
+)
 </script>
 
 <template>
-  <div class="panel rounded-[1.5rem] p-5">
+  <UCard>
     <div class="flex items-start justify-between gap-4">
       <div>
-        <p class="text-xs uppercase tracking-[0.35em] text-muted">Submission Detail</p>
-        <h1 class="mt-3 text-3xl font-semibold">{{ submission.mapName }}</h1>
-        <p class="mt-3 text-sm text-zinc-300">{{ submission.notes || 'No notes' }}</p>
+        <h1 class="text-2xl font-semibold">{{ submission.mapName }}</h1>
+        <p class="mt-2 text-sm text-zinc-300">{{ submission.notes || 'No notes' }}</p>
       </div>
-      <span class="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.25em] text-muted">
-        {{ submission.status }}
-      </span>
+      <UBadge :color="statusColor" :label="submission.status" variant="subtle" />
     </div>
 
-    <div class="mt-6 space-y-3 text-sm text-zinc-300">
+    <div class="mt-4 space-y-1 text-sm text-zinc-300">
       <p>
         Workshop URL:
         <a :href="submission.workshopUrl" target="_blank" rel="noopener noreferrer" class="text-accent">{{ submission.workshopUrl }}</a>
@@ -49,9 +54,9 @@ const isDecided = computed(() => props.submission.status !== 'pending')
       <p>Mappers: {{ mapperNames }}</p>
     </div>
 
-    <div v-if="isDecided" class="mt-6 rounded-[1.25rem] border border-white/5 bg-white/5 p-4 text-sm">
+    <div v-if="isDecided" class="mt-4 border-t border-white/5 pt-4 text-sm">
       <p class="font-semibold">Decision</p>
-      <p class="mt-2 text-muted">Status: {{ submission.status }}</p>
+      <p class="mt-1 text-muted">Status: {{ submission.status }}</p>
       <p v-if="submission.decisionByName" class="mt-1 text-muted">
         By: {{ submission.decisionByName }}
       </p>
@@ -61,5 +66,5 @@ const isDecided = computed(() => props.submission.status !== 'pending')
         {{ submission.decisionNotes }}
       </p>
     </div>
-  </div>
+  </UCard>
 </template>

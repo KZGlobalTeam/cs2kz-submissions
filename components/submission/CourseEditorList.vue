@@ -1,21 +1,6 @@
 <script setup lang="ts">
 import CourseEditorCard from './CourseEditorCard.vue'
-
-interface CourseInput {
-  name: string
-  image: {
-    url: string
-    mime: string
-    width: number
-    height: number
-    sizeBytes: number
-  } | null
-  mappers: Array<{
-    steamId64: string
-    steamId: string
-    displayName: string
-  }>
-}
+import type { CourseInput } from '~/composables/useSubmissionForm'
 
 const props = defineProps<{
   modelValue: CourseInput[]
@@ -47,7 +32,7 @@ function addCourse() {
     {
       name: '',
       image: null,
-      mappers: [{ steamId64: '', steamId: '', displayName: '' }],
+      mappers: [{ steamId64: '', displayName: '' }],
     },
   ])
 }
@@ -56,13 +41,13 @@ function addCourse() {
 <template>
   <section class="space-y-4">
     <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-lg font-semibold">Courses</h2>
-        <p class="text-sm text-muted">每张图至少要有一个 course。</p>
-      </div>
-      <button class="secondary-button text-sm" type="button" @click="addCourse">
-        Add Course
-      </button>
+      <h2 class="text-lg font-semibold">Courses</h2>
+      <UButton
+        variant="outline"
+        icon="i-lucide-plus"
+        label="Add Course"
+        @click="addCourse"
+      />
     </div>
 
     <div class="space-y-4">

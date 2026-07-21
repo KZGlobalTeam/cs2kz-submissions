@@ -27,22 +27,3 @@ export function steamIdToSteamId64(steamId: string): string {
   const z = BigInt(zPart)
   return (STEAM_ID64_BASE + z * BIG_INT_TWO + y).toString()
 }
-
-export function normalizeSteamMapper(input: {
-  steamId64?: string | null
-  steamId?: string | null
-  displayName: string
-}) {
-  if (!input.steamId64 && !input.steamId) {
-    throw new Error('Steam mapper requires steamId64 or steamId')
-  }
-
-  const steamId64 = input.steamId64 ?? steamIdToSteamId64(input.steamId!)
-  const steamId = input.steamId ?? steamId64ToSteamId(input.steamId64!)
-
-  return {
-    steamId64,
-    steamId,
-    displayName: input.displayName.trim(),
-  }
-}

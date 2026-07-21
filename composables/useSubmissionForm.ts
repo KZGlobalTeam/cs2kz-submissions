@@ -1,43 +1,38 @@
 import { reactive } from 'vue'
 
+import type { CourseImageMeta } from '~/shared/types/submission'
+
+export interface MapperInput {
+  steamId64: string
+  displayName: string
+}
+
+export interface CourseInput {
+  name: string
+  image: CourseImageMeta | null
+  mappers: MapperInput[]
+}
+
+function blankMapper(): MapperInput {
+  return { steamId64: '', displayName: '' }
+}
+
+function blankCourse(): CourseInput {
+  return { name: '', image: null, mappers: [blankMapper()] }
+}
+
 export function useSubmissionForm() {
   const form = reactive({
     workshopUrl: '',
     mapName: '',
     notes: '',
-    mappers: [
-      { steamId64: '', steamId: '', displayName: '' },
-    ],
-    courses: [
-      {
-        name: '',
-        image: null as null | {
-          url: string
-          mime: string
-          width: number
-          height: number
-          sizeBytes: number
-        },
-        mappers: [{ steamId64: '', steamId: '', displayName: '' }],
-      },
-    ],
+    mappers: [blankMapper()],
+    courses: [blankCourse()],
   })
-
-  function addMapper() {
-    form.mappers.push({ steamId64: '', steamId: '', displayName: '' })
-  }
-
-  function addCourse() {
-    form.courses.push({
-      name: '',
-      image: null,
-      mappers: [{ steamId64: '', steamId: '', displayName: '' }],
-    })
-  }
 
   return {
     form,
-    addMapper,
-    addCourse,
+    blankMapper,
+    blankCourse,
   }
 }

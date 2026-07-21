@@ -12,7 +12,6 @@ export const users = pgTable(
   {
     id: uuid('id').defaultRandom().primaryKey(),
     steamId64: text('steam_id64').notNull(),
-    steamId: text('steam_id').notNull(),
     displayName: text('display_name').notNull(),
     avatarUrl: text('avatar_url'),
     profileUrl: text('profile_url'),
@@ -21,7 +20,6 @@ export const users = pgTable(
   },
   (table) => [
     uniqueIndex('users_steam_id64_idx').on(table.steamId64),
-    uniqueIndex('users_steam_id_idx').on(table.steamId),
   ],
 )
 

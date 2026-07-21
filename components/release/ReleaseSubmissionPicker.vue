@@ -1,51 +1,54 @@
 <script setup lang="ts">
-defineProps<{
+import type { TableColumn } from '@nuxt/ui'
+
+interface SubmissionSummary {
+  id: string
+  mapName: string
+}
+
+const props = defineProps<{
   releaseId: string
-  approvedSubmissions: Array<{
-    id: string
-    mapName: string
-  }>
+  approvedSubmissions: SubmissionSummary[]
 }>()
 
-const selectedSubmission = shallowRef('')
-const adding = shallowRef(false)
+const toast = useToast()
+const adding = shallowRef<string | null>(null)
 
-async function addToRelease() {
-  if (!selectedSubmission.value) {
-    return
-  }
+const columns: TableColumn<SubmissionSummary>[] = [
+  { accessorKey: 'mapName', header: 'Map' },
+  { id: 'actions', header: '' },
+]
 
-  adding.value = true
+async function addToRelease(submission: SubmissionSummary) {
+  adding.value = submission.id
   try {
-    await $fetch(`/api/releases/${useRoute().params.id}/submissions`, {
+    await $fetch(`/api/releases/${props.releaseId}/submissions`, {
       method: 'POST',
-      body: {
-        submissionId: selectedSubmission.value,
-      },
+      body: { submissionId: submission.id },
     })
+    toast.add({ color: 'success', title: 'Added to release' })
   } finally {
-    adding.value = false
+    adding.value = null
   }
 }
 </script>
 
 <template>
-  <section class="panel rounded-[1.5rem] p-5">
-    <h2 class="text-xl font-semibold">Add Approved Submission</h2>
-    <div class="mt-4 flex gap-3">
-      <select v-model="selectedSubmission" class="field-input">
-        <option value="">Select submission</option>
-        <option
-          v-for="submission in approvedSubmissions"
-          :key="submission.id"
-          :value="submission.id"
-        >
-          {{ submission.mapName }}
-        </option>
-      </select>
-      <button class="secondary-button" type="button" :disabled="adding" @click="addToRelease">
-        Add
-      </button>
-    </div>
-  </section>
+  <UCard>
+    <h2 class="mb-4 text-lg font-semibold">Approved Submissions</h2>
+    <UTable :data="approvedSubmissions" :columns="columns">
+      <template #actions-cell="{ row }">
+        <div class="flex justify-end">
+          <UButton
+            size="xs"
+            variant="outline"
+            icon="i-lucide-plus"
+            label="Add to release"
+            :loading="adding === row.original.id"
+            @click="addToRelease(row.original)"
+          />
+        </div>
+      </template>
+    </UTable>
+  </UCard>
 </template>

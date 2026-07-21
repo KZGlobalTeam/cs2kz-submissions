@@ -64,7 +64,7 @@ export async function buildReleaseExport(releaseId: string) {
         workshopId: submission.workshopId,
         mappers: mapMappers
           .filter((mapper) => mapper.submissionId === submission.id)
-          .map((mapper) => mapper.steamId),
+          .map((mapper) => mapper.steamId64),
         courses: courses
           .filter((course) => course.submissionId === submission.id)
           .map((course) => {
@@ -85,7 +85,7 @@ export async function buildReleaseExport(releaseId: string) {
               name: course.name,
               mappers: courseMappers
                 .filter((mapper) => mapper.courseId === course.id)
-                .map((mapper) => mapper.steamId),
+                .map((mapper) => mapper.steamId64),
               filters: {
                 classic: {
                   nub_tier: classic.nubTier,

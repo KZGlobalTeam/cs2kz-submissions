@@ -8,17 +8,16 @@ export default defineNuxtConfig({
   dir: {
     app: 'app',
   },
-  modules: ['@nuxt/eslint', '@nuxtjs/tailwindcss'],
+  modules: ['@nuxt/eslint', '@nuxt/ui'],
   alias: {
     '~': fileURLToPath(new URL('./', import.meta.url)),
     '@': fileURLToPath(new URL('./', import.meta.url)),
   },
   css: ['~/app/assets/css/main.css'],
-  postcss: {
-    plugins: {
-      tailwindcss: {},
-      autoprefixer: {},
-    },
+
+  colorMode: {
+    preference: 'dark',
+    fallback: 'dark',
   },
   future: {
     compatibilityVersion: 4,

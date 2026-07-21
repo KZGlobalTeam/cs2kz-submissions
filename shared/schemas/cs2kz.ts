@@ -62,3 +62,16 @@ export type CourseFilter = z.infer<typeof CourseFilterSchema>
 export type CourseFilters = z.infer<typeof CourseFiltersSchema>
 export type NewCourse = z.infer<typeof NewCourseSchema>
 export type NewMap = z.infer<typeof NewMapSchema>
+
+/** Tiers are surfaced to the user as a 1..N numeric scale for compactness;
+ *  the string enum is still what the backend stores. */
+export const tierCount = courseFilterTierValues.length
+
+export function tierToNumber(tier: CourseFilterTier): number {
+  return courseFilterTierValues.indexOf(tier) + 1
+}
+
+export function numberToTier(n: number): CourseFilterTier {
+  const index = Math.max(1, Math.min(tierCount, Math.trunc(n))) - 1
+  return courseFilterTierValues[index]!
+}
