@@ -1,56 +1,38 @@
 <script setup lang="ts">
-defineProps<{
-  votes: Array<{
-    id: string
-    approverName: string
-    approvalDecision: string
-    rejectionReason: string | null
-    rejectionExplanation: string | null
-    filters: Array<{
-      courseId: string
-      mode: string
-      nubTier: string
-      proTier: string
-      isRanked: boolean
-      notes: string | null
-    }>
-  }>
+import type { SubmissionDetailVote } from '~/shared/types/submission-detail'
+
+const props = defineProps<{
+  votes: SubmissionDetailVote[]
+  /** When set, omit this user's own vote (used inside the vote/approve panels). */
+  excludeUserId?: string
 }>()
+
+const displayed = computed(() =>
+  props.excludeUserId
+    ? props.votes.filter((vote) => vote.approverUserId !== props.excludeUserId)
+    : props.votes,
+)
 </script>
 
 <template>
-  <section class="panel rounded-[1.5rem] p-5">
-    <div class="mb-4">
-      <h2 class="text-xl font-semibold">Other Approver Votes</h2>
-      <p class="mt-2 text-sm text-muted">当前 submission 上所有 approver 的最新审核意见。</p>
-    </div>
+  <div class="rounded-[1.25rem] border border-white/5 bg-white/5 p-4">
+    <p class="mb-3 text-sm font-semibold text-muted">其他 approver 的审核状态</p>
 
-    <div class="space-y-4">
-      <div
-        v-for="vote in votes"
-        :key="vote.id"
-        class="rounded-[1.25rem] border border-white/5 bg-white/5 p-4"
-      >
-        <div class="mb-3 flex items-center justify-between">
-          <p class="font-medium">{{ vote.approverName }}</p>
-          <span class="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.25em] text-muted">
+    <p v-if="!displayed.length" class="text-sm text-muted">暂无其他 approver 的投票。</p>
+
+    <ul v-else class="space-y-3 text-sm">
+      <li v-for="vote in displayed" :key="vote.id">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="font-medium">{{ vote.approverName }}</span>
+          <span class="rounded-full border border-white/10 px-2 py-0.5 text-xs uppercase tracking-[0.2em] text-muted">
             {{ vote.approvalDecision }}
           </span>
+          <span v-if="vote.rejectionReason" class="text-danger">{{ vote.rejectionReason }}</span>
         </div>
-
-        <p v-if="vote.rejectionReason" class="text-sm text-danger">
-          {{ vote.rejectionReason }}
-        </p>
-        <p v-if="vote.rejectionExplanation" class="mt-2 text-sm text-zinc-300">
+        <p v-if="vote.rejectionExplanation" class="mt-1 text-muted">
           {{ vote.rejectionExplanation }}
         </p>
-
-        <div class="mt-4 space-y-2 text-sm text-zinc-300">
-          <div v-for="filter in vote.filters" :key="`${vote.id}-${filter.courseId}-${filter.mode}`">
-            {{ filter.mode }} | nub {{ filter.nubTier }} | pro {{ filter.proTier }} | ranked {{ filter.isRanked ? 'yes' : 'no' }}
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+      </li>
+    </ul>
+  </div>
 </template>

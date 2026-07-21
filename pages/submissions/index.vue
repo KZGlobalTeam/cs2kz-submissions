@@ -7,8 +7,22 @@ const { data: submissions, refresh } = await useAsyncData('submissions', () =>
   $fetch('/api/submissions'),
 )
 
+const { hasApproverRole, isLeadApprover } = useSession()
+
 function refreshSubmissions() {
   return refresh()
+}
+
+function openSubmission(id: string) {
+  return navigateTo(`/submissions/${id}`)
+}
+
+function openVote(id: string) {
+  return navigateTo(`/submissions/${id}?mode=vote`)
+}
+
+function openApprove(id: string) {
+  return navigateTo(`/submissions/${id}?mode=approve`)
 }
 </script>
 
@@ -32,11 +46,11 @@ function refreshSubmissions() {
     </div>
 
     <div class="grid gap-4">
-      <NuxtLink
+      <div
         v-for="submission in submissions ?? []"
         :key="submission.id"
-        :to="`/submissions/${submission.id}`"
-        class="panel block rounded-[1.5rem] p-5 transition hover:border-accent/30"
+        class="panel block cursor-pointer rounded-[1.5rem] p-5 transition hover:border-accent/30"
+        @click="openSubmission(submission.id)"
       >
         <div class="flex items-start justify-between gap-4">
           <div>
@@ -46,11 +60,31 @@ function refreshSubmissions() {
             </p>
           </div>
 
-          <span class="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.25em] text-muted">
-            {{ submission.status }}
-          </span>
+          <div class="flex shrink-0 items-center gap-2" @click.stop>
+            <span class="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.25em] text-muted">
+              {{ submission.status }}
+            </span>
+            <button
+              v-if="hasApproverRole"
+              type="button"
+              class="secondary-button text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="submission.status !== 'pending'"
+              @click.stop="openVote(submission.id)"
+            >
+              Vote
+            </button>
+            <button
+              v-if="isLeadApprover"
+              type="button"
+              class="primary-button text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="submission.status !== 'pending'"
+              @click.stop="openApprove(submission.id)"
+            >
+              Approve
+            </button>
+          </div>
         </div>
-      </NuxtLink>
+      </div>
     </div>
   </section>
 </template>

@@ -1,129 +1,143 @@
 <script setup lang="ts">
+import type { SubmissionDetailResponse } from '~/shared/types/submission-detail'
+
 import ApproverVoteForm from '~/components/review/ApproverVoteForm.vue'
+import CoursesReadonly from '~/components/review/CoursesReadonly.vue'
 import LeadDecisionPanel from '~/components/review/LeadDecisionPanel.vue'
-import VoteSummaryPanel from '~/components/review/VoteSummaryPanel.vue'
+import MapInfoPanel from '~/components/review/MapInfoPanel.vue'
+import ReviewPanelTabs from '~/components/review/ReviewPanelTabs.vue'
 
-interface DetailMapper {
-  displayNameSnapshot: string
-}
-
-interface DetailCourse {
-  id: string
-  name: string
-  imageUrl: string
-  mappers: DetailMapper[]
-}
-
-interface DetailVote {
-  id: string
-  approverName: string
-  approvalDecision: string
-  rejectionReason: string | null
-  rejectionExplanation: string | null
-  filters: Array<{
-    courseId: string
-    mode: string
-    nubTier: string
-    proTier: string
-    isRanked: boolean
-    notes: string | null
-  }>
-}
-
-interface SubmissionDetail {
-  submission: {
-    id: string
-    mapName: string
-    notes: string | null
-    workshopUrl: string
-    status: string
-  }
-  mappers: DetailMapper[]
-  courses: DetailCourse[]
-  votes: DetailVote[]
-}
+type PanelMode = 'vote' | 'approve'
 
 definePageMeta({
   middleware: ['auth'],
 })
 
 const route = useRoute()
-const { isApprover, isLeadApprover, refreshSession } = useSession()
+const router = useRouter()
+const { session, hasApproverRole, isLeadApprover, refreshSession } = useSession()
+
 const submissionId = computed(() => String(route.params.id))
-const submissionPath = computed(() => `/api/submissions/${submissionId.value}` as string)
 
 await callOnce(async () => {
   await refreshSession()
 })
 
-const { data: details, refresh } = await useAsyncData<SubmissionDetail>(
+const { data: details, refresh } = await useAsyncData<SubmissionDetailResponse>(
   `submission-${submissionId.value}`,
-  () => $fetch<SubmissionDetail>(submissionPath.value),
+  () => $fetch<SubmissionDetailResponse>(`/api/submissions/${submissionId.value}`),
 )
 
 function refreshDetails() {
   return refresh()
 }
+
+const userId = computed(() => session.value.user?.id ?? '')
+
+const isPending = computed(() => details.value?.submission.status === 'pending')
+
+const tabs = computed<Array<{ id: PanelMode; label: string }>>(() => {
+  const list: Array<{ id: PanelMode; label: string }> = []
+  if (hasApproverRole.value) {
+    list.push({ id: 'vote', label: 'Vote' })
+  }
+  if (isLeadApprover.value) {
+    list.push({ id: 'approve', label: 'Approve' })
+  }
+  return list
+})
+
+const defaultMode = computed<PanelMode | null>(() => {
+  if (isLeadApprover.value) {
+    return 'approve'
+  }
+  if (hasApproverRole.value) {
+    return 'vote'
+  }
+  return null
+})
+
+const mode = computed<PanelMode | null>(() => {
+  const query = route.query.mode
+  const allowed = tabs.value.map((tab) => tab.id)
+  if ((query === 'vote' || query === 'approve') && allowed.includes(query)) {
+    return query
+  }
+  return defaultMode.value
+})
+
+const tabMode = computed<PanelMode>({
+  get: () => mode.value ?? 'vote',
+  set: (value) => {
+    void router.replace({ query: { ...route.query, mode: value } })
+  },
+})
+
+const showReadonlyCourses = computed(
+  () => !isPending.value || mode.value === null || tabs.value.length === 0,
+)
+
+// Remount the forms after a payload refresh so they re-seed from the latest
+// server state (prefill for the vote panel; fresh state for the lead panel).
+const voteFormKey = computed(() => {
+  const selfVote = details.value?.votes.find(
+    (vote) => vote.approverUserId === userId.value,
+  )
+  return selfVote?.updatedAt ?? 'none'
+})
+
+const decisionFormKey = computed(
+  () => details.value?.submission.updatedAt ?? 'none',
+)
+
+async function onSaved() {
+  await refreshDetails()
+}
+
+onMounted(() => {
+  const query = route.query.mode
+  const allowed = tabs.value.map((tab) => tab.id)
+  const valid =
+    (query === 'vote' || query === 'approve') && allowed.includes(query)
+  if (!valid && defaultMode.value) {
+    void router.replace({ query: { ...route.query, mode: defaultMode.value } })
+  }
+})
 </script>
 
 <template>
-  <div v-if="details" class="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-    <section class="grid gap-6">
-      <div class="panel rounded-[1.5rem] p-5">
-        <div class="flex items-start justify-between gap-4">
-          <div>
-            <p class="text-xs uppercase tracking-[0.35em] text-muted">Submission Detail</p>
-            <h1 class="mt-3 text-3xl font-semibold">{{ details.submission.mapName }}</h1>
-            <p class="mt-3 text-sm text-zinc-300">{{ details.submission.notes || 'No notes' }}</p>
-          </div>
-          <button class="secondary-button text-xs" type="button" @click="refreshDetails">
-            Refresh
-          </button>
-        </div>
+  <section v-if="details" class="grid gap-6">
+    <MapInfoPanel :submission="details.submission" :mappers="details.mappers" />
 
-        <div class="mt-6 space-y-3 text-sm text-zinc-300">
-          <p>Workshop URL: {{ details.submission.workshopUrl }}</p>
-          <p>Status: {{ details.submission.status }}</p>
-          <p>Mappers: {{ details.mappers.map((mapper) => mapper.displayNameSnapshot).join(', ') }}</p>
-        </div>
-      </div>
+    <ReviewPanelTabs
+      v-if="isPending && tabs.length"
+      v-model="tabMode"
+      :tabs="tabs"
+    />
 
-      <div class="panel rounded-[1.5rem] p-5">
-        <h2 class="text-xl font-semibold">Courses</h2>
-        <div class="mt-4 space-y-4">
-          <div
-            v-for="course in details.courses"
-            :key="course.id"
-            class="rounded-[1.25rem] border border-white/5 bg-white/5 p-4"
-          >
-            <div class="flex items-start justify-between gap-4">
-              <div>
-                <h3 class="text-lg font-semibold">{{ course.name }}</h3>
-                <p class="mt-2 text-sm text-muted">
-                  Mappers: {{ course.mappers.map((mapper) => mapper.displayNameSnapshot).join(', ') }}
-                </p>
-              </div>
-              <img :src="course.imageUrl" :alt="course.name" class="h-28 w-52 rounded-2xl object-cover">
-            </div>
-          </div>
-        </div>
-      </div>
+    <ApproverVoteForm
+      v-if="isPending && mode === 'vote' && hasApproverRole"
+      :key="`vote-${voteFormKey}`"
+      :submission-id="details.submission.id"
+      :courses="details.courses"
+      :votes="details.votes"
+      :current-user-id="userId"
+      @saved="onSaved"
+    />
 
-      <VoteSummaryPanel :votes="details.votes" />
-    </section>
+    <LeadDecisionPanel
+      v-if="isPending && mode === 'approve' && isLeadApprover"
+      :key="`decision-${decisionFormKey}`"
+      :submission-id="details.submission.id"
+      :courses="details.courses"
+      :votes="details.votes"
+      :current-user-id="userId"
+      @saved="onSaved"
+    />
 
-    <section class="grid gap-6">
-      <ApproverVoteForm
-        v-if="isApprover"
-        :submission-id="details.submission.id"
-        :courses="details.courses.map((course) => ({ id: course.id, name: course.name }))"
-      />
-
-      <LeadDecisionPanel
-        v-if="isLeadApprover"
-        :submission-id="details.submission.id"
-        :courses="details.courses.map((course) => ({ id: course.id, name: course.name }))"
-      />
-    </section>
-  </div>
+    <CoursesReadonly
+      v-if="showReadonlyCourses"
+      :courses="details.courses"
+    />
+  </section>
 </template>

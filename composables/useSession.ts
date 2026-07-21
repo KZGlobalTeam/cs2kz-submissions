@@ -46,6 +46,13 @@ export function useSession() {
     Boolean(session.value.user?.roles.includes('lead_approver')),
   )
 
+  // Precise check: the user holds the `approver` role specifically (not just
+  // the lead-implies-approver inheritance). Used for the Vote button/tab so a
+  // single-role lead does not get a personal vote affordance.
+  const hasApproverRole = computed(() =>
+    Boolean(session.value.user?.roles.includes('approver')),
+  )
+
   return {
     session,
     pending,
@@ -53,5 +60,6 @@ export function useSession() {
     logout,
     isApprover,
     isLeadApprover,
+    hasApproverRole,
   }
 }

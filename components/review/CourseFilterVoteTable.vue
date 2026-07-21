@@ -1,22 +1,15 @@
 <script setup lang="ts">
-const tierOptions = [
-  'very-easy',
-  'easy',
-  'medium',
-  'advanced',
-  'hard',
-  'very-hard',
-  'extreme',
-  'death',
-  'unfeasible',
-  'impossible',
- ] as const
+import { courseFilterTierValues } from '~/shared/schemas/cs2kz'
+import type { CourseFilterTier, Mode } from '~/shared/schemas/cs2kz'
+import type { SubmissionDetailVote } from '~/shared/types/submission-detail'
 
-type Tier = (typeof tierOptions)[number]
+import OtherApproverVotes from './OtherApproverVotes.vue'
+
+type Tier = CourseFilterTier
 
 interface FilterRow {
   courseId: string
-  mode: 'classic' | 'vanilla'
+  mode: Mode
   nubTier: Tier
   proTier: Tier
   isRanked: boolean
@@ -25,6 +18,8 @@ interface FilterRow {
 
 const props = defineProps<{
   modelValue: FilterRow[]
+  votes: SubmissionDetailVote[]
+  currentUserId: string
 }>()
 
 const emit = defineEmits<{
@@ -39,6 +34,19 @@ function updateRow(index: number, patch: Partial<FilterRow>) {
     ),
   )
 }
+
+// Extract values in script so templates stay free of TS `as` casts.
+function tierFromEvent(event: Event): Tier {
+  return (event.target as HTMLSelectElement).value as Tier
+}
+
+function checkedFromEvent(event: Event): boolean {
+  return (event.target as HTMLInputElement).checked
+}
+
+function textFromEvent(event: Event): string {
+  return (event.target as HTMLTextAreaElement).value
+}
 </script>
 
 <template>
@@ -52,46 +60,82 @@ function updateRow(index: number, patch: Partial<FilterRow>) {
         <p class="text-sm font-semibold">
           {{ row.mode === 'classic' ? 'CKZ' : 'VNL' }} Filter
         </p>
-        <label class="flex items-center gap-2 text-sm text-zinc-300">
-          <input
-            :checked="row.isRanked"
-            type="checkbox"
-            @change="updateRow(index, { isRanked: ($event.target as HTMLInputElement).checked })"
-          >
-          Ranked
-        </label>
+        <div class="flex items-center gap-3">
+          <OtherApproverVotes
+            :votes="votes"
+            :current-user-id="currentUserId"
+            :course-id="row.courseId"
+            :mode="row.mode"
+            field="isRanked"
+          />
+          <label class="flex items-center gap-2 text-sm text-zinc-300">
+            <input
+              :checked="row.isRanked"
+              type="checkbox"
+              @change="updateRow(index, { isRanked: checkedFromEvent($event) })"
+            >
+            Ranked
+          </label>
+        </div>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">
         <div>
-          <label class="field-label">Nub Tier</label>
+          <div class="mb-2 flex items-center justify-between">
+            <span class="text-sm text-muted">Nub Tier</span>
+            <OtherApproverVotes
+              :votes="votes"
+              :current-user-id="currentUserId"
+              :course-id="row.courseId"
+              :mode="row.mode"
+              field="nubTier"
+            />
+          </div>
           <select
             class="field-input"
             :value="row.nubTier"
-            @change="updateRow(index, { nubTier: ($event.target as HTMLSelectElement).value as Tier })"
+            @change="updateRow(index, { nubTier: tierFromEvent($event) })"
           >
-            <option v-for="tier in tierOptions" :key="tier" :value="tier">{{ tier }}</option>
+            <option v-for="tier in courseFilterTierValues" :key="tier" :value="tier">{{ tier }}</option>
           </select>
         </div>
 
         <div>
-          <label class="field-label">Pro Tier</label>
+          <div class="mb-2 flex items-center justify-between">
+            <span class="text-sm text-muted">Pro Tier</span>
+            <OtherApproverVotes
+              :votes="votes"
+              :current-user-id="currentUserId"
+              :course-id="row.courseId"
+              :mode="row.mode"
+              field="proTier"
+            />
+          </div>
           <select
             class="field-input"
             :value="row.proTier"
-            @change="updateRow(index, { proTier: ($event.target as HTMLSelectElement).value as Tier })"
+            @change="updateRow(index, { proTier: tierFromEvent($event) })"
           >
-            <option v-for="tier in tierOptions" :key="tier" :value="tier">{{ tier }}</option>
+            <option v-for="tier in courseFilterTierValues" :key="tier" :value="tier">{{ tier }}</option>
           </select>
         </div>
       </div>
 
       <div class="mt-4">
-        <label class="field-label">Notes</label>
+        <div class="mb-2 flex items-center justify-between">
+          <span class="text-sm text-muted">Notes</span>
+          <OtherApproverVotes
+            :votes="votes"
+            :current-user-id="currentUserId"
+            :course-id="row.courseId"
+            :mode="row.mode"
+            field="notes"
+          />
+        </div>
         <textarea
           class="field-input min-h-24"
           :value="row.notes"
-          @input="updateRow(index, { notes: ($event.target as HTMLTextAreaElement).value })"
+          @input="updateRow(index, { notes: textFromEvent($event) })"
         />
       </div>
     </div>

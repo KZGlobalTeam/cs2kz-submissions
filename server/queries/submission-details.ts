@@ -69,8 +69,19 @@ export async function getSubmissionDetails(submissionId: string) {
       : [],
   ])
 
+  const decisionByName = submission.decisionByUserId
+    ? (await db()
+        .select({ name: users.displayName })
+        .from(users)
+        .where(eq(users.id, submission.decisionByUserId))
+        .limit(1))[0]?.name ?? null
+    : null
+
   return {
-    submission,
+    submission: {
+      ...submission,
+      decisionByName,
+    },
     mappers,
     courses: courses.map((course) => ({
       ...course,
