@@ -27,7 +27,7 @@ const { data: releases, refresh: refreshReleases } = useAsyncData<ReleaseSummary
 )
 const { data: submissions, refresh: refreshSubmissions } = useAsyncData<SubmissionSummary[]>(
   'approved-submissions',
-  () => $fetch<SubmissionSummary[]>('/api/submissions'),
+  () => $fetch<SubmissionSummary[]>('/api/submissions', { params: { scope: 'all' } }),
   { server: false },
 )
 

@@ -1,15 +1,28 @@
 import { getQuery } from 'h3'
 import { z } from 'zod'
 
-import { listSubmissionsForUser } from '~/server/queries/list-submissions'
-import { requireAuth } from '~/server/utils/permissions'
+import { listAllSubmissions, listOwnSubmissions } from '~/server/queries/list-submissions'
+import { requireApprover, requireAuth } from '~/server/utils/permissions'
 
 const statusSchema = z.enum(['approved', 'rejected', 'pending'])
+const scopeSchema = z.enum(['mine', 'all'])
 
 export default defineEventHandler(async (event) => {
+  const rawStatus = getQuery(event).status
+  const statusParsed =
+    rawStatus === undefined ? undefined : statusSchema.safeParse(rawStatus)
+  const status = statusParsed && statusParsed.success ? statusParsed.data : undefined
+
+  const rawScope = getQuery(event).scope
+  const scopeParsed = rawScope === undefined ? undefined : scopeSchema.safeParse(rawScope)
+  const scope = scopeParsed && scopeParsed.success ? scopeParsed.data : 'mine'
+
+  if (scope === 'all') {
+    // Gated: only approvers (lead implies approver) see the full review queue.
+    await requireApprover(event)
+    return listAllSubmissions(status)
+  }
+
   const user = await requireAuth(event)
-  const raw = getQuery(event).status
-  const parsed = raw === undefined ? undefined : statusSchema.safeParse(raw)
-  const status = parsed && parsed.success ? parsed.data : undefined
-  return listSubmissionsForUser(user, status)
+  return listOwnSubmissions(user.id, status)
 })

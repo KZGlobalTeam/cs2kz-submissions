@@ -1,33 +1,29 @@
 import { and, desc, eq } from 'drizzle-orm'
 
 import { submissions } from '~/db/schema'
-import type { SessionUser, SubmissionStatus } from '~/shared/types/submission'
+import type { SubmissionStatus } from '~/shared/types/submission'
 
 import { db } from '~/server/utils/db'
 
-export async function listSubmissionsForUser(
-  user: SessionUser,
+export async function listOwnSubmissions(
+  userId: string,
   status?: SubmissionStatus,
 ) {
-  const canReview =
-    user.roles.includes('approver') || user.roles.includes('lead_approver')
-
-  const query = db()
+  return db()
     .select()
     .from(submissions)
     .where(
       status
-        ? canReview
-          ? eq(submissions.status, status)
-          : and(
-              eq(submissions.createdByUserId, user.id),
-              eq(submissions.status, status),
-            )
-        : canReview
-          ? undefined
-          : eq(submissions.createdByUserId, user.id),
+        ? and(eq(submissions.createdByUserId, userId), eq(submissions.status, status))
+        : eq(submissions.createdByUserId, userId),
     )
     .orderBy(desc(submissions.createdAt))
+}
 
-  return query
+export async function listAllSubmissions(status?: SubmissionStatus) {
+  return db()
+    .select()
+    .from(submissions)
+    .where(status ? eq(submissions.status, status) : undefined)
+    .orderBy(desc(submissions.createdAt))
 }

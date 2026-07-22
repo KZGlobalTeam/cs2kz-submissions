@@ -7,9 +7,11 @@ await callOnce(async () => {
 })
 
 const navigation = computed(() => {
-  const items = [
-    { label: isApprover.value ? 'Submissions' : 'My Submissions', to: '/submissions' },
-  ]
+  const items = [{ label: 'My Submissions', to: '/submissions' }]
+
+  if (isApprover.value) {
+    items.push({ label: 'Submissions', to: '/review' })
+  }
 
   if (isLeadApprover.value) {
     items.push({ label: 'Releases', to: '/releases' })
