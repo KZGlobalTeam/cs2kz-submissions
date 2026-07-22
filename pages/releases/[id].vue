@@ -20,14 +20,19 @@ definePageMeta({
 
 const route = useRoute()
 
-const { data: releases, status: releasesStatus } = await useAsyncData<ReleaseSummary[]>(
+const { data: releases, status: releasesStatus, refresh: refreshReleases } = await useAsyncData<ReleaseSummary[]>(
   'releases-all',
   () => $fetch<ReleaseSummary[]>('/api/releases'),
 )
-const { data: submissions, status: submissionsStatus } = await useAsyncData<SubmissionSummary[]>(
+const { data: submissions, status: submissionsStatus, refresh: refreshSubmissions } = await useAsyncData<SubmissionSummary[]>(
   'approved-submissions',
   () => $fetch<SubmissionSummary[]>('/api/submissions'),
 )
+
+function refreshAll() {
+  void refreshReleases()
+  void refreshSubmissions()
+}
 
 const currentRelease = computed(() =>
   (releases.value ?? []).find((release) => release.id === route.params.id),
@@ -59,6 +64,7 @@ const loading = computed(
       v-if="!loading"
       :release-id="String(route.params.id)"
       :approved-submissions="approvedSubmissions"
+      @refresh="refreshAll"
     />
 
     <ReleaseExportPanel :release-id="String(route.params.id)" />

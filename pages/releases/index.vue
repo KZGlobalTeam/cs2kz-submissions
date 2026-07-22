@@ -32,7 +32,17 @@ function openRelease(id: string) {
   <div class="grid gap-6">
     <ReleaseForm @created="refresh" />
 
-    <h1 class="text-2xl font-semibold">Releases</h1>
+    <div class="flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold">Releases</h1>
+      <UButton
+        icon="i-lucide-refresh-cw"
+        label="Refresh"
+        variant="outline"
+        color="neutral"
+        :loading="status === 'pending'"
+        @click="refresh"
+      />
+    </div>
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <UTable

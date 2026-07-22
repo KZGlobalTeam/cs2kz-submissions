@@ -29,7 +29,7 @@ const statusFilter = ref<string>(
   typeof route.query.status === 'string' ? route.query.status : '',
 )
 
-const { data: submissions, status } = await useAsyncData<SubmissionRow[]>(
+const { data: submissions, status, refresh } = await useAsyncData<SubmissionRow[]>(
   'submissions',
   () =>
     $fetch<SubmissionRow[]>('/api/submissions', {
@@ -91,11 +91,21 @@ function openApprove(id: string) {
   <section class="grid gap-4">
     <div class="flex items-center justify-between gap-4">
       <h1 class="text-2xl font-semibold">{{ heading }}</h1>
-      <UButton
-        to="/submissions/new"
-        icon="i-lucide-plus"
-        label="New Submission"
-      />
+      <div class="flex items-center gap-2">
+        <UButton
+          icon="i-lucide-refresh-cw"
+          label="Refresh"
+          variant="outline"
+          color="neutral"
+          :loading="status === 'pending'"
+          @click="refresh"
+        />
+        <UButton
+          to="/submissions/new"
+          icon="i-lucide-plus"
+          label="New Submission"
+        />
+      </div>
     </div>
 
     <div v-if="showStatusFilter" class="flex items-center gap-3">
