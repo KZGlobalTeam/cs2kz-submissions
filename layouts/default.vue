@@ -63,14 +63,11 @@ const navigation = computed(() => {
               v-if="!session.user"
               to="/"
               variant="outline"
-              size="sm"
               label="Sign in"
             />
             <UButton
               v-else
               variant="outline"
-              size="sm"
-              icon="i-lucide-log-out"
               label="Sign out"
               :loading="pending"
               @click="logout"

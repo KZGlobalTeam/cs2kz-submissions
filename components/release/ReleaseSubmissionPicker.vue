@@ -40,11 +40,9 @@ async function addToRelease(submission: SubmissionSummary) {
     <div class="mb-4 flex items-center justify-between gap-4">
       <h2 class="text-lg font-semibold">Approved Submissions</h2>
       <UButton
-        icon="i-lucide-refresh-cw"
         label="Refresh"
         variant="outline"
         color="neutral"
-        size="xs"
         @click="emit('refresh')"
       />
     </div>
@@ -52,9 +50,7 @@ async function addToRelease(submission: SubmissionSummary) {
       <template #actions-cell="{ row }">
         <div class="flex justify-end">
           <UButton
-            size="xs"
             variant="outline"
-            icon="i-lucide-plus"
             label="Add to release"
             :loading="adding === row.original.id"
             @click="addToRelease(row.original)"

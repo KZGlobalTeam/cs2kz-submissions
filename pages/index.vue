@@ -26,18 +26,14 @@ await callOnce(async () => {
         <div class="mt-6">
           <UButton
             v-if="!session.authenticated"
-            size="lg"
             label="Sign In With Steam"
-            icon="i-lucide-steam"
             to="/api/auth/login"
             external
           />
 
           <UButton
             v-else
-            size="lg"
             label="Enter Dashboard"
-            icon="i-lucide-arrow-right"
             to="/submissions"
           />
         </div>

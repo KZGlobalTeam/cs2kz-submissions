@@ -93,7 +93,6 @@ function openApprove(id: string) {
       <h1 class="text-2xl font-semibold">{{ heading }}</h1>
       <div class="flex items-center gap-2">
         <UButton
-          icon="i-lucide-refresh-cw"
           label="Refresh"
           variant="outline"
           color="neutral"
@@ -102,7 +101,6 @@ function openApprove(id: string) {
         />
         <UButton
           to="/submissions/new"
-          icon="i-lucide-plus"
           label="New Submission"
         />
       </div>
@@ -147,7 +145,6 @@ function openApprove(id: string) {
           <div class="flex justify-end gap-2">
             <UButton
               v-if="hasApproverRole"
-              size="xs"
               variant="outline"
               label="Vote"
               :disabled="row.original.status !== 'pending'"
@@ -155,7 +152,6 @@ function openApprove(id: string) {
             />
             <UButton
               v-if="isLeadApprover"
-              size="xs"
               label="Approve"
               :disabled="row.original.status !== 'pending'"
               @click="openApprove(row.original.id)"

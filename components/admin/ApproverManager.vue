@@ -82,14 +82,13 @@ const roleColor = (role: string) =>
         <UFormField label="Role" name="role" required>
           <USelect v-model="form.role" :items="roleOptions" value-key="value" class="w-full" />
         </UFormField>
-        <UButton type="submit" label="Save" icon="i-lucide-plus" :loading="creating" />
+        <UButton type="submit" label="Save" :loading="creating" />
       </UForm>
     </UCard>
 
     <div class="flex items-center justify-between gap-4">
       <h1 class="text-2xl font-semibold">Approvers</h1>
       <UButton
-        icon="i-lucide-refresh-cw"
         label="Refresh"
         variant="outline"
         color="neutral"
@@ -107,10 +106,9 @@ const roleColor = (role: string) =>
         <template #actions-cell="{ row }">
           <div class="flex justify-end">
             <UButton
-              size="xs"
               variant="ghost"
               color="error"
-              icon="i-lucide-trash"
+              label="Remove"
               :loading="removing === `${row.original.steamId64}-${row.original.role}`"
               @click="removeApprover(row.original)"
             />

@@ -34,9 +34,7 @@ function removeMapper(index: number) {
     <div class="mb-3 flex items-center justify-between">
       <h3 class="text-sm font-semibold">{{ label }}</h3>
       <UButton
-        size="xs"
         variant="outline"
-        icon="i-lucide-plus"
         label="Add Mapper"
         @click="addMapper"
       />
@@ -59,10 +57,9 @@ function removeMapper(index: number) {
           @update:model-value="updateMapper(index, 'steamId64', $event)"
         />
         <UButton
-          size="xs"
           variant="ghost"
           color="error"
-          icon="i-lucide-trash"
+          label="Remove"
           :disabled="modelValue.length === 1"
           @click="removeMapper(index)"
         />

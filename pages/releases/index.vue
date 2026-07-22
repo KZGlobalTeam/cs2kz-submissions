@@ -35,7 +35,6 @@ function openRelease(id: string) {
     <div class="flex items-center justify-between gap-4">
       <h1 class="text-2xl font-semibold">Releases</h1>
       <UButton
-        icon="i-lucide-refresh-cw"
         label="Refresh"
         variant="outline"
         color="neutral"
@@ -67,9 +66,8 @@ function openRelease(id: string) {
         <template #actions-cell="{ row }">
           <div class="flex justify-end">
             <UButton
-              size="xs"
               variant="outline"
-              icon="i-lucide-arrow-right"
+              label="Open"
               @click="openRelease(row.original.id)"
             />
           </div>

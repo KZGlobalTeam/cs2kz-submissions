@@ -239,7 +239,6 @@ async function submitDecision() {
       <div class="flex justify-end">
         <UButton
           label="Submit Approval"
-          icon="i-lucide-check"
           :loading="saving"
           :disabled="!canSubmit"
           @click="submitDecision"

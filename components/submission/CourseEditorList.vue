@@ -44,7 +44,6 @@ function addCourse() {
       <h2 class="text-lg font-semibold">Courses</h2>
       <UButton
         variant="outline"
-        icon="i-lucide-plus"
         label="Add Course"
         @click="addCourse"
       />

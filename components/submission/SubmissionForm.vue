@@ -109,7 +109,6 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       <UButton
         type="submit"
         label="Submit"
-        icon="i-lucide-send"
         :loading="submitting"
       />
     </div>

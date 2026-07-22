@@ -78,10 +78,8 @@ async function onFileChange(event: Event) {
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-lg font-semibold">Course {{ index + 1 }}</h3>
       <UButton
-        size="xs"
         variant="ghost"
         color="error"
-        icon="i-lucide-trash"
         label="Remove Course"
         @click="emit('remove')"
       />

@@ -35,7 +35,6 @@ async function createRelease() {
       <div class="flex justify-end">
         <UButton
           label="Create Release"
-          icon="i-lucide-plus"
           :loading="creating"
           @click="createRelease"
         />

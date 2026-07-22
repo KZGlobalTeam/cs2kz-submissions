@@ -121,7 +121,6 @@ async function submitVote() {
       <div class="flex justify-end">
         <UButton
           label="Save Vote"
-          icon="i-lucide-save"
           :loading="saving"
           @click="submitVote"
         />
