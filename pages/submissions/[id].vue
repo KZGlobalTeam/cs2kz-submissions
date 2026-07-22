@@ -18,13 +18,14 @@ const { session, hasApproverRole, isLeadApprover, refreshSession } = useSession(
 
 const submissionId = computed(() => String(route.params.id))
 
-await callOnce(async () => {
+void callOnce(async () => {
   await refreshSession()
 })
 
-const { data: details, status, refresh } = await useAsyncData<SubmissionDetailResponse>(
+const { data: details, refresh } = useAsyncData<SubmissionDetailResponse>(
   `submission-${submissionId.value}`,
   () => $fetch<SubmissionDetailResponse>(`/api/submissions/${submissionId.value}`),
+  { server: false },
 )
 
 function refreshDetails() {
@@ -90,7 +91,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section v-if="status === 'pending'" class="grid gap-6">
+  <section v-if="!details" class="grid gap-6">
     <UCard>
       <div class="flex items-center gap-3 text-muted">
         <UIcon name="i-lucide-loader-circle" class="animate-spin" />

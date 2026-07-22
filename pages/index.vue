@@ -5,9 +5,14 @@ definePageMeta({
 
 const { session, refreshSession } = useSession()
 
-await callOnce(async () => {
-  await refreshSession()
-})
+const checking = ref(true)
+
+void (async () => {
+  await callOnce(async () => {
+    await refreshSession()
+  })
+  checking.value = false
+})()
 </script>
 
 <template>
@@ -23,7 +28,12 @@ await callOnce(async () => {
       <section class="rounded-lg border border-white/5 bg-panel/60 p-8">
         <h2 class="text-xl font-semibold">Steam Login</h2>
 
-        <div class="mt-6">
+        <div v-if="checking" class="mt-6 flex items-center gap-3 text-muted">
+          <UIcon name="i-lucide-loader-circle" class="animate-spin" />
+          <span class="text-sm">Checking session…</span>
+        </div>
+
+        <div v-else class="mt-6">
           <UButton
             v-if="!session.authenticated"
             label="Sign In With Steam"

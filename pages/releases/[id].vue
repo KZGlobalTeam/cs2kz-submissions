@@ -20,13 +20,15 @@ definePageMeta({
 
 const route = useRoute()
 
-const { data: releases, status: releasesStatus, refresh: refreshReleases } = await useAsyncData<ReleaseSummary[]>(
+const { data: releases, refresh: refreshReleases } = useAsyncData<ReleaseSummary[]>(
   'releases-all',
   () => $fetch<ReleaseSummary[]>('/api/releases'),
+  { server: false },
 )
-const { data: submissions, status: submissionsStatus, refresh: refreshSubmissions } = await useAsyncData<SubmissionSummary[]>(
+const { data: submissions, refresh: refreshSubmissions } = useAsyncData<SubmissionSummary[]>(
   'approved-submissions',
   () => $fetch<SubmissionSummary[]>('/api/submissions'),
+  { server: false },
 )
 
 function refreshAll() {
@@ -43,7 +45,7 @@ const approvedSubmissions = computed(() =>
 )
 
 const loading = computed(
-  () => releasesStatus.value === 'pending' || submissionsStatus.value === 'pending',
+  () => !releases.value || !submissions.value,
 )
 </script>
 

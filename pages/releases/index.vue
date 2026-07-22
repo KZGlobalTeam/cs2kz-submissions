@@ -12,9 +12,10 @@ interface ReleaseRow {
   notes: string | null
 }
 
-const { data: releases, status, refresh } = await useAsyncData<ReleaseRow[]>(
+const { data: releases, status, refresh } = useAsyncData<ReleaseRow[]>(
   'releases',
   () => $fetch<ReleaseRow[]>('/api/releases'),
+  { server: false },
 )
 
 const columns: TableColumn<ReleaseRow>[] = [
@@ -39,7 +40,7 @@ function openRelease(id: string) {
         variant="outline"
         color="neutral"
         :loading="status === 'pending'"
-        @click="refresh"
+        @click="() => refresh()"
       />
     </div>
 

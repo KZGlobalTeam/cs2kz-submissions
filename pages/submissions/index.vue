@@ -29,13 +29,13 @@ const statusFilter = ref<string>(
   typeof route.query.status === 'string' ? route.query.status : '',
 )
 
-const { data: submissions, status, refresh } = await useAsyncData<SubmissionRow[]>(
+const { data: submissions, status, refresh } = useAsyncData<SubmissionRow[]>(
   'submissions',
   () =>
     $fetch<SubmissionRow[]>('/api/submissions', {
       params: statusFilter.value ? { status: statusFilter.value } : undefined,
     }),
-  { watch: [statusFilter] },
+  { watch: [statusFilter], server: false },
 )
 
 watch(statusFilter, (value) => {
@@ -97,7 +97,7 @@ function openApprove(id: string) {
           variant="outline"
           color="neutral"
           :loading="status === 'pending'"
-          @click="refresh"
+          @click="() => refresh()"
         />
         <UButton
           to="/submissions/new"

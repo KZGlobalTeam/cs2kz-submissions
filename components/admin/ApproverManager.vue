@@ -8,9 +8,10 @@ interface ApproverRow {
   role: 'approver' | 'lead_approver'
 }
 
-const { data: approvers, status, refresh } = await useAsyncData<ApproverRow[]>(
+const { data: approvers, status, refresh } = useAsyncData<ApproverRow[]>(
   'approvers',
   () => $fetch<ApproverRow[]>('/api/admin/approvers'),
+  { server: false },
 )
 
 const schema = z.object({
@@ -93,7 +94,7 @@ const roleColor = (role: string) =>
         variant="outline"
         color="neutral"
         :loading="status === 'pending'"
-        @click="refresh"
+        @click="() => refresh()"
       />
     </div>
 
