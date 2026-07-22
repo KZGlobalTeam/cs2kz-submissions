@@ -56,6 +56,9 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
       },
     })
 
+    // Drop the cached submissions list so the index page refetches (and shows
+    // the table loading state) instead of rendering the stale list.
+    clearNuxtData('submissions')
     await navigateTo('/submissions')
   } finally {
     submitting.value = false
