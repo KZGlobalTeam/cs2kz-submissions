@@ -18,29 +18,37 @@ const route = useRoute()
 const router = useRouter()
 const { isApprover, hasApproverRole, isLeadApprover } = useSession()
 
+const ALL = 'all'
+
 const statusOptions = [
-  { label: 'All', value: '' },
+  { label: 'All', value: ALL },
   { label: 'Approved', value: 'approved' },
   { label: 'Rejected', value: 'rejected' },
   { label: 'Pending', value: 'pending' },
 ]
 
+const isAll = (value: string) => !value || value === ALL
+
 const statusFilter = ref<string>(
-  typeof route.query.status === 'string' ? route.query.status : '',
+  isAll(typeof route.query.status === 'string' ? route.query.status : '')
+    ? ALL
+    : route.query.status as string,
 )
 
 const { data: submissions, status, refresh } = useAsyncData<SubmissionRow[]>(
   'submissions',
   () =>
     $fetch<SubmissionRow[]>('/api/submissions', {
-      params: statusFilter.value ? { status: statusFilter.value } : undefined,
+      params: isAll(statusFilter.value) ? undefined : { status: statusFilter.value },
     }),
   { watch: [statusFilter], server: false },
 )
 
 watch(statusFilter, (value) => {
   void router.replace({
-    query: value ? { ...route.query, status: value } : { ...route.query, status: undefined },
+    query: isAll(value)
+      ? { ...route.query, status: undefined }
+      : { ...route.query, status: value },
   })
 })
 
