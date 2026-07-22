@@ -18,6 +18,7 @@ interface FilterRow {
   proTier: Tier
   isRanked: boolean
   notes: string
+  enabled: boolean
 }
 
 const props = defineProps<{
@@ -79,7 +80,7 @@ function setEnabled(index: number, value: boolean) {
         <UCheckbox
           :model-value="row.enabled"
           label="Vote on this filter"
-          @update:model-value="setEnabled(index, $event)"
+          @update:model-value="setEnabled(index, $event === true)"
         />
       </div>
 

@@ -28,7 +28,6 @@ export interface ExistingVote {
     proTier: CourseFilterTier
     isRanked: boolean
     notes: string | null
-    enabled: boolean
   }>
 }
 
