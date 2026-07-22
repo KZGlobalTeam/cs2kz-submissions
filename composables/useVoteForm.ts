@@ -10,6 +10,10 @@ export interface VoteFormFilter {
   proTier: CourseFilterTier
   isRanked: boolean
   notes: string
+  /** When false, the approver skips this filter: its fields are hidden and it
+   *  is excluded from the submitted vote. Not persisted as a column — seeded
+   *  from whether a matching filter exists in the prior vote (see seedFilters). */
+  enabled: boolean
 }
 
 /** A previously-persisted vote used to prefill the form (notes is nullable on the wire). */
@@ -24,6 +28,7 @@ export interface ExistingVote {
     proTier: CourseFilterTier
     isRanked: boolean
     notes: string | null
+    enabled: boolean
   }>
 }
 
@@ -46,6 +51,7 @@ function seedFilters(
         proTier: match?.proTier ?? DEFAULT_TIER,
         isRanked: match?.isRanked ?? false,
         notes: match?.notes ?? '',
+        enabled: match ? true : existing ? false : true,
       }
     }),
   )

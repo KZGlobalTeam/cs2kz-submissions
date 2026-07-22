@@ -60,6 +60,10 @@ function setProTier(index: number, value: string) {
 function setRanked(index: number, value: string) {
   updateRow(index, { isRanked: value === 'true' })
 }
+
+function setEnabled(index: number, value: boolean) {
+  updateRow(index, { enabled: value })
+}
 </script>
 
 <template>
@@ -68,11 +72,18 @@ function setRanked(index: number, value: string) {
       v-for="(row, index) in modelValue"
       :key="`${row.courseId}-${row.mode}`"
     >
-      <p class="mb-3 text-sm font-semibold">
-        {{ row.mode === 'classic' ? 'CKZ' : 'VNL' }} Filter
-      </p>
+      <div class="mb-3 flex items-center gap-3">
+        <p class="text-sm font-semibold">
+          {{ row.mode === 'classic' ? 'CKZ' : 'VNL' }} Filter
+        </p>
+        <UCheckbox
+          :model-value="row.enabled"
+          label="Vote on this filter"
+          @update:model-value="setEnabled(index, $event)"
+        />
+      </div>
 
-      <div class="space-y-3">
+      <div v-if="row.enabled" class="space-y-3">
         <div>
           <div class="flex items-center gap-4">
             <span class="w-28 shrink-0 text-sm text-muted">Ranked Status</span>

@@ -49,8 +49,11 @@ function updateCourseFilters(courseId: string, rows: VoteFormFilter[]) {
 
 function validateForm(): string | null {
   for (const filter of form.filters) {
+    if (!filter.enabled) {
+      continue
+    }
     if (!filter.notes.trim()) {
-      return 'Reasoning of Tier is required for every filter.'
+      return 'Reasoning of Tier is required for every enabled filter.'
     }
   }
 
@@ -81,10 +84,16 @@ async function submitVote() {
       body: {
         approvalDecision: form.approvalDecision,
         rejectionReason: form.approvalDecision === 'no' ? (form.rejectionReason || null) : null,
-        filters: form.filters.map((filter) => ({
-          ...filter,
-          notes: filter.notes || null,
-        })),
+        filters: form.filters
+          .filter((filter) => filter.enabled)
+          .map((filter) => ({
+            courseId: filter.courseId,
+            mode: filter.mode,
+            nubTier: filter.nubTier,
+            proTier: filter.proTier,
+            isRanked: filter.isRanked,
+            notes: filter.notes || null,
+          })),
       },
     })
     emit('saved')
