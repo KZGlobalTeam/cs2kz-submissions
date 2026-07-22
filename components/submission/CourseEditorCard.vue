@@ -27,12 +27,32 @@ async function onFileChange(event: Event) {
     return
   }
 
-  const bitmap = await createImageBitmap(file)
-  if (file.type !== 'image/jpeg' || bitmap.width !== 1920 || bitmap.height !== 1080) {
+  if (file.type !== 'image/jpeg') {
     toast.add({
       color: 'error',
       title: 'Invalid image',
-      description: 'Course image must be a JPG at 1920x1080.',
+      description: 'The image must be in JPG format with a resolution of 1920 × 1080.',
+    })
+    return
+  }
+
+  let bitmap: ImageBitmap
+  try {
+    bitmap = await createImageBitmap(file)
+  } catch {
+    toast.add({
+      color: 'error',
+      title: 'Invalid image',
+      description: 'The image must be in JPG format with a resolution of 1920 × 1080.',
+    })
+    return
+  }
+
+  if (bitmap.width !== 1920 || bitmap.height !== 1080) {
+    toast.add({
+      color: 'error',
+      title: 'Invalid image',
+      description: 'The image must be in JPG format with a resolution of 1920 × 1080.',
     })
     return
   }
@@ -77,21 +97,30 @@ async function onFileChange(event: Event) {
         />
       </UFormField>
 
-      <UFormField label="Course Image (JPG, 1920x1080)" required>
+      <UFormField
+        label="Course Image"
+        description="The image must be in JPG format with a resolution of 1920 × 1080"
+        required
+      >
         <UInput
           type="file"
           accept=".jpg,.jpeg,image/jpeg"
           :ui="{ base: 'file:mr-3 file:rounded-md file:border-0 file:bg-white/5 file:px-3 file:py-1' }"
           @change="onFileChange"
         />
-        <p class="mt-2 flex items-center gap-2 text-xs text-muted">
+        <p v-if="uploading" class="mt-2 flex items-center gap-2 text-xs text-muted">
           <UIcon
-            v-if="uploading"
             name="i-lucide-loader-circle"
             class="animate-spin"
           />
-          <span>{{ uploading ? 'Uploading…' : (course.image?.url ?? 'No image uploaded yet') }}</span>
+          <span>Uploading…</span>
         </p>
+        <img
+          v-if="course.image?.url"
+          :src="course.image.url"
+          alt="Course image preview"
+          class="mt-2 h-auto max-h-48 w-auto rounded-md border border-white/10"
+        >
       </UFormField>
 
       <MapperListField

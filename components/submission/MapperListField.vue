@@ -30,7 +30,7 @@ function removeMapper(index: number) {
 </script>
 
 <template>
-  <section class="rounded-lg border border-white/5 bg-white/3 p-4">
+  <section>
     <div class="mb-3 flex items-center justify-between">
       <h3 class="text-sm font-semibold">{{ label }}</h3>
       <UButton
