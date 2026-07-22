@@ -1,47 +1,38 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import type { SubmissionStatus } from '~/shared/types/submission'
+import type { ReviewSubmissionRow, SubmissionStatus } from '~/shared/types/submission'
 
 definePageMeta({
   middleware: ['auth', 'approver'],
 })
 
-interface SubmissionRow {
-  id: string
-  mapName: string
-  workshopId: number
-  status: SubmissionStatus
-  createdAt: string
-}
+const VALID_STATUSES: readonly SubmissionStatus[] = ['pending', 'approved', 'rejected']
 
 const route = useRoute()
 const router = useRouter()
 const { hasApproverRole, isLeadApprover } = useSession()
 
-const ALL = 'all'
-
 const statusOptions = [
-  { label: 'All', value: ALL },
+  { label: 'Pending', value: 'pending' },
   { label: 'Approved', value: 'approved' },
   { label: 'Rejected', value: 'rejected' },
-  { label: 'Pending', value: 'pending' },
 ]
 
-const isAll = (value: string) => !value || value === ALL
+function coerceStatus(value: unknown): SubmissionStatus {
+  return typeof value === 'string' && (VALID_STATUSES as readonly string[]).includes(value)
+    ? (value as SubmissionStatus)
+    : 'pending'
+}
 
-const statusFilter = ref<string>(
-  isAll(typeof route.query.status === 'string' ? route.query.status : '')
-    ? ALL
-    : route.query.status as string,
-)
+const statusFilter = ref<SubmissionStatus>(coerceStatus(route.query.status))
 
-const { data: submissions, status, refresh } = useAsyncData<SubmissionRow[]>(
+const { data: submissions, status, refresh } = useAsyncData<ReviewSubmissionRow[]>(
   'review-submissions',
   () =>
-    $fetch<SubmissionRow[]>('/api/submissions', {
+    $fetch<ReviewSubmissionRow[]>('/api/submissions', {
       params: {
         scope: 'all',
-        ...(isAll(statusFilter.value) ? {} : { status: statusFilter.value }),
+        status: statusFilter.value,
       },
     }),
   { watch: [statusFilter], server: false },
@@ -49,22 +40,23 @@ const { data: submissions, status, refresh } = useAsyncData<SubmissionRow[]>(
 
 watch(statusFilter, (value) => {
   void router.replace({
-    query: isAll(value)
-      ? { ...route.query, status: undefined }
-      : { ...route.query, status: value },
+    query: { ...route.query, status: value === 'pending' ? undefined : value },
   })
 })
 
-const columns = computed<TableColumn<SubmissionRow>[]>(() => {
-  const cols: TableColumn<SubmissionRow>[] = [
+const columns = computed<TableColumn<ReviewSubmissionRow>[]>(() => {
+  const cols: TableColumn<ReviewSubmissionRow>[] = [
     { accessorKey: 'mapName', header: 'Map Name' },
     { accessorKey: 'workshopId', header: 'Workshop ID' },
+    { accessorKey: 'mappers', header: 'Mappers' },
     {
       accessorKey: 'createdAt',
       header: 'Created',
       cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
     },
     { accessorKey: 'status', header: 'Status' },
+    { accessorKey: 'voteCount', header: 'Votes' },
+    { accessorKey: 'myVote', header: 'My Vote' },
   ]
 
   if (hasApproverRole.value || isLeadApprover.value) {
@@ -132,6 +124,35 @@ function openApprove(id: string) {
             :label="row.original.mapName"
             @click="openSubmission(row.original.id)"
           />
+        </template>
+
+        <template #workshopId-cell="{ row }">
+          <a
+            :href="row.original.workshopUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-500 underline hover:text-blue-400"
+          >
+            {{ row.original.workshopId }}
+          </a>
+        </template>
+
+        <template #mappers-cell="{ row }">
+          <span>{{ row.original.mappers.length ? row.original.mappers.join(', ') : '—' }}</span>
+        </template>
+
+        <template #voteCount-cell="{ row }">
+          <span>{{ row.original.voteCount }}</span>
+        </template>
+
+        <template #myVote-cell="{ row }">
+          <UBadge
+            v-if="row.original.myVote"
+            color="success"
+            label="Voted"
+            variant="subtle"
+          />
+          <span v-else class="text-muted">—</span>
         </template>
 
         <template #status-cell="{ row }">

@@ -88,6 +88,18 @@ export interface ReleaseExportMap {
   }>
 }
 
+export interface ReviewSubmissionRow {
+  id: string
+  mapName: string
+  workshopId: number
+  workshopUrl: string
+  status: SubmissionStatus
+  createdAt: string
+  mappers: string[]
+  voteCount: number
+  myVote: boolean
+}
+
 export interface SessionUser {
   id: string
   steamId64: string
