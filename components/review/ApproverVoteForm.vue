@@ -25,6 +25,8 @@ const selfVote = props.votes.find(
 )
 const { form } = useVoteForm(props.courses, selfVote)
 const saving = shallowRef(false)
+const toast = useToast()
+const validationError = ref<string | null>(null)
 
 const decisionOptions = [
   { label: 'Yes', value: 'yes' },
@@ -45,7 +47,33 @@ function updateCourseFilters(courseId: string, rows: VoteFormFilter[]) {
   ]
 }
 
+function validateForm(): string | null {
+  for (const filter of form.filters) {
+    if (!filter.notes.trim()) {
+      return 'Reasoning of Tier is required for every filter.'
+    }
+  }
+
+  if (form.approvalDecision === 'no' && !form.rejectionReason.trim()) {
+    return 'Rejection Reason is required when Status of Approval is No.'
+  }
+
+  return null
+}
+
 async function submitVote() {
+  const error = validateForm()
+  if (error) {
+    validationError.value = error
+    toast.add({
+      color: 'error',
+      title: 'Validation error',
+      description: error,
+    })
+    return
+  }
+
+  validationError.value = null
   saving.value = true
   try {
     await $fetch(`/api/submissions/${props.submissionId}/vote`, {
@@ -53,7 +81,6 @@ async function submitVote() {
       body: {
         approvalDecision: form.approvalDecision,
         rejectionReason: form.approvalDecision === 'no' ? (form.rejectionReason || null) : null,
-        rejectionExplanation: form.approvalDecision === 'no' ? (form.rejectionExplanation || null) : null,
         filters: form.filters.map((filter) => ({
           ...filter,
           notes: filter.notes || null,
@@ -68,63 +95,54 @@ async function submitVote() {
 </script>
 
 <template>
-  <UCard>
-    <h2 class="mb-4 text-xl font-semibold">Approver Vote</h2>
-
-    <div class="space-y-6">
-      <div
-        v-for="entry in courseFilters"
-        :key="entry.course.id"
-        class="rounded-lg border border-white/5 bg-white/3 p-4"
+  <div class="space-y-6">
+    <UCard
+      v-for="entry in courseFilters"
+      :key="entry.course.id"
+      :ui="{ body: 'p-4 sm:p-4' }"
+    >
+      <h3 class="mb-3 text-lg font-semibold">{{ entry.course.name }}</h3>
+      <img
+        :src="entry.course.imageUrl"
+        :alt="entry.course.name"
+        class="mb-4 h-40 w-full rounded-md object-cover"
       >
-        <div class="mb-4 flex items-start justify-between gap-4">
-          <h3 class="text-lg font-semibold">{{ entry.course.name }}</h3>
-          <img :src="entry.course.imageUrl" :alt="entry.course.name" class="h-20 w-36 rounded-md object-cover">
-        </div>
 
-        <CourseFilterVoteTable
-          :model-value="entry.filters"
-          :votes="votes"
-          :current-user-id="currentUserId"
-          @update:model-value="updateCourseFilters(entry.course.id, $event)"
-        />
+      <CourseFilterVoteTable
+        :model-value="entry.filters"
+        :votes="votes"
+        :current-user-id="currentUserId"
+        @update:model-value="updateCourseFilters(entry.course.id, $event)"
+      />
+    </UCard>
+
+    <UCard :ui="{ body: 'p-4 sm:p-4' }">
+      <p class="mb-2 text-sm font-semibold">Status of Approval</p>
+      <URadioGroup
+        v-model="form.approvalDecision"
+        :items="decisionOptions"
+        value-key="value"
+        orientation="horizontal"
+      />
+
+      <div class="mt-3">
+        <VoteSummaryPanel :votes="votes" :exclude-user-id="currentUserId" />
       </div>
 
-      <div class="rounded-lg border border-white/5 bg-white/3 p-4">
-        <p class="mb-2 text-sm font-semibold">Status of Approval</p>
-        <URadioGroup
-          v-model="form.approvalDecision"
-          :items="decisionOptions"
-          value-key="value"
-          orientation="horizontal"
-        />
-
-        <div class="mt-3">
-          <VoteSummaryPanel :votes="votes" :exclude-user-id="currentUserId" />
-        </div>
-
-        <div v-if="form.approvalDecision === 'no'" class="mt-4 space-y-3">
-          <UFormField label="Rejection Reason" required>
-            <UInput v-model="form.rejectionReason" placeholder="Reason" class="w-full" />
-          </UFormField>
-          <UFormField label="Explanation">
-            <UTextarea
-              v-model="form.rejectionExplanation"
-              :rows="3"
-              placeholder="Explain why the map should not be approved"
-              class="w-full"
-            />
-          </UFormField>
-        </div>
+      <div v-if="form.approvalDecision === 'no'" class="mt-4 space-y-3">
+        <UFormField label="Rejection Reason" required>
+          <UInput v-model="form.rejectionReason" placeholder="Reason" class="w-full" />
+        </UFormField>
       </div>
+    </UCard>
 
-      <div class="flex justify-end">
-        <UButton
-          label="Save Vote"
-          :loading="saving"
-          @click="submitVote"
-        />
-      </div>
+    <div class="flex flex-col items-end gap-2">
+      <p v-if="validationError" class="text-sm text-error">{{ validationError }}</p>
+      <UButton
+        label="Save Vote"
+        :loading="saving"
+        @click="submitVote"
+      />
     </div>
-  </UCard>
+  </div>
 </template>

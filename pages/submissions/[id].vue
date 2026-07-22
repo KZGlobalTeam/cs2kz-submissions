@@ -78,6 +78,10 @@ async function onSaved() {
   await refreshDetails()
 }
 
+async function onVoteSaved() {
+  await navigateTo('/review')
+}
+
 onMounted(() => {
   const query = route.query.mode
   if (
@@ -110,7 +114,7 @@ onMounted(() => {
       :courses="details.courses"
       :votes="details.votes"
       :current-user-id="userId"
-      @saved="onSaved"
+      @saved="onVoteSaved"
     />
 
     <LeadDecisionPanel

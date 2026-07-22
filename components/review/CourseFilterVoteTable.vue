@@ -63,17 +63,18 @@ function setRanked(index: number, value: string) {
 </script>
 
 <template>
-  <div class="space-y-3">
+  <div class="space-y-5">
     <div
       v-for="(row, index) in modelValue"
       :key="`${row.courseId}-${row.mode}`"
-      class="rounded-lg border border-white/5 bg-black/20 p-4"
     >
-      <div class="mb-3 flex items-center justify-between gap-3">
-        <p class="text-sm font-semibold">
-          {{ row.mode === 'classic' ? 'CKZ' : 'VNL' }} Filter
-        </p>
+      <p class="mb-3 text-sm font-semibold">
+        {{ row.mode === 'classic' ? 'CKZ' : 'VNL' }} Filter
+      </p>
+
+      <div class="space-y-3">
         <div class="flex items-center gap-4">
+          <span class="w-28 shrink-0 text-sm text-muted">Ranked Status</span>
           <OtherApproverVotes
             :votes="votes"
             :current-user-id="currentUserId"
@@ -89,20 +90,16 @@ function setRanked(index: number, value: string) {
             @update:model-value="setRanked(index, $event)"
           />
         </div>
-      </div>
 
-      <div class="space-y-3">
-        <div>
-          <div class="mb-1.5 flex items-center justify-between gap-2">
-            <span class="text-sm text-muted">Nub Tier</span>
-            <OtherApproverVotes
-              :votes="votes"
-              :current-user-id="currentUserId"
-              :course-id="row.courseId"
-              :mode="row.mode"
-              field="nubTier"
-            />
-          </div>
+        <div class="flex items-center gap-4">
+          <span class="w-28 shrink-0 text-sm text-muted">Nub Tier</span>
+          <OtherApproverVotes
+            :votes="votes"
+            :current-user-id="currentUserId"
+            :course-id="row.courseId"
+            :mode="row.mode"
+            field="nubTier"
+          />
           <USelect
             :model-value="String(tierToNumber(row.nubTier))"
             :items="tierOptions"
@@ -112,17 +109,15 @@ function setRanked(index: number, value: string) {
           />
         </div>
 
-        <div>
-          <div class="mb-1.5 flex items-center justify-between gap-2">
-            <span class="text-sm text-muted">Pro Tier</span>
-            <OtherApproverVotes
-              :votes="votes"
-              :current-user-id="currentUserId"
-              :course-id="row.courseId"
-              :mode="row.mode"
-              field="proTier"
-            />
-          </div>
+        <div class="flex items-center gap-4">
+          <span class="w-28 shrink-0 text-sm text-muted">Pro Tier</span>
+          <OtherApproverVotes
+            :votes="votes"
+            :current-user-id="currentUserId"
+            :course-id="row.courseId"
+            :mode="row.mode"
+            field="proTier"
+          />
           <USelect
             :model-value="String(tierToNumber(row.proTier))"
             :items="tierOptions"
@@ -132,9 +127,8 @@ function setRanked(index: number, value: string) {
           />
         </div>
 
-        <div>
-          <div class="mb-1.5 flex items-center justify-between gap-2">
-            <span class="text-sm text-muted">Notes</span>
+        <UFormField label="Reasoning of Tier" required class="w-full">
+          <div class="mb-1.5 flex items-center gap-2">
             <OtherApproverVotes
               :votes="votes"
               :current-user-id="currentUserId"
@@ -149,7 +143,7 @@ function setRanked(index: number, value: string) {
             class="w-full"
             @update:model-value="updateRow(index, { notes: $event })"
           />
-        </div>
+        </UFormField>
       </div>
     </div>
   </div>

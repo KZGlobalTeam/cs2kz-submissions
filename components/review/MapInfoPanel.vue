@@ -41,7 +41,7 @@ const statusColor = computed(() =>
     <div class="flex items-start justify-between gap-4">
       <div>
         <h1 class="text-2xl font-semibold">{{ submission.mapName }}</h1>
-        <p class="mt-2 text-sm text-zinc-300">{{ submission.notes || 'No notes' }}</p>
+        <p v-if="submission.notes" class="mt-2 text-sm text-zinc-300">{{ submission.notes }}</p>
       </div>
       <UBadge :color="statusColor" :label="submission.status" variant="subtle" />
     </div>
@@ -49,7 +49,7 @@ const statusColor = computed(() =>
     <div class="mt-4 space-y-1 text-sm text-zinc-300">
       <p>
         Workshop URL:
-        <a :href="submission.workshopUrl" target="_blank" rel="noopener noreferrer" class="text-accent">{{ submission.workshopUrl }}</a>
+        <a :href="submission.workshopUrl" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline hover:text-blue-400">{{ submission.workshopUrl }}</a>
       </p>
       <p>Mappers: {{ mapperNames }}</p>
     </div>

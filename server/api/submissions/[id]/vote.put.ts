@@ -39,7 +39,7 @@ const bodySchema = z
   .object({
     approvalDecision: z.enum(['yes', 'no']),
     rejectionReason: z.string().nullable(),
-    rejectionExplanation: z.string().nullable(),
+    rejectionExplanation: z.string().nullable().optional().default(null),
     filters: z.array(filterSchema),
   })
   .superRefine((value, ctx) => {
