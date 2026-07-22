@@ -83,6 +83,4 @@ const navigation = computed(() => {
       </div>
     </div>
   </div>
-
-  <UNotifications />
 </template>
