@@ -73,75 +73,84 @@ function setRanked(index: number, value: string) {
       </p>
 
       <div class="space-y-3">
-        <div class="flex items-center gap-4">
-          <span class="w-28 shrink-0 text-sm text-muted">Ranked Status</span>
+        <div>
+          <div class="flex items-center gap-4">
+            <span class="w-28 shrink-0 text-sm text-muted">Ranked Status</span>
+            <URadioGroup
+              :model-value="row.isRanked ? 'true' : 'false'"
+              :items="rankedOptions"
+              value-key="value"
+              orientation="horizontal"
+              @update:model-value="setRanked(index, $event)"
+            />
+          </div>
           <OtherApproverVotes
             :votes="votes"
             :current-user-id="currentUserId"
             :course-id="row.courseId"
             :mode="row.mode"
             field="isRanked"
-          />
-          <URadioGroup
-            :model-value="row.isRanked ? 'true' : 'false'"
-            :items="rankedOptions"
-            value-key="value"
-            orientation="horizontal"
-            @update:model-value="setRanked(index, $event)"
+            class="mt-2"
           />
         </div>
 
-        <div class="flex items-center gap-4">
-          <span class="w-28 shrink-0 text-sm text-muted">Nub Tier</span>
+        <div>
+          <div class="flex items-center gap-4">
+            <span class="w-28 shrink-0 text-sm text-muted">Nub Tier</span>
+            <USelect
+              :model-value="String(tierToNumber(row.nubTier))"
+              :items="tierOptions"
+              value-key="value"
+              class="w-32"
+              @update:model-value="setNubTier(index, $event)"
+            />
+          </div>
           <OtherApproverVotes
             :votes="votes"
             :current-user-id="currentUserId"
             :course-id="row.courseId"
             :mode="row.mode"
             field="nubTier"
-          />
-          <USelect
-            :model-value="String(tierToNumber(row.nubTier))"
-            :items="tierOptions"
-            value-key="value"
-            class="w-32"
-            @update:model-value="setNubTier(index, $event)"
+            class="mt-2"
           />
         </div>
 
-        <div class="flex items-center gap-4">
-          <span class="w-28 shrink-0 text-sm text-muted">Pro Tier</span>
+        <div>
+          <div class="flex items-center gap-4">
+            <span class="w-28 shrink-0 text-sm text-muted">Pro Tier</span>
+            <USelect
+              :model-value="String(tierToNumber(row.proTier))"
+              :items="tierOptions"
+              value-key="value"
+              class="w-32"
+              @update:model-value="setProTier(index, $event)"
+            />
+          </div>
           <OtherApproverVotes
             :votes="votes"
             :current-user-id="currentUserId"
             :course-id="row.courseId"
             :mode="row.mode"
             field="proTier"
-          />
-          <USelect
-            :model-value="String(tierToNumber(row.proTier))"
-            :items="tierOptions"
-            value-key="value"
-            class="w-32"
-            @update:model-value="setProTier(index, $event)"
+            class="mt-2"
           />
         </div>
 
         <UFormField label="Reasoning of Tier" required class="w-full">
-          <div class="mb-1.5 flex items-center gap-2">
-            <OtherApproverVotes
-              :votes="votes"
-              :current-user-id="currentUserId"
-              :course-id="row.courseId"
-              :mode="row.mode"
-              field="notes"
-            />
-          </div>
           <UTextarea
             :model-value="row.notes"
             :rows="2"
             class="w-full"
             @update:model-value="updateRow(index, { notes: $event })"
+          />
+          <OtherApproverVotes
+            :votes="votes"
+            :current-user-id="currentUserId"
+            :course-id="row.courseId"
+            :mode="row.mode"
+            field="notes"
+            orientation="vertical"
+            class="mt-2"
           />
         </UFormField>
       </div>

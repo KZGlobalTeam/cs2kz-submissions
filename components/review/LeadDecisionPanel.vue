@@ -59,9 +59,8 @@ const tierOptions = Array.from({ length: tierCount }, (_, i) => ({
 }))
 
 const stateOptions = [
-  { label: 'Unranked', value: 'unranked' },
-  { label: 'Pending', value: 'pending' },
   { label: 'Ranked', value: 'ranked' },
+  { label: 'Unranked', value: 'unranked' },
 ]
 
 const decisionOptions = [
@@ -122,24 +121,23 @@ async function submitDecision() {
 </script>
 
 <template>
-  <UCard>
-    <h2 class="mb-4 text-xl font-semibold">Lead Decision</h2>
-
-    <div class="space-y-6">
-      <div
-        v-for="entry in courseFilters"
-        :key="entry.course.id"
-        class="rounded-lg border border-white/5 bg-white/3 p-4"
+  <div class="space-y-6">
+    <UCard
+      v-for="entry in courseFilters"
+      :key="entry.course.id"
+      :ui="{ body: 'p-4 sm:p-4' }"
+    >
+      <h3 class="mb-3 text-lg font-semibold">{{ entry.course.name }}</h3>
+      <img
+        :src="entry.course.imageUrl"
+        :alt="entry.course.name"
+        class="mb-4 h-40 w-full rounded-md object-cover"
       >
-        <div class="mb-4 flex items-start justify-between gap-4">
-          <h3 class="text-lg font-semibold">{{ entry.course.name }}</h3>
-          <img :src="entry.course.imageUrl" :alt="entry.course.name" class="h-20 w-36 rounded-md object-cover">
-        </div>
 
+      <div class="space-y-5">
         <div
           v-for="filter in entry.filters"
           :key="`${filter.courseId}-${filter.mode}`"
-          class="mb-4 rounded-lg border border-white/5 bg-black/20 p-4 last:mb-0"
         >
           <p class="mb-3 text-sm font-semibold">
             {{ filter.mode === 'classic' ? 'CKZ' : 'VNL' }} Filter
@@ -147,103 +145,106 @@ async function submitDecision() {
 
           <div class="space-y-3">
             <div>
-              <div class="mb-1.5 flex items-center justify-between gap-2">
-                <span class="text-sm text-muted">Ranked Status</span>
-                <OtherApproverVotes
-                  :votes="votes"
-                  :current-user-id="currentUserId"
-                  :course-id="filter.courseId"
-                  :mode="filter.mode"
-                  field="isRanked"
+              <div class="flex items-center gap-4">
+                <span class="w-28 shrink-0 text-sm text-muted">Ranked Status</span>
+                <URadioGroup
+                  v-model="filter.state"
+                  :items="stateOptions"
+                  value-key="value"
+                  orientation="horizontal"
                 />
               </div>
-              <URadioGroup
-                v-model="filter.state"
-                :items="stateOptions"
-                value-key="value"
-                orientation="horizontal"
+              <OtherApproverVotes
+                :votes="votes"
+                :current-user-id="currentUserId"
+                :course-id="filter.courseId"
+                :mode="filter.mode"
+                field="isRanked"
+                class="mt-2"
               />
             </div>
 
             <div>
-              <div class="mb-1.5 flex items-center justify-between gap-2">
-                <span class="text-sm text-muted">Nub Tier</span>
-                <OtherApproverVotes
-                  :votes="votes"
-                  :current-user-id="currentUserId"
-                  :course-id="filter.courseId"
-                  :mode="filter.mode"
-                  field="nubTier"
+              <div class="flex items-center gap-4">
+                <span class="w-28 shrink-0 text-sm text-muted">Nub Tier</span>
+                <USelect
+                  :model-value="String(tierToNumber(filter.nubTier))"
+                  :items="tierOptions"
+                  value-key="value"
+                  class="w-32"
+                  @update:model-value="setNubTier(filter, $event)"
                 />
               </div>
-              <USelect
-                :model-value="String(tierToNumber(filter.nubTier))"
-                :items="tierOptions"
-                value-key="value"
-                class="w-32"
-                @update:model-value="setNubTier(filter, $event)"
+              <OtherApproverVotes
+                :votes="votes"
+                :current-user-id="currentUserId"
+                :course-id="filter.courseId"
+                :mode="filter.mode"
+                field="nubTier"
+                class="mt-2"
               />
             </div>
 
             <div>
-              <div class="mb-1.5 flex items-center justify-between gap-2">
-                <span class="text-sm text-muted">Pro Tier</span>
-                <OtherApproverVotes
-                  :votes="votes"
-                  :current-user-id="currentUserId"
-                  :course-id="filter.courseId"
-                  :mode="filter.mode"
-                  field="proTier"
+              <div class="flex items-center gap-4">
+                <span class="w-28 shrink-0 text-sm text-muted">Pro Tier</span>
+                <USelect
+                  :model-value="String(tierToNumber(filter.proTier))"
+                  :items="tierOptions"
+                  value-key="value"
+                  class="w-32"
+                  @update:model-value="setProTier(filter, $event)"
                 />
               </div>
-              <USelect
-                :model-value="String(tierToNumber(filter.proTier))"
-                :items="tierOptions"
-                value-key="value"
-                class="w-32"
-                @update:model-value="setProTier(filter, $event)"
+              <OtherApproverVotes
+                :votes="votes"
+                :current-user-id="currentUserId"
+                :course-id="filter.courseId"
+                :mode="filter.mode"
+                field="proTier"
+                class="mt-2"
               />
             </div>
           </div>
         </div>
       </div>
+    </UCard>
 
-      <div class="rounded-lg border border-white/5 bg-white/3 p-4">
-        <p class="mb-2 text-sm font-semibold">Status of Approval</p>
-        <URadioGroup
-          v-model="decisionStatus"
-          :items="decisionOptions"
-          value-key="value"
-          orientation="horizontal"
-        />
+    <UCard :ui="{ body: 'p-4 sm:p-4' }">
+      <p class="mb-2 text-sm font-semibold">Status of Approval</p>
+      <URadioGroup
+        v-model="decisionStatus"
+        :items="decisionOptions"
+        value-key="value"
+        orientation="horizontal"
+      />
 
-        <div class="mt-3">
-          <VoteSummaryPanel :votes="votes" :exclude-user-id="currentUserId" />
-        </div>
-
-        <UFormField
-          v-if="decisionStatus === 'rejected'"
-          label="Reject Reason"
-          required
-          class="mt-4"
-        >
-          <UTextarea
-            v-model="decisionNotes"
-            :rows="3"
-            placeholder="Required when rejecting"
-            class="w-full"
-          />
-        </UFormField>
+      <div class="mt-3">
+        <VoteSummaryPanel :votes="votes" :exclude-user-id="currentUserId" />
       </div>
 
-      <div class="flex justify-end">
-        <UButton
-          label="Submit Approval"
-          :loading="saving"
-          :disabled="!canSubmit"
-          @click="submitDecision"
+      <UFormField
+        v-if="decisionStatus === 'rejected'"
+        label="Reject Reason"
+        required
+        class="mt-4"
+      >
+        <UTextarea
+          v-model="decisionNotes"
+          :rows="3"
+          placeholder="Required when rejecting"
+          class="w-full"
         />
-      </div>
+      </UFormField>
+    </UCard>
+
+    <div class="flex justify-end">
+      <UButton
+        label="Submit Approval"
+        :loading="saving"
+        :disabled="!canSubmit"
+        @click="submitDecision"
+      />
     </div>
-  </UCard>
+  </div>
 </template>

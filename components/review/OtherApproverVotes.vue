@@ -11,6 +11,7 @@ const props = defineProps<{
   courseId: string
   mode: Mode
   field: Field
+  orientation?: 'horizontal' | 'vertical'
 }>()
 
 interface OtherEntry {
@@ -61,7 +62,11 @@ function badgeLabel(value: OtherEntry['value']) {
 </script>
 
 <template>
-  <div v-if="others.length" class="flex flex-wrap gap-1.5">
+  <div
+    v-if="others.length"
+    class="flex gap-1.5"
+    :class="props.orientation === 'vertical' ? 'flex-col' : 'flex-wrap'"
+  >
     <UBadge
       v-for="(entry, index) in others"
       :key="`${entry.approverName}-${index}`"
