@@ -1,5 +1,3 @@
-import { randomUUID } from 'node:crypto'
-
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createError } from 'h3'
 
@@ -49,7 +47,7 @@ function getStorageClient() {
 
 export async function uploadCourseImage(buffer: Buffer, mimeType: string) {
   const config = getStorageConfig()
-  const key = `course-images/${randomUUID()}.jpg`
+  const key = `course-images/${crypto.randomUUID()}.jpg`
 
   const storage = getStorageClient().storage.from(config.bucket)
   const { error: uploadError } = await storage.upload(key, buffer, {
@@ -81,7 +79,7 @@ export async function uploadPortImage(
 ) {
   const config = getStorageConfig()
   const extension = mimeType === 'image/png' ? 'png' : 'jpg'
-  const key = `port-images/${randomUUID()}.${extension}`
+  const key = `port-images/${crypto.randomUUID()}.${extension}`
 
   const storage = getStorageClient().storage.from(config.bucket)
   const { error: uploadError } = await storage.upload(key, buffer, {

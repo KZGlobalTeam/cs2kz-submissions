@@ -1,5 +1,3 @@
-import { createHash, randomBytes } from 'node:crypto'
-
 import { eq } from 'drizzle-orm'
 import {
   appendHeader,
@@ -17,17 +15,27 @@ import { db } from './db'
 const SESSION_COOKIE_NAME = 'cs2kz_submission_session'
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 14
 
-export function createSessionToken(): string {
-  return randomBytes(32).toString('hex')
+function bytesToHex(buffer: Uint8Array): string {
+  return Array.from(buffer)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
 }
 
-export function hashSessionToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex')
+export function createSessionToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32))
+  return bytesToHex(bytes)
+}
+
+export async function hashSessionToken(token: string): Promise<string> {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(token)
+  const digest = await crypto.subtle.digest('SHA-256', data)
+  return bytesToHex(new Uint8Array(digest))
 }
 
 export async function persistSession(event: H3Event, userId: string) {
   const token = createSessionToken()
-  const tokenHash = hashSessionToken(token)
+  const tokenHash = await hashSessionToken(token)
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS)
 
   await db().insert(sessions).values({
@@ -60,7 +68,7 @@ export async function destroySession(event: H3Event) {
   if (token) {
     await db()
       .delete(sessions)
-      .where(eq(sessions.tokenHash, hashSessionToken(token)))
+      .where(eq(sessions.tokenHash, await hashSessionToken(token)))
   }
 
   deleteCookie(event, SESSION_COOKIE_NAME, {
@@ -69,10 +77,11 @@ export async function destroySession(event: H3Event) {
 }
 
 export async function lookupSessionByToken(token: string) {
+  const tokenHash = await hashSessionToken(token)
   const [session] = await db()
     .select()
     .from(sessions)
-    .where(eq(sessions.tokenHash, hashSessionToken(token)))
+    .where(eq(sessions.tokenHash, tokenHash))
     .limit(1)
 
   if (!session || session.expiresAt <= new Date()) {
