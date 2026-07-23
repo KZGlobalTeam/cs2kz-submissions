@@ -11,6 +11,7 @@ const VALID_STATUSES: readonly SubmissionStatus[] = ['pending', 'approved', 'rej
 
 const route = useRoute()
 const router = useRouter()
+const toast = useToast()
 const { hasApproverRole, isLeadApprover } = useSession()
 
 const statusOptions = [
@@ -92,6 +93,30 @@ function openVote(id: string) {
 
 function openApprove(id: string) {
   return navigateTo(`/submissions/${id}?mode=approve`)
+}
+
+const removing = shallowRef<string | null>(null)
+const pendingDelete = shallowRef<ReviewSubmissionRow | null>(null)
+
+async function confirmDeleteSubmission() {
+  const row = pendingDelete.value
+  if (!row) {
+    return
+  }
+
+  removing.value = row.id
+  try {
+    await $fetch(`/api/submissions/${row.id}`, { method: 'DELETE' })
+    toast.add({ color: 'success', title: 'Submission deleted' })
+    await refresh()
+    // If we emptied the current page (e.g. deleted the last row), step back.
+    if (items.value.length === 0 && page.value > 1) {
+      page.value = page.value - 1
+    }
+  } finally {
+    removing.value = null
+    pendingDelete.value = null
+  }
 }
 </script>
 
@@ -187,6 +212,14 @@ function openApprove(id: string) {
               :disabled="row.original.status !== 'pending'"
               @click="openApprove(row.original.id)"
             />
+            <UButton
+              v-if="isLeadApprover"
+              variant="ghost"
+              color="error"
+              label="Delete"
+              :loading="removing === row.original.id"
+              @click="pendingDelete = row.original"
+            />
           </div>
         </template>
       </UTable>
@@ -199,5 +232,17 @@ function openApprove(id: string) {
         @update:page-size="pageSize = $event"
       />
     </UCard>
+
+    <CommonConfirmDialog
+      :open="pendingDelete !== null"
+      title="Delete submission"
+      :description="pendingDelete ? `Delete “${pendingDelete.mapName}”? This permanently removes the submission, its votes, and its release links.` : undefined"
+      confirm-label="Delete"
+      confirm-color="error"
+      :loading="removing !== null"
+      @confirm="confirmDeleteSubmission"
+      @cancel="pendingDelete = null"
+      @update:open="(value) => { if (!value) pendingDelete = null }"
+    />
   </section>
 </template>

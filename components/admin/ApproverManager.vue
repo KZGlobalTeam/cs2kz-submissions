@@ -57,8 +57,14 @@ const columns: TableColumn<ApproverRow>[] = [
 ]
 
 const removing = shallowRef<string | null>(null)
+const pendingRemove = shallowRef<ApproverRow | null>(null)
 
-async function removeApprover(item: ApproverRow) {
+async function confirmRemoveApprover() {
+  const item = pendingRemove.value
+  if (!item) {
+    return
+  }
+
   removing.value = `${item.steamId64}-${item.role}`
   try {
     await $fetch(
@@ -72,6 +78,7 @@ async function removeApprover(item: ApproverRow) {
     }
   } finally {
     removing.value = null
+    pendingRemove.value = null
   }
 }
 
@@ -118,7 +125,7 @@ const roleColor = (role: string) =>
               color="error"
               label="Remove"
               :loading="removing === `${row.original.steamId64}-${row.original.role}`"
-              @click="removeApprover(row.original)"
+              @click="pendingRemove = row.original"
             />
           </div>
         </template>
@@ -132,5 +139,17 @@ const roleColor = (role: string) =>
         @update:page-size="pageSize = $event"
       />
     </UCard>
+
+    <CommonConfirmDialog
+      :open="pendingRemove !== null"
+      title="Remove approver"
+      :description="pendingRemove ? `Remove ${pendingRemove.displayName} (${pendingRemove.role}) from the approver list?` : undefined"
+      confirm-label="Remove"
+      confirm-color="error"
+      :loading="removing !== null"
+      @confirm="confirmRemoveApprover"
+      @cancel="pendingRemove = null"
+      @update:open="(value) => { if (!value) pendingRemove = null }"
+    />
   </section>
 </template>

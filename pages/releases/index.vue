@@ -54,6 +54,7 @@ const columns: TableColumn<ReleaseRow>[] = [
 ]
 
 const removing = shallowRef<string | null>(null)
+const pendingDelete = shallowRef<ReleaseRow | null>(null)
 
 function openRelease(id: string) {
   return navigateTo(`/releases/${id}`)
@@ -63,7 +64,12 @@ function formatDate(value: string) {
   return new Date(value).toLocaleDateString()
 }
 
-async function deleteRelease(row: ReleaseRow) {
+async function confirmDeleteRelease() {
+  const row = pendingDelete.value
+  if (!row) {
+    return
+  }
+
   removing.value = row.id
   try {
     await $fetch(`/api/releases/${row.id}`, { method: 'DELETE' })
@@ -75,6 +81,7 @@ async function deleteRelease(row: ReleaseRow) {
     }
   } finally {
     removing.value = null
+    pendingDelete.value = null
   }
 }
 </script>
@@ -139,7 +146,7 @@ async function deleteRelease(row: ReleaseRow) {
               color="error"
               label="Delete"
               :loading="removing === row.original.id"
-              @click="deleteRelease(row.original)"
+              @click="pendingDelete = row.original"
             />
           </div>
         </template>
@@ -179,5 +186,17 @@ async function deleteRelease(row: ReleaseRow) {
         </div>
       </template>
     </UModal>
+
+    <CommonConfirmDialog
+      :open="pendingDelete !== null"
+      title="Delete release"
+      :description="pendingDelete ? `Delete “${pendingDelete.name}”? This cannot be undone.` : undefined"
+      confirm-label="Delete"
+      confirm-color="error"
+      :loading="removing !== null"
+      @confirm="confirmDeleteRelease"
+      @cancel="pendingDelete = null"
+      @update:open="(value) => { if (!value) pendingDelete = null }"
+    />
   </div>
 </template>

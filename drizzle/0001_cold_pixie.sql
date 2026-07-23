@@ -1,0 +1,1 @@
+ALTER TABLE "submissions" ALTER COLUMN "workshop_id" SET DATA TYPE bigint;
