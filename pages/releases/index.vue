@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import ReleaseForm from '~/components/release/ReleaseForm.vue'
 
 definePageMeta({
   middleware: ['auth', 'lead-approver'],
@@ -11,6 +10,9 @@ interface ReleaseRow {
   name: string
   notes: string | null
 }
+
+const toast = useToast()
+const { exporting, exportRelease } = useReleaseExport()
 
 const { data: releases, status, refresh } = useAsyncData<ReleaseRow[]>(
   'releases',
@@ -24,24 +26,42 @@ const columns: TableColumn<ReleaseRow>[] = [
   { id: 'actions', header: '' },
 ]
 
+const removing = shallowRef<string | null>(null)
+
 function openRelease(id: string) {
   return navigateTo(`/releases/${id}`)
+}
+
+async function deleteRelease(row: ReleaseRow) {
+  removing.value = row.id
+  try {
+    await $fetch(`/api/releases/${row.id}`, { method: 'DELETE' })
+    toast.add({ color: 'success', title: 'Release deleted' })
+    await refresh()
+  } finally {
+    removing.value = null
+  }
 }
 </script>
 
 <template>
   <div class="grid gap-6">
-    <ReleaseForm @created="refresh" />
-
     <div class="flex items-center justify-between gap-4">
       <h1 class="text-2xl font-semibold">Releases</h1>
-      <UButton
-        label="Refresh"
-        variant="outline"
-        color="neutral"
-        :loading="status === 'pending'"
-        @click="() => refresh()"
-      />
+      <div class="flex items-center gap-2">
+        <UButton
+          label="Refresh"
+          variant="outline"
+          color="neutral"
+          :loading="status === 'pending'"
+          @click="() => refresh()"
+        />
+        <UButton
+          label="New Release"
+          icon="i-lucide-plus"
+          @click="navigateTo('/releases/new')"
+        />
+      </div>
     </div>
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
@@ -65,11 +85,26 @@ function openRelease(id: string) {
         </template>
 
         <template #actions-cell="{ row }">
-          <div class="flex justify-end">
+          <div class="flex justify-end gap-2">
             <UButton
               variant="outline"
               label="Open"
               @click="openRelease(row.original.id)"
+            />
+            <UButton
+              variant="outline"
+              label="Export JSON"
+              icon="i-lucide-download"
+              :loading="exporting"
+              @click="exportRelease(row.original.id)"
+            />
+            <UButton
+              variant="ghost"
+              color="error"
+              label="Delete"
+              icon="i-lucide-trash-2"
+              :loading="removing === row.original.id"
+              @click="deleteRelease(row.original)"
             />
           </div>
         </template>

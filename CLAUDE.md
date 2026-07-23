@@ -1,3 +1,5 @@
+## Creating UI Compoents
+- don't use any icons
 ## Agent skills
 
 ### Issue tracker

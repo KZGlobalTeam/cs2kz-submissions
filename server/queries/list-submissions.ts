@@ -40,6 +40,7 @@ export async function listAllSubmissionsForReview(
       workshopUrl: submissions.workshopUrl,
       status: submissions.status,
       createdAt: submissions.createdAt,
+      approvedAt: submissions.approvedAt,
     })
     .from(submissions)
     .where(status ? eq(submissions.status, status) : undefined)
@@ -98,6 +99,7 @@ export async function listAllSubmissionsForReview(
     workshopUrl: row.workshopUrl,
     status: row.status,
     createdAt: row.createdAt.toISOString(),
+    approvedAt: row.approvedAt ? row.approvedAt.toISOString() : null,
     mappers: mappersBySub.get(row.id) ?? [],
     voteCount: voteCountBySub.get(row.id) ?? 0,
     myVote: myVoteSet.has(row.id),

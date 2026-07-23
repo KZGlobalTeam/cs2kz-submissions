@@ -95,6 +95,7 @@ export interface ReviewSubmissionRow {
   workshopUrl: string
   status: SubmissionStatus
   createdAt: string
+  approvedAt: string | null
   mappers: string[]
   voteCount: number
   myVote: boolean
