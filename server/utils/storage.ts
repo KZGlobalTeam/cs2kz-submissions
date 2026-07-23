@@ -1,23 +1,22 @@
 import { randomUUID } from 'node:crypto'
 
+import { useRuntimeConfig } from '#imports'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createError } from 'h3'
 
 let client: SupabaseClient | null = null
 
 export function getStorageConfig() {
-  const supabaseUrl = process.env.NUXT_SUPABASE_URL
-  const serviceRoleKey = process.env.NUXT_SUPABASE_SERVICE_ROLE_KEY
-  const bucket = process.env.NUXT_SUPABASE_STORAGE_BUCKET
+  const { supabaseUrl, supabaseServiceRoleKey, supabaseStorageBucket } = useRuntimeConfig()
 
-  if (!supabaseUrl || !serviceRoleKey || !bucket) {
+  if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseStorageBucket) {
     throw createError({
       statusCode: 500,
       statusMessage: 'Supabase Storage is not configured',
     })
   }
 
-  if (serviceRoleKey.startsWith('sb_publishable_')) {
+  if (String(supabaseServiceRoleKey).startsWith('sb_publishable_')) {
     throw createError({
       statusCode: 500,
       statusMessage: 'NUXT_SUPABASE_SERVICE_ROLE_KEY must use a Supabase secret/service_role key, not a publishable key',
@@ -25,9 +24,9 @@ export function getStorageConfig() {
   }
 
   return {
-    supabaseUrl,
-    serviceRoleKey,
-    bucket,
+    supabaseUrl: String(supabaseUrl),
+    serviceRoleKey: String(supabaseServiceRoleKey),
+    bucket: String(supabaseStorageBucket),
   }
 }
 

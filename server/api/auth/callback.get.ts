@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from '#imports'
 import { eq } from 'drizzle-orm'
 import { sendRedirect } from 'h3'
 
@@ -55,6 +56,6 @@ export default defineEventHandler(async (event) => {
 
   await persistSession(event, userId!)
 
-  const siteUrl = process.env.NUXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const siteUrl = useRuntimeConfig().public.siteUrl ?? 'http://localhost:3000'
   return sendRedirect(event, `${siteUrl.replace(/\/$/, '')}/submissions`, 302)
 })

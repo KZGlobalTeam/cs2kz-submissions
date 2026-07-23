@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 
+import { useRuntimeConfig } from '#imports'
 import { eq } from 'drizzle-orm'
 import {
   appendHeader,
@@ -35,10 +36,11 @@ export async function persistSession(event: H3Event, userId: string) {
     expiresAt,
   })
 
+  const siteUrl = useRuntimeConfig().public.siteUrl as string
   setCookie(event, SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: siteUrl.startsWith('https://'),
     expires: expiresAt,
     path: '/',
   })
