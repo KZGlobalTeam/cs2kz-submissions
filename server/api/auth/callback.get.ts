@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { sendRedirect } from 'h3'
+import { createError, sendRedirect } from 'h3'
 
 import { users } from '~/db/schema'
 import { getAppConfig } from '~/server/utils/config'
@@ -12,51 +12,61 @@ import {
 import { db } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
-  const steamId64 = await verifySteamAssertion(getRequestURL(event).toString())
-  const steamProfile = await fetchSteamProfile(steamId64, event)
+  try {
+    const steamId64 = await verifySteamAssertion(getRequestURL(event).toString())
+    const steamProfile = await fetchSteamProfile(steamId64, event)
 
-  const [existingUser] = await db()
-    .select()
-    .from(users)
-    .where(eq(users.steamId64, steamId64))
-    .limit(1)
+    const [existingUser] = await db()
+      .select()
+      .from(users)
+      .where(eq(users.steamId64, steamId64))
+      .limit(1)
 
-  let userId = existingUser?.id
+    let userId = existingUser?.id
 
-  if (existingUser) {
-    await db()
-      .update(users)
-      .set({
-        displayName: steamProfile.personaName,
-        avatarUrl: steamProfile.avatarUrl,
-        profileUrl: steamProfile.profileUrl,
-        lastLoginAt: new Date(),
-      })
-      .where(eq(users.id, existingUser.id))
-  } else {
-    const [createdUser] = await db()
-      .insert(users)
-      .values({
-        steamId64,
-        displayName: steamProfile.personaName,
-        avatarUrl: steamProfile.avatarUrl,
-        profileUrl: steamProfile.profileUrl,
-      })
-      .returning({ id: users.id })
+    if (existingUser) {
+      await db()
+        .update(users)
+        .set({
+          displayName: steamProfile.personaName,
+          avatarUrl: steamProfile.avatarUrl,
+          profileUrl: steamProfile.profileUrl,
+          lastLoginAt: new Date(),
+        })
+        .where(eq(users.id, existingUser.id))
+    }
+    else {
+      const [createdUser] = await db()
+        .insert(users)
+        .values({
+          steamId64,
+          displayName: steamProfile.personaName,
+          avatarUrl: steamProfile.avatarUrl,
+          profileUrl: steamProfile.profileUrl,
+        })
+        .returning({ id: users.id })
 
-    if (!createdUser) {
-      throw createError({
-        statusCode: 500,
-        statusMessage: 'Unable to create user session',
-      })
+      if (!createdUser) {
+        throw createError({
+          statusCode: 500,
+          statusMessage: 'Unable to create user session',
+        })
+      }
+
+      userId = createdUser.id
     }
 
-    userId = createdUser.id
+    await persistSession(event, userId!)
+
+    const { siteUrl } = getAppConfig(event)
+    const redirectBase = siteUrl ?? 'http://localhost:3000'
+    return sendRedirect(event, `${redirectBase.replace(/\/$/, '')}/submissions`, 302)
   }
-
-  await persistSession(event, userId!)
-
-  const { siteUrl } = getAppConfig(event)
-  const redirectBase = siteUrl ?? 'http://localhost:3000'
-  return sendRedirect(event, `${redirectBase.replace(/\/$/, '')}/submissions`, 302)
+  catch (error) {
+    console.error('Steam auth callback failed:', error)
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Internal server error',
+    })
+  }
 })
