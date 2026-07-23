@@ -9,6 +9,8 @@ interface ReleaseRow {
   id: string
   name: string
   notes: string | null
+  mapCount: number
+  createdAt: string
 }
 
 const toast = useToast()
@@ -23,6 +25,8 @@ const { data: releases, status, refresh } = useAsyncData<ReleaseRow[]>(
 const columns: TableColumn<ReleaseRow>[] = [
   { accessorKey: 'name', header: 'Name' },
   { accessorKey: 'notes', header: 'Notes' },
+  { accessorKey: 'mapCount', header: 'Maps' },
+  { accessorKey: 'createdAt', header: 'Created' },
   { id: 'actions', header: '' },
 ]
 
@@ -30,6 +34,10 @@ const removing = shallowRef<string | null>(null)
 
 function openRelease(id: string) {
   return navigateTo(`/releases/${id}`)
+}
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleDateString()
 }
 
 async function deleteRelease(row: ReleaseRow) {
@@ -58,7 +66,6 @@ async function deleteRelease(row: ReleaseRow) {
         />
         <UButton
           label="New Release"
-          icon="i-lucide-plus"
           @click="navigateTo('/releases/new')"
         />
       </div>
@@ -84,17 +91,19 @@ async function deleteRelease(row: ReleaseRow) {
           <span class="text-muted">{{ row.original.notes || '—' }}</span>
         </template>
 
+        <template #mapCount-cell="{ row }">
+          <span class="text-muted">{{ row.original.mapCount }}</span>
+        </template>
+
+        <template #createdAt-cell="{ row }">
+          <span class="text-muted">{{ formatDate(row.original.createdAt) }}</span>
+        </template>
+
         <template #actions-cell="{ row }">
           <div class="flex justify-end gap-2">
             <UButton
               variant="outline"
-              label="Open"
-              @click="openRelease(row.original.id)"
-            />
-            <UButton
-              variant="outline"
               label="Export JSON"
-              icon="i-lucide-download"
               :loading="exporting"
               @click="exportRelease(row.original.id)"
             />
@@ -102,7 +111,6 @@ async function deleteRelease(row: ReleaseRow) {
               variant="ghost"
               color="error"
               label="Delete"
-              icon="i-lucide-trash-2"
               :loading="removing === row.original.id"
               @click="deleteRelease(row.original)"
             />

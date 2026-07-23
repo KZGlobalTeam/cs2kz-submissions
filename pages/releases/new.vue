@@ -55,7 +55,7 @@ async function createRelease() {
   }
   creating.value = true
   try {
-    const release = await $fetch<{ id: string }>('/api/releases', {
+    await $fetch('/api/releases', {
       method: 'POST',
       body: {
         name: name.value,
@@ -64,7 +64,7 @@ async function createRelease() {
       },
     })
     toast.add({ color: 'success', title: 'Release created' })
-    await navigateTo(`/releases/${release.id}`)
+    await navigateTo('/releases')
   } finally {
     creating.value = false
   }
@@ -73,16 +73,7 @@ async function createRelease() {
 
 <template>
   <div class="grid gap-6">
-    <div class="flex items-center justify-between gap-4">
-      <h1 class="text-2xl font-semibold">New Release</h1>
-      <UButton
-        label="Back"
-        variant="outline"
-        color="neutral"
-        icon="i-lucide-arrow-left"
-        @click="navigateTo('/releases')"
-      />
-    </div>
+    <h1 class="text-2xl font-semibold">New Release</h1>
 
     <UCard>
       <div class="grid gap-4">
