@@ -25,3 +25,6 @@ logs
 
 .trae
 .dbg
+.codegraph
+docs
+.playwright-cli
