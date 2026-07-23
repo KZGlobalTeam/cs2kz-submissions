@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
+import type { PaginatedResult } from '~/shared/types/pagination'
 import type { ReviewSubmissionRow } from '~/shared/types/submission'
 
 definePageMeta({
@@ -12,21 +13,12 @@ const name = shallowRef('')
 const notes = shallowRef('')
 const creating = shallowRef(false)
 
-const { data: submissions, status } = useAsyncData<ReviewSubmissionRow[]>(
+const { items, total, page, pageSize, status } = usePaginatedTable<ReviewSubmissionRow>(
   'approved-submissions-new',
-  () => $fetch<ReviewSubmissionRow[]>('/api/submissions', {
-    params: { scope: 'all', status: 'approved' },
-  }),
-  { server: false },
-)
-
-// Approved submissions sorted by approval time (most recent first).
-const approvedSubmissions = computed(() =>
-  [...(submissions.value ?? [])].sort((a, b) => {
-    const aTime = a.approvedAt ? Date.parse(a.approvedAt) : 0
-    const bTime = b.approvedAt ? Date.parse(b.approvedAt) : 0
-    return bTime - aTime
-  }),
+  ({ page, pageSize }) =>
+    $fetch<PaginatedResult<ReviewSubmissionRow>>('/api/submissions', {
+      params: { scope: 'all', status: 'approved', page, pageSize },
+    }),
 )
 
 const selected = shallowRef<ReviewSubmissionRow[]>([])
@@ -125,7 +117,7 @@ async function createRelease() {
 
       <h2 class="mb-3 text-lg font-semibold">Approved Submissions</h2>
       <UTable
-        :data="approvedSubmissions"
+        :data="items"
         :columns="columns"
         :loading="status === 'pending'"
       >
@@ -149,6 +141,14 @@ async function createRelease() {
           </div>
         </template>
       </UTable>
+
+      <CommonTablePagination
+        :page="page"
+        :page-size="pageSize"
+        :total="total"
+        @update:page="page = $event"
+        @update:page-size="pageSize = $event"
+      />
 
       <div class="mt-4 flex justify-end gap-2">
         <UButton

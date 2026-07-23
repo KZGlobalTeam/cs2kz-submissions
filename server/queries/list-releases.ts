@@ -14,13 +14,28 @@ const releaseFields = {
   mapCount: count(releaseSubmissions.submissionId),
 }
 
-export async function listReleases() {
-  return db()
+export async function listReleases(bounds?: { limit?: number, offset?: number }) {
+  const query = db()
     .select(releaseFields)
     .from(releases)
     .leftJoin(releaseSubmissions, eq(releaseSubmissions.releaseId, releases.id))
     .groupBy(releases.id)
     .orderBy(desc(releases.createdAt))
+
+  if (bounds?.limit !== undefined) {
+    query.limit(bounds.limit)
+  }
+  if (bounds?.offset !== undefined) {
+    query.offset(bounds.offset)
+  }
+  return query
+}
+
+export async function countReleases() {
+  const [row] = await db()
+    .select({ value: count() })
+    .from(releases)
+  return Number(row?.value ?? 0)
 }
 
 export async function findReleaseById(id: string) {

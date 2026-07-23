@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
+import type { PaginatedResult } from '~/shared/types/pagination'
 import type { SubmissionStatus } from '~/shared/types/submission'
 
 definePageMeta({
@@ -14,10 +15,12 @@ interface SubmissionRow {
   createdAt: string
 }
 
-const { data: submissions, status, refresh } = useAsyncData<SubmissionRow[]>(
+const { items, total, page, pageSize, status, refresh } = usePaginatedTable<SubmissionRow>(
   'submissions',
-  () => $fetch<SubmissionRow[]>('/api/submissions', { params: { scope: 'mine' } }),
-  { server: false },
+  ({ page, pageSize }) =>
+    $fetch<PaginatedResult<SubmissionRow>>('/api/submissions', {
+      params: { scope: 'mine', page, pageSize },
+    }),
 )
 
 const columns: TableColumn<SubmissionRow>[] = [
@@ -64,7 +67,7 @@ function openSubmission(id: string) {
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <UTable
-        :data="submissions ?? []"
+        :data="items"
         :columns="columns"
         :loading="status === 'pending'"
         class="min-w-0"
@@ -87,6 +90,14 @@ function openSubmission(id: string) {
           />
         </template>
       </UTable>
+
+      <CommonTablePagination
+        :page="page"
+        :page-size="pageSize"
+        :total="total"
+        @update:page="page = $event"
+        @update:page-size="pageSize = $event"
+      />
     </UCard>
   </section>
 </template>

@@ -5,11 +5,17 @@ import type { ReviewSubmissionRow, SubmissionStatus } from '~/shared/types/submi
 
 import { db } from '~/server/utils/db'
 
+export interface PageBounds {
+  limit: number
+  offset: number
+}
+
 export async function listOwnSubmissions(
   userId: string,
-  status?: SubmissionStatus,
+  status: SubmissionStatus | undefined,
+  bounds?: PageBounds,
 ) {
-  return db()
+  const query = db()
     .select()
     .from(submissions)
     .where(
@@ -18,6 +24,26 @@ export async function listOwnSubmissions(
         : eq(submissions.createdByUserId, userId),
     )
     .orderBy(desc(submissions.createdAt))
+
+  if (bounds) {
+    query.limit(bounds.limit).offset(bounds.offset)
+  }
+  return query
+}
+
+export async function countOwnSubmissions(
+  userId: string,
+  status: SubmissionStatus | undefined,
+) {
+  const [row] = await db()
+    .select({ value: count() })
+    .from(submissions)
+    .where(
+      status
+        ? and(eq(submissions.createdByUserId, userId), eq(submissions.status, status))
+        : eq(submissions.createdByUserId, userId),
+    )
+  return Number(row?.value ?? 0)
 }
 
 export async function listAllSubmissions(status?: SubmissionStatus) {
@@ -28,11 +54,20 @@ export async function listAllSubmissions(status?: SubmissionStatus) {
     .orderBy(desc(submissions.createdAt))
 }
 
+export async function countAllSubmissions(status: SubmissionStatus | undefined) {
+  const [row] = await db()
+    .select({ value: count() })
+    .from(submissions)
+    .where(status ? eq(submissions.status, status) : undefined)
+  return Number(row?.value ?? 0)
+}
+
 export async function listAllSubmissionsForReview(
   status: SubmissionStatus | undefined,
   userId: string,
+  bounds?: PageBounds,
 ): Promise<ReviewSubmissionRow[]> {
-  const rows = await db()
+  const query = db()
     .select({
       id: submissions.id,
       mapName: submissions.mapName,
@@ -44,7 +79,19 @@ export async function listAllSubmissionsForReview(
     })
     .from(submissions)
     .where(status ? eq(submissions.status, status) : undefined)
-    .orderBy(desc(submissions.createdAt))
+    .orderBy(
+      status === 'approved'
+        ? desc(submissions.approvedAt)
+        : desc(submissions.createdAt),
+    )
+
+  if (bounds?.limit !== undefined) {
+    query.limit(bounds.limit)
+  }
+  if (bounds?.offset !== undefined) {
+    query.offset(bounds.offset)
+  }
+  const rows = await query
 
   if (rows.length === 0) {
     return []

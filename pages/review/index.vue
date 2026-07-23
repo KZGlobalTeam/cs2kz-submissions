@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
+import type { PaginatedResult } from '~/shared/types/pagination'
 import type { ReviewSubmissionRow, SubmissionStatus } from '~/shared/types/submission'
 
 definePageMeta({
@@ -26,22 +27,30 @@ function coerceStatus(value: unknown): SubmissionStatus {
 
 const statusFilter = ref<SubmissionStatus>(coerceStatus(route.query.status))
 
-const { data: submissions, status, refresh } = useAsyncData<ReviewSubmissionRow[]>(
+const { items, total, page, pageSize, status, refresh } = usePaginatedTable<ReviewSubmissionRow>(
   'review-submissions',
-  () =>
-    $fetch<ReviewSubmissionRow[]>('/api/submissions', {
+  ({ page, pageSize }) =>
+    $fetch<PaginatedResult<ReviewSubmissionRow>>('/api/submissions', {
       params: {
         scope: 'all',
         status: statusFilter.value,
+        page,
+        pageSize,
       },
     }),
-  { watch: [statusFilter], server: false },
 )
 
 watch(statusFilter, (value) => {
   void router.replace({
     query: { ...route.query, status: value === 'pending' ? undefined : value },
   })
+  // Reset to the first page whenever the filter changes — exactly one refetch.
+  if (page.value !== 1) {
+    page.value = 1
+  }
+  else {
+    void refresh()
+  }
 })
 
 const columns = computed<TableColumn<ReviewSubmissionRow>[]>(() => {
@@ -111,7 +120,7 @@ function openApprove(id: string) {
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <UTable
-        :data="submissions ?? []"
+        :data="items"
         :columns="columns"
         :loading="status === 'pending'"
         class="min-w-0"
@@ -181,6 +190,14 @@ function openApprove(id: string) {
           </div>
         </template>
       </UTable>
+
+      <CommonTablePagination
+        :page="page"
+        :page-size="pageSize"
+        :total="total"
+        @update:page="page = $event"
+        @update:page-size="pageSize = $event"
+      />
     </UCard>
   </section>
 </template>

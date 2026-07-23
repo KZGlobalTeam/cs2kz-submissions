@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
+import type { PaginatedResult } from '~/shared/types/pagination'
 
 definePageMeta({
   middleware: ['auth', 'lead-approver'],
@@ -16,10 +17,12 @@ interface ReleaseRow {
 const toast = useToast()
 const { exporting, exportRelease } = useReleaseExport()
 
-const { data: releases, status, refresh } = useAsyncData<ReleaseRow[]>(
+const { items, total, page, pageSize, status, refresh } = usePaginatedTable<ReleaseRow>(
   'releases',
-  () => $fetch<ReleaseRow[]>('/api/releases'),
-  { server: false },
+  ({ page, pageSize }) =>
+    $fetch<PaginatedResult<ReleaseRow>>('/api/releases', {
+      params: { page, pageSize },
+    }),
 )
 
 const columns: TableColumn<ReleaseRow>[] = [
@@ -46,6 +49,10 @@ async function deleteRelease(row: ReleaseRow) {
     await $fetch(`/api/releases/${row.id}`, { method: 'DELETE' })
     toast.add({ color: 'success', title: 'Release deleted' })
     await refresh()
+    // If we emptied the current page (e.g. deleted the last row), step back.
+    if (items.value.length === 0 && page.value > 1) {
+      page.value = page.value - 1
+    }
   } finally {
     removing.value = null
   }
@@ -73,7 +80,7 @@ async function deleteRelease(row: ReleaseRow) {
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <UTable
-        :data="releases ?? []"
+        :data="items"
         :columns="columns"
         :loading="status === 'pending'"
       >
@@ -117,6 +124,14 @@ async function deleteRelease(row: ReleaseRow) {
           </div>
         </template>
       </UTable>
+
+      <CommonTablePagination
+        :page="page"
+        :page-size="pageSize"
+        :total="total"
+        @update:page="page = $event"
+        @update:page-size="pageSize = $event"
+      />
     </UCard>
   </div>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { z } from 'zod'
 import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
+import type { PaginatedResult } from '~/shared/types/pagination'
 
 interface ApproverRow {
   steamId64: string
@@ -8,10 +9,12 @@ interface ApproverRow {
   role: 'approver' | 'lead_approver'
 }
 
-const { data: approvers, status, refresh } = useAsyncData<ApproverRow[]>(
+const { items, total, page, pageSize, status, refresh } = usePaginatedTable<ApproverRow>(
   'approvers',
-  () => $fetch<ApproverRow[]>('/api/admin/approvers'),
-  { server: false },
+  ({ page, pageSize }) =>
+    $fetch<PaginatedResult<ApproverRow>>('/api/admin/approvers', {
+      params: { page, pageSize },
+    }),
 )
 
 const schema = z.object({
@@ -63,6 +66,10 @@ async function removeApprover(item: ApproverRow) {
       { method: 'DELETE' },
     )
     await refresh()
+    // If we emptied the current page, step back.
+    if (items.value.length === 0 && page.value > 1) {
+      page.value = page.value - 1
+    }
   } finally {
     removing.value = null
   }
@@ -99,7 +106,7 @@ const roleColor = (role: string) =>
     </div>
 
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
-      <UTable :data="approvers ?? []" :columns="columns" :loading="status === 'pending'">
+      <UTable :data="items" :columns="columns" :loading="status === 'pending'">
         <template #role-cell="{ row }">
           <UBadge :color="roleColor(row.original.role)" :label="row.original.role" variant="subtle" />
         </template>
@@ -116,6 +123,14 @@ const roleColor = (role: string) =>
           </div>
         </template>
       </UTable>
+
+      <CommonTablePagination
+        :page="page"
+        :page-size="pageSize"
+        :total="total"
+        @update:page="page = $event"
+        @update:page-size="pageSize = $event"
+      />
     </UCard>
   </section>
 </template>
