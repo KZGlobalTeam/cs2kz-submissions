@@ -10,7 +10,7 @@ const navigation = computed(() => {
   const items = [{ label: 'My Submissions', to: '/submissions' }]
 
   if (isApprover.value) {
-    items.push({ label: 'Submissions', to: '/review' })
+    items.push({ label: 'Review', to: '/review' })
   }
 
   if (isLeadApprover.value) {

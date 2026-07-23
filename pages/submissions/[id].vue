@@ -22,15 +22,11 @@ void callOnce(async () => {
   await refreshSession()
 })
 
-const { data: details, refresh } = useAsyncData<SubmissionDetailResponse>(
+const { data: details } = useAsyncData<SubmissionDetailResponse>(
   `submission-${submissionId.value}`,
   () => $fetch<SubmissionDetailResponse>(`/api/submissions/${submissionId.value}`),
   { server: false },
 )
-
-function refreshDetails() {
-  return refresh()
-}
 
 const userId = computed(() => session.value.user?.id ?? '')
 
@@ -75,10 +71,6 @@ const decisionFormKey = computed(
 )
 
 async function onSaved() {
-  await refreshDetails()
-}
-
-async function onVoteSaved() {
   await navigateTo('/review')
 }
 
@@ -114,7 +106,7 @@ onMounted(() => {
       :courses="details.courses"
       :votes="details.votes"
       :current-user-id="userId"
-      @saved="onVoteSaved"
+      @saved="onSaved"
     />
 
     <LeadDecisionPanel
