@@ -15,7 +15,27 @@ interface ReleaseRow {
 }
 
 const toast = useToast()
-const { exporting, exportRelease } = useReleaseExport()
+const {
+  exporting,
+  exportOpen,
+  exportJson,
+  exportTitle,
+  exportRelease,
+  closeExport,
+} = useReleaseExport()
+const copied = ref(false)
+
+async function copyExport() {
+  if (!exportJson.value) return
+  try {
+    await navigator.clipboard.writeText(exportJson.value)
+    copied.value = true
+    toast.add({ color: 'success', title: 'JSON copied to clipboard' })
+    setTimeout(() => (copied.value = false), 2000)
+  } catch {
+    toast.add({ color: 'error', title: 'Failed to copy JSON' })
+  }
+}
 
 const { items, total, page, pageSize, status, refresh } = usePaginatedTable<ReleaseRow>(
   'releases',
@@ -112,7 +132,7 @@ async function deleteRelease(row: ReleaseRow) {
               variant="outline"
               label="Export JSON"
               :loading="exporting"
-              @click="exportRelease(row.original.id)"
+              @click="exportRelease(row.original.id, row.original.name)"
             />
             <UButton
               variant="ghost"
@@ -133,5 +153,31 @@ async function deleteRelease(row: ReleaseRow) {
         @update:page-size="pageSize = $event"
       />
     </UCard>
+
+    <UModal
+      v-model:open="exportOpen"
+      :title="exportTitle"
+      :close="false"
+    >
+      <template #body>
+        <pre class="max-h-[60vh] overflow-auto rounded-md bg-elevated p-3 text-xs leading-relaxed text-muted">{{ exportJson }}</pre>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            variant="outline"
+            color="neutral"
+            label="Close"
+            @click="closeExport"
+          />
+          <UButton
+            label="Copy"
+            :loading="copied"
+            @click="copyExport"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
