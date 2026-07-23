@@ -21,6 +21,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
+      title: 'CS2KZ Submissions',
       htmlAttrs: {
         class: 'dark',
       },
@@ -49,6 +50,7 @@ export default defineNuxtConfig({
     },
   },
   nitro: {
+    preset: 'cloudflare-pages',
     experimental: {
       wasm: true,
     },

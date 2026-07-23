@@ -1,0 +1,7 @@
+name = "cs2kz-submissions"
+compatibility_date = "2025-07-15"
+compatibility_flags = ["nodejs_compat"]
+
+# Static assets output; the Pages Functions entry (.output/server) is wired
+# automatically by the cloudflare-pages Nitro preset.
+pages_build_output_dir = "./.output/public"
