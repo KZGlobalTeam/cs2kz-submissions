@@ -23,6 +23,8 @@ const { items, total, page, pageSize, status, refresh } = usePaginatedTable<Subm
     }),
 )
 
+const rulesOpen = shallowRef(false)
+
 const columns: TableColumn<SubmissionRow>[] = [
   { accessorKey: 'mapName', header: 'Map Name' },
   { accessorKey: 'workshopId', header: 'Workshop ID' },
@@ -59,8 +61,12 @@ function openSubmission(id: string) {
           @click="() => refresh()"
         />
         <UButton
-          to="/submissions/new"
           label="New Submission"
+          @click="rulesOpen = true"
+        />
+        <SubmissionRulesDialog
+          v-model:open="rulesOpen"
+          @proceed="navigateTo('/submissions/new')"
         />
       </div>
     </div>
