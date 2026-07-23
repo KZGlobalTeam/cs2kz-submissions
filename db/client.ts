@@ -1,3 +1,4 @@
+import { useRuntimeConfig } from '#imports'
 import { Pool, neonConfig } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-serverless'
 
@@ -8,12 +9,12 @@ if (!neonConfig.webSocketConstructor && typeof globalThis.WebSocket !== 'undefin
 }
 
 function createDatabase() {
-  const connectionString = process.env.DATABASE_URL
-  if (!connectionString) {
+  const { databaseUrl } = useRuntimeConfig()
+  if (!databaseUrl) {
     throw new Error('DATABASE_URL is not configured')
   }
 
-  const pool = new Pool({ connectionString })
+  const pool = new Pool({ connectionString: databaseUrl })
   return drizzle({ client: pool, schema })
 }
 
