@@ -26,6 +26,9 @@ export function useSubmissionForm() {
     workshopUrl: '',
     mapName: '',
     notes: '',
+    isPort: false,
+    portAuthorizationImage: null as CourseImageMeta | null,
+    portNotes: '',
     mappers: [blankMapper()],
     courses: [blankCourse()],
   })

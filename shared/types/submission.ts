@@ -32,6 +32,9 @@ export interface SubmissionInput {
   workshopUrl: string
   mapName: string
   notes: string | null
+  isPort: boolean
+  portAuthorizationImage: CourseImageMeta | null
+  portNotes: string | null
   mappers: SteamMapperInput[]
   courses: SubmissionCourseInput[]
 }

@@ -74,3 +74,35 @@ export async function uploadCourseImage(buffer: Buffer, mimeType: string) {
 
   return { key, url: data.publicUrl }
 }
+
+export async function uploadPortImage(
+  buffer: Buffer,
+  mimeType: string,
+) {
+  const config = getStorageConfig()
+  const extension = mimeType === 'image/png' ? 'png' : 'jpg'
+  const key = `port-images/${randomUUID()}.${extension}`
+
+  const storage = getStorageClient().storage.from(config.bucket)
+  const { error: uploadError } = await storage.upload(key, buffer, {
+    contentType: mimeType,
+    upsert: false,
+  })
+
+  if (uploadError) {
+    throw createError({
+      statusCode: 502,
+      statusMessage: uploadError.message,
+    })
+  }
+
+  const { data } = storage.getPublicUrl(key)
+  if (!data.publicUrl) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to generate public URL for uploaded image',
+    })
+  }
+
+  return { key, url: data.publicUrl }
+}

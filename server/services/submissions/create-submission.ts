@@ -24,6 +24,13 @@ export async function createSubmission(
         workshopId,
         mapName: input.mapName,
         notes: input.notes,
+        isPort: input.isPort,
+        portAuthorizationImageUrl: input.isPort ? input.portAuthorizationImage?.url ?? null : null,
+        portAuthorizationImageMime: input.isPort ? input.portAuthorizationImage?.mime ?? null : null,
+        portAuthorizationImageWidth: input.isPort ? input.portAuthorizationImage?.width ?? null : null,
+        portAuthorizationImageHeight: input.isPort ? input.portAuthorizationImage?.height ?? null : null,
+        portAuthorizationImageSizeBytes: input.isPort ? input.portAuthorizationImage?.sizeBytes ?? null : null,
+        portNotes: input.isPort ? input.portNotes ?? null : null,
         status: 'pending',
       })
       .returning()

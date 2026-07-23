@@ -1,5 +1,6 @@
 import {
   bigint,
+  boolean,
   index,
   integer,
   pgEnum,
@@ -29,6 +30,13 @@ export const submissions = pgTable(
     workshopId: bigint('workshop_id', { mode: 'number' }).notNull(),
     mapName: text('map_name').notNull(),
     notes: text('notes'),
+    isPort: boolean('is_port').default(false).notNull(),
+    portAuthorizationImageUrl: text('port_authorization_image_url'),
+    portAuthorizationImageMime: text('port_authorization_image_mime'),
+    portAuthorizationImageWidth: integer('port_authorization_image_width'),
+    portAuthorizationImageHeight: integer('port_authorization_image_height'),
+    portAuthorizationImageSizeBytes: integer('port_authorization_image_size_bytes'),
+    portNotes: text('port_notes'),
     status: submissionStatusEnum('status').default('pending').notNull(),
     decisionByUserId: uuid('decision_by_user_id').references(() => users.id, {
       onDelete: 'set null',

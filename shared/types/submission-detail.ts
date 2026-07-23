@@ -75,6 +75,13 @@ export interface SubmissionDetailSubmission {
   workshopId: number
   mapName: string
   notes: string | null
+  isPort: boolean
+  portAuthorizationImageUrl: string | null
+  portAuthorizationImageMime: string | null
+  portAuthorizationImageWidth: number | null
+  portAuthorizationImageHeight: number | null
+  portAuthorizationImageSizeBytes: number | null
+  portNotes: string | null
   status: SubmissionStatus
   decisionByUserId: string | null
   decisionNotes: string | null

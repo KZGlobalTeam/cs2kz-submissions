@@ -30,8 +30,8 @@ const checked = reactive<Record<string, boolean[]>>(
   Object.fromEntries(steps.map((step) => [step.key, step.rules.map(() => false)])),
 )
 
-// Porting question answer: null = unanswered, 'yes' / 'no'.
-const isPort = shallowRef<'yes' | 'no' | null>(null)
+// Porting question answer: undefined = unanswered, 'yes' / 'no'.
+const isPort = shallowRef<'yes' | 'no' | undefined>(undefined)
 
 const stepIndex = shallowRef(0)
 const currentStep = computed(() => steps[stepIndex.value]!)
@@ -47,7 +47,7 @@ function resetState() {
   for (const step of steps) {
     checked[step.key] = step.rules.map(() => false)
   }
-  isPort.value = null
+  isPort.value = undefined
   stepIndex.value = 0
 }
 
@@ -66,7 +66,7 @@ const showPortRules = computed(
 const stepComplete = computed(() => {
   const step = currentStep.value
   if (step.askIsPort) {
-    if (isPort.value === null) return false
+    if (isPort.value === undefined) return false
     // Not a port → this step is satisfied, rules are skipped.
     if (isPort.value === 'no') return true
   }

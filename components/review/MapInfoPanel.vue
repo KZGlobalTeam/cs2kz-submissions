@@ -54,6 +54,28 @@ const statusColor = computed(() =>
       <p>Mappers: {{ mapperNames }}</p>
     </div>
 
+    <div v-if="submission.isPort" class="mt-4 border-t border-white/5 pt-4 text-sm">
+      <p class="font-semibold">Ported Map</p>
+      <p class="mt-1 text-muted">
+        This map is ported. The submitter has provided a screenshot as evidence
+        that the original author authorized the port.
+      </p>
+      <a
+        v-if="submission.portAuthorizationImageUrl"
+        :href="submission.portAuthorizationImageUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="mt-2 inline-block"
+      >
+        <img
+          :src="submission.portAuthorizationImageUrl"
+          alt="Original author authorization screenshot"
+          class="h-auto max-h-64 w-auto rounded-md border border-white/10"
+        >
+      </a>
+      <p v-if="submission.portNotes" class="mt-2 text-zinc-300">{{ submission.portNotes }}</p>
+    </div>
+
     <div v-if="isDecided" class="mt-4 border-t border-white/5 pt-4 text-sm">
       <p class="font-semibold">Decision</p>
       <p class="mt-1 text-muted">Status: {{ submission.status }}</p>
