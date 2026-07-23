@@ -1,11 +1,14 @@
-import { useRuntimeConfig } from '#imports'
+import type { H3Event } from 'h3'
+
 import { createError } from 'h3'
+
+import { getAppConfig } from './config'
 
 const STEAM_OPENID_URL = 'https://steamcommunity.com/openid/login'
 const STEAM_PROFILE_API = 'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/'
 
-function getAuthConfig() {
-  const { steamRealm, steamReturnUrl } = useRuntimeConfig()
+function getAuthConfig(event?: H3Event) {
+  const { steamRealm, steamReturnUrl } = getAppConfig(event)
 
   if (!steamRealm || !steamReturnUrl) {
     throw createError({
@@ -14,11 +17,11 @@ function getAuthConfig() {
     })
   }
 
-  return { realm: String(steamRealm), returnUrl: String(steamReturnUrl) }
+  return { realm: steamRealm, returnUrl: steamReturnUrl }
 }
 
-export async function getSteamLoginUrl() {
-  const { realm, returnUrl } = getAuthConfig()
+export async function getSteamLoginUrl(event?: H3Event) {
+  const { realm, returnUrl } = getAuthConfig(event)
 
   const url = new URL(STEAM_OPENID_URL)
   url.searchParams.set('openid.ns', 'http://specs.openid.net/auth/2.0')
@@ -103,8 +106,8 @@ export async function verifySteamAssertion(requestUrl: string): Promise<string> 
   return steamId64
 }
 
-export async function fetchSteamProfile(steamId64: string) {
-  const { steamApiKey } = useRuntimeConfig()
+export async function fetchSteamProfile(steamId64: string, event?: H3Event) {
+  const { steamApiKey } = getAppConfig(event)
 
   if (!steamApiKey) {
     return {
@@ -116,7 +119,7 @@ export async function fetchSteamProfile(steamId64: string) {
   }
 
   const url = new URL(STEAM_PROFILE_API)
-  url.searchParams.set('key', String(steamApiKey))
+  url.searchParams.set('key', steamApiKey)
   url.searchParams.set('steamids', steamId64)
 
   const response = await fetch(url)

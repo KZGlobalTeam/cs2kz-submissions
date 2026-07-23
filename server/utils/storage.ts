@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto'
 
-import { useRuntimeConfig } from '#imports'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createError } from 'h3'
+
+import { getAppConfig } from './config'
 
 let client: SupabaseClient | null = null
 
 export function getStorageConfig() {
-  const { supabaseUrl, supabaseServiceRoleKey, supabaseStorageBucket } = useRuntimeConfig()
+  const { supabaseUrl, supabaseServiceRoleKey, supabaseStorageBucket } = getAppConfig()
 
   if (!supabaseUrl || !supabaseServiceRoleKey || !supabaseStorageBucket) {
     throw createError({

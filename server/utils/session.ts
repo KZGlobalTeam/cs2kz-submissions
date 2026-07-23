@@ -1,6 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto'
 
-import { useRuntimeConfig } from '#imports'
 import { eq } from 'drizzle-orm'
 import {
   appendHeader,
@@ -12,6 +11,7 @@ import {
 
 import { sessions } from '~/db/schema'
 
+import { getAppConfig } from './config'
 import { db } from './db'
 
 const SESSION_COOKIE_NAME = 'cs2kz_submission_session'
@@ -36,7 +36,8 @@ export async function persistSession(event: H3Event, userId: string) {
     expiresAt,
   })
 
-  const siteUrl = useRuntimeConfig().public.siteUrl as string
+  const { siteUrl: siteUrlConfig } = getAppConfig(event)
+  const siteUrl = siteUrlConfig ?? 'http://localhost:3000'
   setCookie(event, SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',

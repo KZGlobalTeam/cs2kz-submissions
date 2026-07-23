@@ -28,3 +28,4 @@ logs
 .codegraph
 docs
 .playwright-cli
+.wrangler

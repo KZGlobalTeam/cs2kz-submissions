@@ -1,8 +1,8 @@
-import { useRuntimeConfig } from '#imports'
 import { eq } from 'drizzle-orm'
 import { sendRedirect } from 'h3'
 
 import { users } from '~/db/schema'
+import { getAppConfig } from '~/server/utils/config'
 import { persistSession } from '~/server/utils/session'
 import {
   fetchSteamProfile,
@@ -13,7 +13,7 @@ import { db } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const steamId64 = await verifySteamAssertion(getRequestURL(event).toString())
-  const steamProfile = await fetchSteamProfile(steamId64)
+  const steamProfile = await fetchSteamProfile(steamId64, event)
 
   const [existingUser] = await db()
     .select()
@@ -56,6 +56,7 @@ export default defineEventHandler(async (event) => {
 
   await persistSession(event, userId!)
 
-  const siteUrl = useRuntimeConfig().public.siteUrl ?? 'http://localhost:3000'
-  return sendRedirect(event, `${siteUrl.replace(/\/$/, '')}/submissions`, 302)
+  const { siteUrl } = getAppConfig(event)
+  const redirectBase = siteUrl ?? 'http://localhost:3000'
+  return sendRedirect(event, `${redirectBase.replace(/\/$/, '')}/submissions`, 302)
 })
