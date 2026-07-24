@@ -8,6 +8,7 @@ import {
 } from '~/db/schema'
 import type { SubmissionVoteInput } from '~/shared/types/submission'
 
+import { withTransaction } from '~/db/client'
 import { db } from '~/server/utils/db'
 
 export async function saveVote(
@@ -35,7 +36,7 @@ export async function saveVote(
     })
   }
 
-  return db().transaction(async (tx) => {
+  return withTransaction(async (tx) => {
     const [existingVote] = await tx
       .select()
       .from(submissionVotes)

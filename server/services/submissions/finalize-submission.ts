@@ -4,6 +4,7 @@ import { createError } from 'h3'
 import { submissionFinalFilters, submissions } from '~/db/schema'
 import type { LeadDecisionInput } from '~/shared/types/submission'
 
+import { withTransaction } from '~/db/client'
 import { db } from '~/server/utils/db'
 
 export async function finalizeSubmission(
@@ -31,7 +32,7 @@ export async function finalizeSubmission(
     })
   }
 
-  return db().transaction(async (tx) => {
+  return withTransaction(async (tx) => {
     await tx
       .delete(submissionFinalFilters)
       .where(eq(submissionFinalFilters.submissionId, submissionId))

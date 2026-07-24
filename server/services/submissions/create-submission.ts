@@ -1,4 +1,4 @@
-import { db } from '~/server/utils/db'
+import { withTransaction } from '~/db/client'
 import type { SubmissionInput } from '~/shared/types/submission'
 import { assertWorkshopId } from '~/shared/utils/workshop'
 import { createError } from 'h3'
@@ -15,7 +15,7 @@ export async function createSubmission(
 ) {
   const workshopId = assertWorkshopId(input.workshopUrl)
 
-  return db().transaction(async (tx) => {
+  return withTransaction(async (tx) => {
     const [submission] = await tx
       .insert(submissions)
       .values({
