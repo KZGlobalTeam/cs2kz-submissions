@@ -51,6 +51,13 @@ export default defineNuxtConfig({
   },
   nitro: {
     preset: 'cloudflare-pages',
+    cloudflare: {
+      // Force node-compat so `node:crypto` (needed by @neondatabase/serverless
+      // SCRAM auth, and by anything else using createHash/createHmac) is
+      // externalized to the Workers runtime instead of being inlined as
+      // unenv's `notImplemented` stub. Requires `nodejs_compat` at runtime.
+      nodeCompat: true,
+    },
     experimental: {
       wasm: true,
     },
