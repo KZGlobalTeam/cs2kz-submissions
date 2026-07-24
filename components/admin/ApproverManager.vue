@@ -6,7 +6,7 @@ import type { PaginatedResult } from '~/shared/types/pagination'
 interface ApproverRow {
   steamId64: string
   displayName: string
-  role: 'approver' | 'lead_approver'
+  roles: ('approver' | 'lead_approver')[]
 }
 
 const { items, total, page, pageSize, status, refresh } = usePaginatedTable<ApproverRow>(
@@ -52,23 +52,30 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
 const columns: TableColumn<ApproverRow>[] = [
   { accessorKey: 'displayName', header: 'Name' },
   { accessorKey: 'steamId64', header: 'SteamID64' },
-  { accessorKey: 'role', header: 'Role' },
+  { accessorKey: 'roles', header: 'Roles' },
   { id: 'actions', header: '' },
 ]
 
 const removing = shallowRef<string | null>(null)
 const pendingRemove = shallowRef<ApproverRow | null>(null)
+const pendingRemoveRole = shallowRef<'approver' | 'lead_approver' | null>(null)
+
+function startRemove(row: ApproverRow, role: 'approver' | 'lead_approver') {
+  pendingRemove.value = row
+  pendingRemoveRole.value = role
+}
 
 async function confirmRemoveApprover() {
   const item = pendingRemove.value
-  if (!item) {
+  const role = pendingRemoveRole.value
+  if (!item || !role) {
     return
   }
 
-  removing.value = `${item.steamId64}-${item.role}`
+  removing.value = `${item.steamId64}-${role}`
   try {
     await $fetch(
-      `/api/admin/approvers/${item.steamId64}?role=${item.role}`,
+      `/api/admin/approvers/${item.steamId64}?role=${role}`,
       { method: 'DELETE' },
     )
     await refresh()
@@ -79,6 +86,7 @@ async function confirmRemoveApprover() {
   } finally {
     removing.value = null
     pendingRemove.value = null
+    pendingRemoveRole.value = null
   }
 }
 
@@ -115,17 +123,27 @@ const roleColor = (role: string) =>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <UTable :data="items" :columns="columns" :loading="status === 'pending'">
         <template #role-cell="{ row }">
-          <UBadge :color="roleColor(row.original.role)" :label="row.original.role" variant="subtle" />
+          <div class="flex flex-wrap gap-2">
+            <UBadge
+              v-for="role in [...row.original.roles].sort((a, b) => (a === 'lead_approver' ? 0 : 1) - (b === 'lead_approver' ? 0 : 1))"
+              :key="role"
+              :color="roleColor(role)"
+              :label="role"
+              variant="subtle"
+            />
+          </div>
         </template>
 
         <template #actions-cell="{ row }">
-          <div class="flex justify-end">
+          <div class="flex flex-wrap justify-end gap-2">
             <UButton
+              v-for="role in row.original.roles"
+              :key="role"
               variant="ghost"
               color="error"
-              label="Remove"
-              :loading="removing === `${row.original.steamId64}-${row.original.role}`"
-              @click="pendingRemove = row.original"
+              :label="`Remove ${role}`"
+              :loading="removing === `${row.original.steamId64}-${role}`"
+              @click="startRemove(row.original, role)"
             />
           </div>
         </template>
@@ -143,13 +161,13 @@ const roleColor = (role: string) =>
     <CommonConfirmDialog
       :open="pendingRemove !== null"
       title="Remove approver"
-      :description="pendingRemove ? `Remove ${pendingRemove.displayName} (${pendingRemove.role}) from the approver list?` : undefined"
+      :description="pendingRemove && pendingRemoveRole ? `Remove ${pendingRemove.displayName} (${pendingRemoveRole}) from the approver list?` : undefined"
       confirm-label="Remove"
       confirm-color="error"
       :loading="removing !== null"
       @confirm="confirmRemoveApprover"
-      @cancel="pendingRemove = null"
-      @update:open="(value) => { if (!value) pendingRemove = null }"
+      @cancel="pendingRemove = null; pendingRemoveRole = null"
+      @update:open="(value) => { if (!value) { pendingRemove = null; pendingRemoveRole = null } }"
     />
   </section>
 </template>
