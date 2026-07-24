@@ -15,9 +15,22 @@ const emit = defineEmits<{
 const toast = useToast()
 
 const uploading = shallowRef(false)
+const errorMessage = shallowRef<string | null>(null)
 
 function updateCourse(patch: Partial<CourseInput>) {
   emit('update', { ...props.course, ...patch })
+}
+
+function rejectUpload(input: HTMLInputElement, message: string) {
+  errorMessage.value = message
+  // Clear the selection so the user can pick the same file again (a native
+  // file input won't fire `change` twice for an unchanged value).
+  input.value = ''
+  toast.add({
+    color: 'error',
+    title: 'Invalid image',
+    description: message,
+  })
 }
 
 async function onFileChange(event: Event) {
@@ -27,12 +40,10 @@ async function onFileChange(event: Event) {
     return
   }
 
+  errorMessage.value = null
+
   if (file.type !== 'image/jpeg') {
-    toast.add({
-      color: 'error',
-      title: 'Invalid image',
-      description: 'The image must be in JPG format with a resolution of 1920 × 1080.',
-    })
+    rejectUpload(input, 'The image must be a JPG file with a resolution of 1920 × 1080.')
     return
   }
 
@@ -40,20 +51,15 @@ async function onFileChange(event: Event) {
   try {
     bitmap = await createImageBitmap(file)
   } catch {
-    toast.add({
-      color: 'error',
-      title: 'Invalid image',
-      description: 'The image must be in JPG format with a resolution of 1920 × 1080.',
-    })
+    rejectUpload(input, 'The image could not be read. It must be a JPG file with a resolution of 1920 × 1080.')
     return
   }
 
   if (bitmap.width !== 1920 || bitmap.height !== 1080) {
-    toast.add({
-      color: 'error',
-      title: 'Invalid image',
-      description: 'The image must be in JPG format with a resolution of 1920 × 1080.',
-    })
+    rejectUpload(
+      input,
+      `Course image must be 1920 × 1080 — the selected image is ${bitmap.width} × ${bitmap.height}.`,
+    )
     return
   }
 
@@ -67,6 +73,12 @@ async function onFileChange(event: Event) {
       body: formData,
     })
     updateCourse({ image: result })
+    input.value = ''
+  } catch (error: unknown) {
+    const message = error && typeof error === 'object' && 'statusMessage' in error
+      ? String((error as { statusMessage: unknown }).statusMessage)
+      : 'Failed to upload course image'
+    rejectUpload(input, message)
   } finally {
     uploading.value = false
   }
@@ -112,6 +124,9 @@ async function onFileChange(event: Event) {
             class="animate-spin"
           />
           <span>Uploading…</span>
+        </p>
+        <p v-if="errorMessage" class="mt-2 text-xs text-danger">
+          {{ errorMessage }}
         </p>
         <img
           v-if="course.image?.url"
