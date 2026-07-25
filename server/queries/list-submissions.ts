@@ -110,13 +110,17 @@ export async function listAllSubmissionsForReview(
     db()
       .select({
         submissionId: submissionVotes.submissionId,
+        approvalDecision: submissionVotes.approvalDecision,
         voteCount: count(submissionVotes.id),
       })
       .from(submissionVotes)
       .where(inArray(submissionVotes.submissionId, ids))
-      .groupBy(submissionVotes.submissionId),
+      .groupBy(submissionVotes.submissionId, submissionVotes.approvalDecision),
     db()
-      .select({ submissionId: submissionVotes.submissionId })
+      .select({
+        submissionId: submissionVotes.submissionId,
+        approvalDecision: submissionVotes.approvalDecision,
+      })
       .from(submissionVotes)
       .where(and(
         inArray(submissionVotes.submissionId, ids),
@@ -132,12 +136,22 @@ export async function listAllSubmissionsForReview(
     mappersBySub.get(mapper.submissionId)!.push(mapper.displayNameSnapshot)
   }
 
-  const voteCountBySub = new Map<string, number>()
+  const voteCountBySub = new Map<string, { yes: number; no: number }>()
   for (const vote of voteAgg) {
-    voteCountBySub.set(vote.submissionId, Number(vote.voteCount))
+    const counts = voteCountBySub.get(vote.submissionId) ?? { yes: 0, no: 0 }
+    const decision = vote.approvalDecision
+    if (decision === 'yes' || decision === 'no') {
+      counts[decision] = Number(vote.voteCount)
+      voteCountBySub.set(vote.submissionId, counts)
+    }
   }
 
-  const myVoteSet = new Set(myVotes.map((vote) => vote.submissionId))
+  const myVoteBySub = new Map<string, 'yes' | 'no'>()
+  for (const vote of myVotes) {
+    if (vote.approvalDecision === 'yes' || vote.approvalDecision === 'no') {
+      myVoteBySub.set(vote.submissionId, vote.approvalDecision)
+    }
+  }
 
   return rows.map((row) => ({
     id: row.id,
@@ -148,7 +162,8 @@ export async function listAllSubmissionsForReview(
     createdAt: row.createdAt.toISOString(),
     approvedAt: row.approvedAt ? row.approvedAt.toISOString() : null,
     mappers: mappersBySub.get(row.id) ?? [],
-    voteCount: voteCountBySub.get(row.id) ?? 0,
-    myVote: myVoteSet.has(row.id),
+    yesVotes: voteCountBySub.get(row.id)?.yes ?? 0,
+    noVotes: voteCountBySub.get(row.id)?.no ?? 0,
+    myVote: myVoteBySub.get(row.id) ?? null,
   }))
 }

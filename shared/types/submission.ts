@@ -100,8 +100,9 @@ export interface ReviewSubmissionRow {
   createdAt: string
   approvedAt: string | null
   mappers: string[]
-  voteCount: number
-  myVote: boolean
+  yesVotes: number
+  noVotes: number
+  myVote: ApprovalDecision | null
 }
 
 export interface SessionUser {

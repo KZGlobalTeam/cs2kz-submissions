@@ -65,7 +65,7 @@ const columns = computed<TableColumn<ReviewSubmissionRow>[]>(() => {
       cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
     },
     { accessorKey: 'status', header: 'Status' },
-    { accessorKey: 'voteCount', header: 'Votes' },
+    { id: 'votes', header: 'Votes' },
     { accessorKey: 'myVote', header: 'My Vote' },
   ]
 
@@ -175,15 +175,34 @@ async function confirmDeleteSubmission() {
           <span>{{ row.original.mappers.length ? row.original.mappers.join(', ') : '—' }}</span>
         </template>
 
-        <template #voteCount-cell="{ row }">
-          <span>{{ row.original.voteCount }}</span>
+        <template #votes-cell="{ row }">
+          <div class="flex flex-wrap items-center gap-0.5">
+            <UIcon
+              v-for="i in row.original.yesVotes"
+              :key="`yes-${i}`"
+              name="i-lucide-check"
+              class="size-4 text-success"
+            />
+            <UIcon
+              v-for="i in row.original.noVotes"
+              :key="`no-${i}`"
+              name="i-lucide-x"
+              class="size-4 text-error"
+            />
+          </div>
         </template>
 
         <template #myVote-cell="{ row }">
           <UBadge
-            v-if="row.original.myVote"
+            v-if="row.original.myVote === 'yes'"
             color="success"
-            label="Voted"
+            label="approved"
+            variant="subtle"
+          />
+          <UBadge
+            v-else-if="row.original.myVote === 'no'"
+            color="error"
+            label="no"
             variant="subtle"
           />
           <span v-else class="text-muted">—</span>
