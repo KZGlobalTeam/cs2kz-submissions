@@ -7,12 +7,16 @@ import { useSubmissionForm } from '~/composables/useSubmissionForm'
 
 const { form } = useSubmissionForm()
 const submitting = shallowRef(false)
+const confirmOpen = shallowRef(false)
 const uploadingPortImage = shallowRef(false)
 
 const toast = useToast()
 
 const mapperSchema = z.object({
-  steamId64: z.string().min(1, 'SteamID64 is required'),
+  steamId64: z
+    .string()
+    .min(1, 'SteamID64 is required')
+    .regex(/^\d{17}$/, 'SteamID64 must be a 17-digit number'),
   displayName: z.string().min(1, 'Display name is required'),
 })
 
@@ -33,17 +37,51 @@ const portImageSchema = z.object({
 })
 
 const courseSchema = z.object({
-  name: z.string().min(1, 'Course name is required'),
+  name: z
+    .string()
+    .min(1, 'Course name is required')
+    .regex(/^[\x20-\x7E]*$/, 'Course name must only contain ASCII characters'),
   image: imageSchema
     .nullable()
     .refine((value) => value !== null, 'Course image is required (JPG, 1920x1080)'),
   mappers: z.array(mapperSchema).min(1, 'At least one mapper is required'),
 })
 
+const mapNameSchema = z
+  .string()
+  .min(1, 'Map name is required')
+  .refine((value) => value.startsWith('kz_'), 'Map name must start with `kz_`')
+  .refine(
+    (value) => /^kz_[A-Za-z0-9_]*$/.test(value),
+    'Map name must only contain ASCII alphanumeric characters and underscores',
+  )
+  .refine(
+    (value) => value.length <= 27,
+    'Map name must not exceed 27 characters (including the `kz_` prefix)',
+  )
+
+const workshopUrlSchema = z
+  .string()
+  .min(1, 'Workshop URL is required')
+  .url('Must be a valid URL')
+  .refine((value) => {
+    try {
+      const parsed = new URL(value)
+      return (
+        parsed.hostname === 'steamcommunity.com' &&
+        /\/(?:sharedfiles|workshop)\/filedetails\/$/.test(parsed.pathname) &&
+        parsed.searchParams.has('id') &&
+        /^\d+$/.test(parsed.searchParams.get('id') ?? '')
+      )
+    } catch {
+      return false
+    }
+  }, 'Must be a Steam Workshop URL')
+
 const schema = z
   .object({
-    mapName: z.string().min(1, 'Map name is required'),
-    workshopUrl: z.string().min(1, 'Workshop URL is required').url('Must be a valid URL'),
+    mapName: mapNameSchema,
+    workshopUrl: workshopUrlSchema,
     notes: z.string().optional(),
     isPort: z.boolean(),
     portAuthorizationImage: portImageSchema.nullable(),
@@ -58,6 +96,20 @@ const schema = z
         message: 'An authorization screenshot from the original author is required for ported maps',
         path: ['portAuthorizationImage'],
       })
+    }
+
+    const seen = new Set<string>()
+    for (let i = 0; i < value.courses.length; i++) {
+      const name = value.courses[i].name.trim()
+      if (!name) continue
+      if (seen.has(name)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `Course name “${name}” must be unique across all courses on your map`,
+          path: ['courses', i, 'name'],
+        })
+      }
+      seen.add(name)
     }
   })
 
@@ -110,6 +162,12 @@ function clearPortImage() {
 }
 
 async function onSubmit(_event: FormSubmitEvent<Schema>) {
+  // Form-level validation has already passed; ask the user to confirm before
+  // we fire the POST that creates the submission.
+  confirmOpen.value = true
+}
+
+async function confirmSubmit() {
   submitting.value = true
   try {
     await $fetch('/api/submissions', {
@@ -133,8 +191,18 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     // the table loading state) instead of rendering the stale list.
     clearNuxtData('submissions')
     await navigateTo('/submissions')
+  } catch (error: unknown) {
+    const message = error && typeof error === 'object' && 'statusMessage' in error
+      ? String((error as { statusMessage: unknown }).statusMessage)
+      : 'Failed to submit'
+    toast.add({
+      color: 'error',
+      title: 'Submission failed',
+      description: message,
+    })
   } finally {
     submitting.value = false
+    confirmOpen.value = false
   }
 }
 </script>
@@ -222,7 +290,7 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
     </div>
 
     <UFormField name="mappers">
-      <MapperListField v-model="form.mappers" label="Map Mappers" />
+      <MapperListField v-model="form.mappers" label="Map Mappers" name-prefix="mappers" />
     </UFormField>
 
     <UFormField name="courses">
@@ -236,5 +304,16 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
         :loading="submitting"
       />
     </div>
+
+    <CommonConfirmDialog
+      :open="confirmOpen"
+      title="Submit"
+      description="Submit this map for review? You won't be able to edit it after submission."
+      confirm-label="Submit"
+      :loading="submitting"
+      @confirm="confirmSubmit"
+      @cancel="confirmOpen = false"
+      @update:open="(value) => { if (!value) confirmOpen = false }"
+    />
   </UForm>
 </template>

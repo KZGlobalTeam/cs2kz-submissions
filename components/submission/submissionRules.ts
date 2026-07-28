@@ -38,7 +38,10 @@ export const submissionRulesSteps: SubmissionRulesStep[] = [
       },
       { text: 'Map name must be **easily distinguishable** from other maps.' },
       {
-        text: 'Course names can **only** contain ASCII characters (including spaces, punctuation, quotes, etc.) and be unique across all courses **on your map**',
+        text: 'Map name must be identical with the workshop map name and vpk file name.',
+      },
+      {
+        text: 'Course names can **only** contain ASCII characters (including spaces, punctuation, quotes, etc.) and be unique across all courses **on your map**.',
       },
     ],
   },
@@ -90,7 +93,7 @@ export const submissionRulesSteps: SubmissionRulesStep[] = [
       {
         text: 'Ports have to take advantage of the source 2 engines mapping features (lighting, texture quality and reflections etc)',
       },
-      { text: 'Ports must look better than their older counterparts' },
+      { text: 'Ports must look better than their older counterparts.' },
       {
         text: "If you're **not the original mapper**, you **must get permission** from them.",
       },

@@ -4,6 +4,12 @@ import type { MapperInput } from '~/composables/useSubmissionForm'
 const props = defineProps<{
   label: string
   modelValue: MapperInput[]
+  /**
+   * Dotted path prefix under the root UForm state that points at this mapper
+   * list, e.g. `mappers` or `courses.0.mappers`. Used to build per-field
+   * `UFormField` names so validation errors surface on each input.
+   */
+  namePrefix: string
 }>()
 
 const emit = defineEmits<{
@@ -44,25 +50,39 @@ function removeMapper(index: number) {
       <div
         v-for="(mapper, index) in modelValue"
         :key="`${label}-${index}`"
-        class="grid items-center gap-3 lg:grid-cols-[1fr_1fr_auto]"
+        class="grid items-start gap-3 lg:grid-cols-[1fr_1fr_auto]"
       >
-        <UInput
-          :model-value="mapper.displayName"
-          placeholder="Display name"
-          @update:model-value="updateMapper(index, 'displayName', $event)"
-        />
-        <UInput
-          :model-value="mapper.steamId64"
-          placeholder="SteamID64"
-          @update:model-value="updateMapper(index, 'steamId64', $event)"
-        />
-        <UButton
-          variant="ghost"
-          color="error"
-          label="Remove"
-          :disabled="modelValue.length === 1"
-          @click="removeMapper(index)"
-        />
+        <UFormField
+          :name="`${namePrefix}.${index}.displayName`"
+          :ui="{ label: 'sr-only' }"
+        >
+          <UInput
+            :model-value="mapper.displayName"
+            placeholder="Display name"
+            class="w-full"
+            @update:model-value="updateMapper(index, 'displayName', $event)"
+          />
+        </UFormField>
+        <UFormField
+          :name="`${namePrefix}.${index}.steamId64`"
+          :ui="{ label: 'sr-only' }"
+        >
+          <UInput
+            :model-value="mapper.steamId64"
+            placeholder="SteamID64"
+            class="w-full"
+            @update:model-value="updateMapper(index, 'steamId64', $event)"
+          />
+        </UFormField>
+        <div class="flex h-10 items-center">
+          <UButton
+            variant="ghost"
+            color="error"
+            label="Remove"
+            :disabled="modelValue.length === 1"
+            @click="removeMapper(index)"
+          />
+        </div>
       </div>
     </div>
   </section>

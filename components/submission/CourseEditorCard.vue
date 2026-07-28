@@ -98,7 +98,7 @@ async function onFileChange(event: Event) {
     </div>
 
     <div class="grid gap-4">
-      <UFormField label="Course Name" required>
+      <UFormField label="Course Name" :name="`courses.${index}.name`" required>
         <UInput
           :model-value="course.name"
           placeholder="Course 1"
@@ -139,6 +139,7 @@ async function onFileChange(event: Event) {
       <MapperListField
         :model-value="course.mappers"
         label="Course Mappers"
+        :name-prefix="`courses.${index}.mappers`"
         @update:model-value="updateCourse({ mappers: $event })"
       />
     </div>
