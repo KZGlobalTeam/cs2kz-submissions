@@ -100,7 +100,9 @@ const schema = z
 
     const seen = new Set<string>()
     for (let i = 0; i < value.courses.length; i++) {
-      const name = value.courses[i].name.trim()
+      const course = value.courses[i]
+      if (!course) continue
+      const name = course.name.trim()
       if (!name) continue
       if (seen.has(name)) {
         ctx.addIssue({
