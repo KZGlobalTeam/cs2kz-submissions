@@ -21,7 +21,7 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      title: 'CS2KZ Submissions',
+      title: 'CS2KZ Global Submissions',
       htmlAttrs: {
         class: 'dark',
       },
