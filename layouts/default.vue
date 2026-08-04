@@ -24,7 +24,7 @@ const navigation = computed(() => {
 
 <template>
   <div class="min-h-screen">
-    <div class="mx-auto flex min-h-screen max-w-7xl gap-6 px-4 py-6 lg:px-6">
+    <div class="mx-auto flex min-h-screen w-full max-w-[min(96rem,calc(100vw-2rem))] gap-6 px-4 py-6 lg:px-6">
       <aside class="hidden w-64 shrink-0 lg:block">
         <div class="mb-6">
           <p class="text-xs uppercase tracking-[0.35em] text-muted">CS2KZ</p>

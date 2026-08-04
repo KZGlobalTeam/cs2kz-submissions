@@ -1,6 +1,6 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm'
 
-import { submissionMappers, submissionVotes, submissions } from '~/db/schema'
+import { submissionMappers, submissionVotes, submissions, users } from '~/db/schema'
 import type { ReviewSubmissionRow, SubmissionStatus } from '~/shared/types/submission'
 
 import { db } from '~/server/utils/db'
@@ -73,11 +73,13 @@ export async function listAllSubmissionsForReview(
       mapName: submissions.mapName,
       workshopId: submissions.workshopId,
       workshopUrl: submissions.workshopUrl,
+      submittedBy: users.displayName,
       status: submissions.status,
       createdAt: submissions.createdAt,
       approvedAt: submissions.approvedAt,
     })
     .from(submissions)
+    .innerJoin(users, eq(submissions.createdByUserId, users.id))
     .where(status ? eq(submissions.status, status) : undefined)
     .orderBy(
       status === 'approved'
@@ -158,6 +160,7 @@ export async function listAllSubmissionsForReview(
     mapName: row.mapName,
     workshopId: row.workshopId,
     workshopUrl: row.workshopUrl,
+    submittedBy: row.submittedBy,
     status: row.status,
     createdAt: row.createdAt.toISOString(),
     approvedAt: row.approvedAt ? row.approvedAt.toISOString() : null,

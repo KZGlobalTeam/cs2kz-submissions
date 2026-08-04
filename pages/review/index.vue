@@ -28,6 +28,15 @@ function coerceStatus(value: unknown): SubmissionStatus {
 
 const statusFilter = ref<SubmissionStatus>(coerceStatus(route.query.status))
 
+function formatDateYearMonthDay(value: string): string {
+  const date = new Date(value)
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+
+  return `${year}/${month}/${day}`
+}
+
 const { items, total, page, pageSize, status, refresh } = usePaginatedTable<ReviewSubmissionRow>(
   'review-submissions',
   ({ page, pageSize }) =>
@@ -56,13 +65,14 @@ watch(statusFilter, (value) => {
 
 const columns = computed<TableColumn<ReviewSubmissionRow>[]>(() => {
   const cols: TableColumn<ReviewSubmissionRow>[] = [
-    { accessorKey: 'mapName', header: 'Map Name' },
-    { accessorKey: 'workshopId', header: 'Workshop ID' },
+    { accessorKey: 'mapName', header: 'Map' },
+    { accessorKey: 'workshopId', header: 'Workshop' },
     { accessorKey: 'mappers', header: 'Mappers' },
+    { accessorKey: 'submittedBy', header: 'Submitted By' },
     {
       accessorKey: 'createdAt',
-      header: 'Created',
-      cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+      header: 'Submitted On',
+      cell: ({ row }) => formatDateYearMonthDay(row.original.createdAt),
     },
     { accessorKey: 'status', header: 'Status' },
     { id: 'votes', header: 'Votes' },
@@ -165,7 +175,7 @@ async function confirmDeleteSubmission() {
             :href="row.original.workshopUrl"
             target="_blank"
             rel="noopener noreferrer"
-            class="text-blue-500 underline hover:text-blue-400"
+            class="font-medium text-blue-500 underline underline-offset-2 hover:text-blue-400"
           >
             {{ row.original.workshopId }}
           </a>
@@ -173,6 +183,10 @@ async function confirmDeleteSubmission() {
 
         <template #mappers-cell="{ row }">
           <span>{{ row.original.mappers.length ? row.original.mappers.join(', ') : '—' }}</span>
+        </template>
+
+        <template #submittedBy-cell="{ row }">
+          <span>{{ row.original.submittedBy }}</span>
         </template>
 
         <template #votes-cell="{ row }">
@@ -217,16 +231,19 @@ async function confirmDeleteSubmission() {
         </template>
 
         <template #actions-cell="{ row }">
-          <div class="flex justify-end gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <UButton
               v-if="hasApproverRole"
               variant="outline"
+              color="neutral"
               label="Vote"
               :disabled="row.original.status !== 'pending'"
               @click="openVote(row.original.id)"
             />
             <UButton
               v-if="isLeadApprover"
+              variant="outline"
+              color="neutral"
               label="Approve"
               :disabled="row.original.status !== 'pending'"
               @click="openApprove(row.original.id)"

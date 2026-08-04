@@ -29,3 +29,5 @@ logs
 docs
 .playwright-cli
 .wrangler
+
+AGENTS.md
