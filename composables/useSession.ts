@@ -12,6 +12,7 @@ export function useSession() {
   }))
 
   const pending = useState<boolean>('session-pending', () => false)
+  const logoutPending = useState<boolean>('session-logout-pending', () => false)
 
   async function refreshSession(): Promise<SessionState> {
     pending.value = true
@@ -27,12 +28,21 @@ export function useSession() {
   }
 
   async function logout() {
-    await $fetch('/api/auth/logout', { method: 'POST' })
-    session.value = {
-      authenticated: false,
-      user: null,
+    if (logoutPending.value) {
+      return
     }
-    await navigateTo('/')
+
+    logoutPending.value = true
+    try {
+      await $fetch('/api/auth/logout', { method: 'POST' })
+      session.value = {
+        authenticated: false,
+        user: null,
+      }
+      await navigateTo('/')
+    } finally {
+      logoutPending.value = false
+    }
   }
 
   const isApprover = computed(() =>
@@ -56,6 +66,7 @@ export function useSession() {
   return {
     session,
     pending,
+    logoutPending,
     refreshSession,
     logout,
     isApprover,

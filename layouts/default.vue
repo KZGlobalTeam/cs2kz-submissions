@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { session, refreshSession, logout, isApprover, isLeadApprover, pending } = useSession()
+const { session, refreshSession, logout, isApprover, isLeadApprover, pending, logoutPending } = useSession()
 
 await callOnce(async () => {
   await refreshSession()
@@ -51,7 +51,7 @@ const navigation = computed(() => {
 
           <div class="flex items-center gap-2">
             <UButton v-if="!session.user" to="/" variant="outline" label="Sign in" />
-            <UButton v-else variant="outline" label="Sign out" :loading="pending" @click="logout" />
+            <UButton v-else variant="outline" label="Sign out" :loading="logoutPending" :disabled="logoutPending" @click="logout" />
           </div>
         </header>
 

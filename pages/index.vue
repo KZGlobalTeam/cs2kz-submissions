@@ -6,6 +6,18 @@ definePageMeta({
 const { session, refreshSession } = useSession()
 
 const checking = ref(true)
+const loginPending = ref(false)
+
+function handleLogin() {
+  if (loginPending.value) {
+    return
+  }
+
+  loginPending.value = true
+  void navigateTo('/api/auth/login', {
+    external: true,
+  })
+}
 
 void (async () => {
   await callOnce(async () => {
@@ -29,7 +41,13 @@ void (async () => {
         </div>
 
         <div v-else class="mt-6">
-          <UButton v-if="!session.authenticated" label="Sign In With Steam" to="/api/auth/login" external />
+          <UButton
+            v-if="!session.authenticated"
+            label="Sign In With Steam"
+            :loading="loginPending"
+            :disabled="loginPending"
+            @click="handleLogin"
+          />
 
           <UButton v-else label="Enter Dashboard" to="/submissions" />
         </div>
