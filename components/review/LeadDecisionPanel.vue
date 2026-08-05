@@ -127,19 +127,20 @@ async function submitDecision() {
       :key="entry.course.id"
       :ui="{ body: 'p-4 sm:p-4' }"
     >
-      <h3 class="mb-3 text-lg font-semibold">{{ entry.course.name }}</h3>
+      <h3 class="mb-4 text-xl font-semibold">{{ entry.course.name }}</h3>
       <img
         :src="entry.course.imageUrl"
         :alt="entry.course.name"
-        class="mb-4 h-40 w-full rounded-md object-cover"
+        class="h-40 w-auto max-w-full rounded-md object-contain"
       >
 
-      <div class="space-y-5">
+      <div class="mt-6 space-y-6 border-t border-white/5 pt-6">
         <div
           v-for="filter in entry.filters"
           :key="`${filter.courseId}-${filter.mode}`"
+          class="border-t border-white/5 pt-6 first:border-t-0 first:pt-0"
         >
-          <p class="mb-3 text-sm font-semibold">
+          <p class="mb-4 text-base font-semibold">
             {{ filter.mode === 'classic' ? 'CKZ' : 'VNL' }} Filter
           </p>
 
@@ -166,7 +167,7 @@ async function submitDecision() {
 
             <div>
               <div class="flex items-center gap-4">
-                <span class="w-28 shrink-0 text-sm text-muted">Nub Tier</span>
+                <span class="w-28 shrink-0 text-sm text-muted">NUB Tier</span>
                 <USelect
                   :model-value="String(tierToNumber(filter.nubTier))"
                   :items="tierOptions"
@@ -187,7 +188,7 @@ async function submitDecision() {
 
             <div>
               <div class="flex items-center gap-4">
-                <span class="w-28 shrink-0 text-sm text-muted">Pro Tier</span>
+                <span class="w-28 shrink-0 text-sm text-muted">PRO Tier</span>
                 <USelect
                   :model-value="String(tierToNumber(filter.proTier))"
                   :items="tierOptions"

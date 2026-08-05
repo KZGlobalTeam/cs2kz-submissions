@@ -53,7 +53,7 @@ function validateForm(): string | null {
       continue
     }
     if (!filter.notes.trim()) {
-      return 'Reasoning of Tier is required for every enabled filter.'
+      return 'Reasoning for Tier is required for every enabled filter.'
     }
   }
 
@@ -110,19 +110,21 @@ async function submitVote() {
       :key="entry.course.id"
       :ui="{ body: 'p-4 sm:p-4' }"
     >
-      <h3 class="mb-3 text-lg font-semibold">{{ entry.course.name }}</h3>
+      <h3 class="mb-4 text-xl font-semibold">{{ entry.course.name }}</h3>
       <img
         :src="entry.course.imageUrl"
         :alt="entry.course.name"
-        class="mb-4 h-40 w-full rounded-md object-cover"
+        class="h-40 w-auto max-w-full rounded-md object-contain"
       >
 
-      <CourseFilterVoteTable
-        :model-value="entry.filters"
-        :votes="votes"
-        :current-user-id="currentUserId"
-        @update:model-value="updateCourseFilters(entry.course.id, $event)"
-      />
+      <div class="mt-6 border-t border-white/5 pt-6">
+        <CourseFilterVoteTable
+          :model-value="entry.filters"
+          :votes="votes"
+          :current-user-id="currentUserId"
+          @update:model-value="updateCourseFilters(entry.course.id, $event)"
+        />
+      </div>
     </UCard>
 
     <UCard :ui="{ body: 'p-4 sm:p-4' }">

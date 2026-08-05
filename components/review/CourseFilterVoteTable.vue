@@ -68,13 +68,14 @@ function setEnabled(index: number, value: boolean) {
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div class="space-y-6">
     <div
       v-for="(row, index) in modelValue"
       :key="`${row.courseId}-${row.mode}`"
+      class="border-t border-white/5 pt-6 first:border-t-0 first:pt-0"
     >
-      <div class="mb-3 flex items-center gap-3">
-        <p class="text-sm font-semibold">
+      <div class="mb-4 flex items-center gap-3">
+        <p class="text-base font-semibold">
           {{ row.mode === 'classic' ? 'CKZ' : 'VNL' }} Filter
         </p>
         <UCheckbox
@@ -108,7 +109,7 @@ function setEnabled(index: number, value: boolean) {
 
         <div>
           <div class="flex items-center gap-4">
-            <span class="w-28 shrink-0 text-sm text-muted">Nub Tier</span>
+            <span class="w-28 shrink-0 text-sm text-muted">NUB Tier</span>
             <USelect
               :model-value="String(tierToNumber(row.nubTier))"
               :items="tierOptions"
@@ -129,7 +130,7 @@ function setEnabled(index: number, value: boolean) {
 
         <div>
           <div class="flex items-center gap-4">
-            <span class="w-28 shrink-0 text-sm text-muted">Pro Tier</span>
+            <span class="w-28 shrink-0 text-sm text-muted">PRO Tier</span>
             <USelect
               :model-value="String(tierToNumber(row.proTier))"
               :items="tierOptions"
@@ -148,7 +149,7 @@ function setEnabled(index: number, value: boolean) {
           />
         </div>
 
-        <UFormField label="Reasoning of Tier" required class="w-full">
+        <UFormField label="Reasoning for Tier" required class="w-full">
           <UTextarea
             :model-value="row.notes"
             :rows="2"
