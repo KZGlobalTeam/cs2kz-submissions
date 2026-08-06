@@ -30,4 +30,6 @@ docs
 .playwright-cli
 .wrangler
 
+# Agent harness (local)
 AGENTS.md
+.pi/

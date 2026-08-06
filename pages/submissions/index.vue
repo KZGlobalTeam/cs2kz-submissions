@@ -26,11 +26,11 @@ const { items, total, page, pageSize, status, refresh } = usePaginatedTable<Subm
 const rulesOpen = shallowRef(false)
 
 const columns: TableColumn<SubmissionRow>[] = [
-  { accessorKey: 'mapName', header: 'Map Name' },
-  { accessorKey: 'workshopId', header: 'Workshop ID' },
+  { accessorKey: 'mapName', header: 'Map' },
+  { accessorKey: 'workshopId', header: 'Workshop' },
   {
     accessorKey: 'createdAt',
-    header: 'Created',
+    header: 'Submitted On',
     cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
   },
   { accessorKey: 'status', header: 'Status' },
@@ -82,7 +82,7 @@ function openSubmission(id: string) {
           <UButton
             variant="ghost"
             color="neutral"
-            class="px-0 font-medium"
+            class="-mx-1 px-1 font-medium"
             :label="row.original.mapName"
             @click="openSubmission(row.original.id)"
           />

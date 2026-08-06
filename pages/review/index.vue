@@ -164,7 +164,7 @@ async function confirmDeleteSubmission() {
           <UButton
             variant="ghost"
             color="neutral"
-            class="px-0 font-medium"
+            class="-mx-1 px-1 font-medium"
             :label="row.original.mapName"
             @click="openSubmission(row.original.id)"
           />

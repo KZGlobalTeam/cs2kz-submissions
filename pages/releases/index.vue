@@ -115,7 +115,7 @@ async function confirmDeleteRelease() {
           <UButton
             variant="ghost"
             color="neutral"
-            class="px-0 font-medium"
+            class="-mx-1 px-1 font-medium"
             :label="row.original.name"
             @click="openRelease(row.original.id)"
           />
