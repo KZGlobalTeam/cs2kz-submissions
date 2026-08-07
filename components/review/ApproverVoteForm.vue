@@ -128,7 +128,7 @@ async function submitVote() {
     </UCard>
 
     <UCard :ui="{ body: 'p-4 sm:p-4' }">
-      <p class="mb-2 text-sm font-semibold">Status of Approval</p>
+      <p class="mb-2 text-xl font-semibold">Status of Approval:</p>
       <URadioGroup
         v-model="form.approvalDecision"
         :items="decisionOptions"
@@ -141,7 +141,7 @@ async function submitVote() {
       </div>
 
       <div v-if="form.approvalDecision === 'no'" class="mt-4 space-y-3">
-        <UFormField label="Rejection Reason" required>
+        <UFormField label="Rejection Reason:" required>
           <UInput v-model="form.rejectionReason" placeholder="Reason" class="w-full" />
         </UFormField>
       </div>

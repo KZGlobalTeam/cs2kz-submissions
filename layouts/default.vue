@@ -22,43 +22,49 @@ const navigation = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen">
-    <div class="mx-auto flex min-h-screen w-full max-w-[min(96rem,calc(100vw-2rem))] gap-6 px-4 py-6 lg:px-6">
-      <aside class="hidden w-64 shrink-0 lg:block">
-        <div class="mb-6">
-          <h1 class="mt-2 text-xl font-semibold text-gray-300">CS2KZ Submission Portal</h1>
-        </div>
-
-        <UNavigationMenu :items="navigation" orientation="vertical" class="w-full" />
-
-        <div v-if="pending" class="mt-6 flex items-center gap-2 text-xs text-muted">
-          <UIcon name="i-lucide-loader-circle" class="animate-spin" />
-          Loading session…
-        </div>
-      </aside>
-
-      <div class="min-w-0 flex-1">
-        <header class="mb-6 flex items-center justify-between rounded-lg border border-white/5 bg-panel/60 px-4 py-3">
-          <div class="flex items-center gap-3">
-            <UAvatar v-if="session.user?.avatarUrl" :src="session.user.avatarUrl" :alt="session.user.name" size="sm" />
-            <div class="text-sm">
-              <p v-if="session.user" class="text-zinc-200">
-                Signed in as <span class="font-medium">{{ session.user.name }}</span>
-              </p>
-              <p v-else class="text-muted">Not signed in</p>
-            </div>
+  <div class="flex min-h-screen">
+    <aside
+      class="sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto border-r border-white/5 bg-panel/40 px-4 py-6 lg:block"
+    >
+      <div
+        class="mb-4 flex items-center justify-between gap-2 rounded-lg border border-white/5 bg-panel/60 px-3 py-2"
+      >
+        <template v-if="session.user">
+          <div class="flex min-w-0 items-center gap-2">
+            <UAvatar
+              v-if="session.user.avatarUrl"
+              :src="session.user.avatarUrl"
+              :alt="session.user.name"
+              size="xs"
+            />
+            <span class="truncate text-sm text-zinc-200">{{ session.user.name }}</span>
           </div>
-
-          <div class="flex items-center gap-2">
-            <UButton v-if="!session.user" to="/" variant="outline" label="Sign in" />
-            <UButton v-else variant="outline" label="Sign out" :loading="logoutPending" :disabled="logoutPending" @click="logout" />
-          </div>
-        </header>
-
-        <main>
-          <slot />
-        </main>
+          <UButton
+            icon="i-lucide-log-out"
+            variant="ghost"
+            color="neutral"
+            aria-label="Sign out"
+            title="Sign out"
+            :loading="logoutPending"
+            :disabled="logoutPending"
+            @click="logout"
+          />
+        </template>
+        <UButton v-else to="/" variant="outline" size="sm" label="Sign in" />
       </div>
+
+      <UNavigationMenu :items="navigation" orientation="vertical" class="w-full" />
+
+      <div v-if="pending" class="mt-6 flex items-center gap-2 text-xs text-muted">
+        <UIcon name="i-lucide-loader-circle" class="animate-spin" />
+        Loading session…
+      </div>
+    </aside>
+
+    <div class="min-w-0 flex-1 px-4 py-6 lg:px-6">
+      <main>
+        <slot />
+      </main>
     </div>
   </div>
 </template>

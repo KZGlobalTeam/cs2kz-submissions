@@ -87,8 +87,8 @@ function setEnabled(index: number, value: boolean) {
 
       <div v-if="row.enabled" class="space-y-3">
         <div>
-          <div class="flex items-center gap-4">
-            <span class="w-28 shrink-0 text-sm text-muted">Ranked Status</span>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-muted">Ranked Status:</span>
             <URadioGroup
               :model-value="row.isRanked ? 'true' : 'false'"
               :items="rankedOptions"
@@ -108,13 +108,14 @@ function setEnabled(index: number, value: boolean) {
         </div>
 
         <div>
-          <div class="flex items-center gap-4">
-            <span class="w-28 shrink-0 text-sm text-muted">NUB Tier</span>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-muted">NUB Tier:</span>
             <USelect
               :model-value="String(tierToNumber(row.nubTier))"
               :items="tierOptions"
               value-key="value"
-              class="w-32"
+              size="xs"
+              class="w-24"
               @update:model-value="setNubTier(index, $event)"
             />
           </div>
@@ -129,13 +130,14 @@ function setEnabled(index: number, value: boolean) {
         </div>
 
         <div>
-          <div class="flex items-center gap-4">
-            <span class="w-28 shrink-0 text-sm text-muted">PRO Tier</span>
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-muted">PRO Tier:</span>
             <USelect
               :model-value="String(tierToNumber(row.proTier))"
               :items="tierOptions"
               value-key="value"
-              class="w-32"
+              size="xs"
+              class="w-24"
               @update:model-value="setProTier(index, $event)"
             />
           </div>
@@ -149,7 +151,7 @@ function setEnabled(index: number, value: boolean) {
           />
         </div>
 
-        <UFormField label="Reasoning for Tier" required class="w-full">
+        <UFormField label="Reasoning for Tier:" required class="w-full">
           <UTextarea
             :model-value="row.notes"
             :rows="2"

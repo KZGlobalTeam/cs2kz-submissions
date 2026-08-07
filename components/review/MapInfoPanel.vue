@@ -38,26 +38,31 @@ const statusColor = computed(() =>
 
 <template>
   <UCard>
-    <div class="flex items-start justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-semibold">{{ submission.mapName }}</h1>
-        <p v-if="submission.notes" class="mt-2 text-sm text-zinc-300">{{ submission.notes }}</p>
-      </div>
+    <div class="flex items-center gap-3">
+      <h1 class="text-2xl font-semibold">{{ submission.mapName }}</h1>
       <UBadge :color="statusColor" :label="submission.status" variant="subtle" />
     </div>
 
-    <div class="mt-4 space-y-1 text-sm text-zinc-300">
+    <div v-if="submission.notes" class="mt-2 text-sm">
+      <p class="text-muted">Notes:</p>
+      <p class="mt-0.5 text-zinc-300">{{ submission.notes }}</p>
+    </div>
+
+    <div class="mt-4 space-y-1 text-sm">
       <p>
-        Workshop URL:
-        <a :href="submission.workshopUrl" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline hover:text-blue-400">{{ submission.workshopUrl }}</a>
+        <span class="text-muted">Workshop URL:</span>
+        <a :href="submission.workshopUrl" target="_blank" rel="noopener noreferrer" class="ml-1 text-blue-500 underline hover:text-blue-400">{{ submission.workshopUrl }}</a>
       </p>
-      <p>Mappers: {{ mapperNames }}</p>
+      <p>
+        <span class="text-muted">Mappers:</span>
+        <span class="ml-1 text-zinc-300">{{ mapperNames }}</span>
+      </p>
     </div>
 
     <div v-if="submission.isPort" class="mt-4 border-t border-white/5 pt-4 text-sm">
       <p class="font-semibold">Ported Map</p>
       <div v-if="submission.portAuthorizationImageUrl" class="mt-3">
-        <p class="mb-2 font-medium text-zinc-100">Proof of Authorization</p>
+        <p class="mb-2 text-muted">Proof of Authorization:</p>
         <a
           :href="submission.portAuthorizationImageUrl"
           target="_blank"
@@ -72,7 +77,7 @@ const statusColor = computed(() =>
         </a>
       </div>
       <div v-if="submission.portNotes" class="mt-3">
-        <p class="mb-1 font-medium text-zinc-100">Notes from Porter</p>
+        <p class="mb-1 text-muted">Notes:</p>
         <p class="text-zinc-300">{{ submission.portNotes }}</p>
       </div>
     </div>

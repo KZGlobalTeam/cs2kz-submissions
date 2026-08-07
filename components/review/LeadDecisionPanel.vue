@@ -146,8 +146,8 @@ async function submitDecision() {
 
           <div class="space-y-3">
             <div>
-              <div class="flex items-center gap-4">
-                <span class="w-28 shrink-0 text-sm text-muted">Ranked Status</span>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-muted">Ranked Status:</span>
                 <URadioGroup
                   v-model="filter.state"
                   :items="stateOptions"
@@ -166,13 +166,14 @@ async function submitDecision() {
             </div>
 
             <div>
-              <div class="flex items-center gap-4">
-                <span class="w-28 shrink-0 text-sm text-muted">NUB Tier</span>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-muted">NUB Tier:</span>
                 <USelect
                   :model-value="String(tierToNumber(filter.nubTier))"
                   :items="tierOptions"
                   value-key="value"
-                  class="w-32"
+                  size="xs"
+                  class="w-24"
                   @update:model-value="setNubTier(filter, $event)"
                 />
               </div>
@@ -187,13 +188,14 @@ async function submitDecision() {
             </div>
 
             <div>
-              <div class="flex items-center gap-4">
-                <span class="w-28 shrink-0 text-sm text-muted">PRO Tier</span>
+              <div class="flex items-center gap-2">
+                <span class="text-sm text-muted">PRO Tier:</span>
                 <USelect
                   :model-value="String(tierToNumber(filter.proTier))"
                   :items="tierOptions"
                   value-key="value"
-                  class="w-32"
+                  size="xs"
+                  class="w-24"
                   @update:model-value="setProTier(filter, $event)"
                 />
               </div>
@@ -212,7 +214,7 @@ async function submitDecision() {
     </UCard>
 
     <UCard :ui="{ body: 'p-4 sm:p-4' }">
-      <p class="mb-2 text-sm font-semibold">Status of Approval</p>
+      <p class="mb-2 text-xl font-semibold">Status of Approval:</p>
       <URadioGroup
         v-model="decisionStatus"
         :items="decisionOptions"
@@ -226,7 +228,7 @@ async function submitDecision() {
 
       <UFormField
         v-if="decisionStatus === 'rejected'"
-        label="Reject Reason"
+        label="Reject Reason:"
         required
         class="mt-4"
       >
