@@ -207,19 +207,16 @@ async function confirmDeleteSubmission() {
         </template>
 
         <template #myVote-cell="{ row }">
-          <UBadge
+          <UIcon
             v-if="row.original.myVote === 'yes'"
-            color="success"
-            label="approved"
-            variant="subtle"
+            name="i-lucide-check"
+            class="size-4 text-success"
           />
-          <UBadge
+          <UIcon
             v-else-if="row.original.myVote === 'no'"
-            color="error"
-            label="no"
-            variant="subtle"
+            name="i-lucide-x"
+            class="size-4 text-error"
           />
-          <span v-else class="text-muted">—</span>
         </template>
 
         <template #status-cell="{ row }">

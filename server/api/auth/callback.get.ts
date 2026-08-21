@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
     await persistSession(event, userId!)
 
     const { siteUrl } = getAppConfig(event)
-    const redirectBase = siteUrl ?? 'http://localhost:3000'
+    const redirectBase = siteUrl ?? 'http://localhost:11451'
     return sendRedirect(event, `${redirectBase.replace(/\/$/, '')}/submissions`, 302)
   }
   catch (error) {

@@ -159,7 +159,6 @@ async function createRelease() {
         />
         <UButton
           label="Create Release"
-          icon="i-lucide-check"
           :loading="creating"
           @click="createRelease"
         />

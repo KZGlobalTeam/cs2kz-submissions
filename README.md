@@ -98,10 +98,10 @@ cp .env.example .env
 ```env
 DATABASE_URL=                 # postgres connection string
 NUXT_SESSION_SECRET=         # random secret for signing sessions
-NUXT_STEAM_REALM=             # e.g. http://localhost:3000/
-NUXT_STEAM_RETURN_URL=        # e.g. http://localhost:3000/api/auth/callback
+NUXT_STEAM_REALM=             # e.g. http://localhost:11451/
+NUXT_STEAM_RETURN_URL=        # e.g. http://localhost:11451/api/auth/callback
 NUXT_STEAM_API_KEY=           # Steam Web API key
-NUXT_PUBLIC_SITE_URL=         # e.g. http://localhost:3000
+NUXT_PUBLIC_SITE_URL=         # e.g. http://localhost:11451
 NUXT_SUPABASE_URL=
 NUXT_SUPABASE_SERVICE_ROLE_KEY=
 NUXT_SUPABASE_STORAGE_BUCKET= # e.g. course-images
@@ -126,7 +126,7 @@ pnpm db:push        # push schema directly without a migration file
 pnpm dev
 ```
 
-The app is served at `http://localhost:3000`.
+The app is served at `http://localhost:11451`.
 
 ## Scripts
 

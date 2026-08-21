@@ -45,7 +45,7 @@ export async function persistSession(event: H3Event, userId: string) {
   })
 
   const { siteUrl: siteUrlConfig } = getAppConfig(event)
-  const siteUrl = siteUrlConfig ?? 'http://localhost:3000'
+  const siteUrl = siteUrlConfig ?? 'http://localhost:11451'
   setCookie(event, SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',

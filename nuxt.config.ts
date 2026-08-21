@@ -40,7 +40,7 @@ export default defineNuxtConfig({
     supabaseStorageBucket: '',
     databaseUrl: '',
     public: {
-      siteUrl: 'http://localhost:3000',
+      siteUrl: 'http://localhost:11451',
       appName: 'CS2KZ Submissions',
     },
   },
@@ -66,4 +66,7 @@ export default defineNuxtConfig({
     strict: true,
     typeCheck: true,
   },
+  devServer: {
+    port: 11451
+  }
 })

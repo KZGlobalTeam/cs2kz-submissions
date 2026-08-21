@@ -25,14 +25,62 @@ const {
 } = useReleaseExport()
 const copied = ref(false)
 
+/**
+ * Legacy synchronous clipboard write (textarea + execCommand). Only used as a
+ * fallback when the modern Clipboard API is unavailable or rejected — its
+ * return value is not a reliable guarantee that the system clipboard was
+ * updated in every environment.
+ */
+function copyWithFallback(text: string): boolean {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.top = '0'
+  textarea.style.left = '0'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+  textarea.setSelectionRange(0, textarea.value.length)
+  let ok = false
+  try {
+    ok = document.execCommand('copy')
+  } catch {
+    ok = false
+  }
+  textarea.remove()
+  return ok
+}
+
 async function copyExport() {
   if (!exportJson.value) return
-  try {
-    await navigator.clipboard.writeText(exportJson.value)
+  const text = exportJson.value
+
+  // Primary: async Clipboard API. Its promise only resolves once the system
+  // clipboard has actually been updated, and it works in secure contexts
+  // (localhost + the deployed https site) within the click's user activation.
+  let ok = false
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      ok = true
+    } catch {
+      ok = false
+    }
+  }
+
+  // Fallback: legacy synchronous write for non-secure contexts or when the
+  // async API is blocked (e.g. denied permission, sandboxed iframe).
+  if (!ok) {
+    ok = copyWithFallback(text)
+  }
+
+  if (ok) {
     copied.value = true
     toast.add({ color: 'success', title: 'JSON copied to clipboard' })
     setTimeout(() => (copied.value = false), 2000)
-  } catch {
+  } else {
     toast.add({ color: 'error', title: 'Failed to copy JSON' })
   }
 }
@@ -171,7 +219,7 @@ async function confirmDeleteRelease() {
       </template>
 
       <template #footer>
-        <div class="flex justify-end gap-2">
+        <div class="flex flex-1 justify-end gap-2">
           <UButton
             variant="outline"
             color="neutral"
@@ -179,8 +227,9 @@ async function confirmDeleteRelease() {
             @click="closeExport"
           />
           <UButton
-            label="Copy"
-            :loading="copied"
+            :label="copied ? 'Copied' : 'Copy'"
+            :color="copied ? 'success' : 'primary'"
+            :icon="copied ? 'i-lucide-check' : undefined"
             @click="copyExport"
           />
         </div>
