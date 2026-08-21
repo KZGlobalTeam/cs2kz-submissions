@@ -41,14 +41,15 @@ export const CourseFiltersSchema = z.object({
 
 export const NewCourseSchema = z.object({
   name: z.string().min(1),
-  description: z.string().nullable(),
-  mappers: z.array(z.string().min(1)).min(1),
+  description: z.string().optional(),
   filters: CourseFiltersSchema,
+  mappers: z.array(z.string().min(1)).min(1),
 })
 
 export const NewMapSchema = z.object({
+  name: z.string().min(1),
   workshop_id: z.number().int().safe().nonnegative(),
-  description: z.string().nullable(),
+  description: z.string().optional(),
   state: MapStateSchema,
   mappers: z.array(z.string().min(1)).min(1),
   courses: z.array(NewCourseSchema).min(1),

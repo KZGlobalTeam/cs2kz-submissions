@@ -61,6 +61,7 @@ export async function buildReleaseExport(releaseId: string) {
       }
 
       return {
+        name: submission.mapName,
         workshopId: submission.workshopId,
         mappers: mapMappers
           .filter((mapper) => mapper.submissionId === submission.id)
@@ -83,23 +84,23 @@ export async function buildReleaseExport(releaseId: string) {
 
             return {
               name: course.name,
-              mappers: courseMappers
-                .filter((mapper) => mapper.courseId === course.id)
-                .map((mapper) => mapper.steamId64),
               filters: {
                 classic: {
                   nub_tier: classic.nubTier,
                   pro_tier: classic.proTier,
                   state: classic.state,
-                  notes: classic.notes,
+                  notes: classic.notes ?? '',
                 },
                 vanilla: {
                   nub_tier: vanilla.nubTier,
                   pro_tier: vanilla.proTier,
                   state: vanilla.state,
-                  notes: vanilla.notes,
+                  notes: vanilla.notes ?? '',
                 },
               },
+              mappers: courseMappers
+                .filter((mapper) => mapper.courseId === course.id)
+                .map((mapper) => mapper.steamId64),
             }
           }),
       }
