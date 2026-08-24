@@ -24,6 +24,13 @@ void (async () => {
     await refreshSession()
   })
   checking.value = false
+
+  // If a valid (non-expired) session already exists, skip the login page and
+  // head straight to the dashboard instead of showing an "Enter Dashboard"
+  // button.
+  if (session.value.authenticated) {
+    await navigateTo('/submissions')
+  }
 })()
 </script>
 
@@ -48,8 +55,6 @@ void (async () => {
             :disabled="loginPending"
             @click="handleLogin"
           />
-
-          <UButton v-else label="Enter Dashboard" to="/submissions" />
         </div>
       </div>
     </section>
