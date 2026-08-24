@@ -2,6 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { createError } from 'h3'
 
 import {
+  submissionVoteAttachments,
   submissionVoteFilters,
   submissionVotes,
   submissions,
@@ -9,7 +10,18 @@ import {
 import type { SubmissionVoteInput } from '~/shared/types/submission'
 
 import { withTransaction } from '~/db/client'
+import {
+  REJECTION_ATTACHMENT_MESSAGES,
+  REJECTION_ATTACHMENT_PREFIX,
+  assessRejectionAttachments,
+  computeAttachmentReplacement,
+  toRejectionAttachments,
+} from '~/server/utils/attachment-rules'
 import { db } from '~/server/utils/db'
+import {
+  deleteRejectionAttachmentObjects,
+  getBucketPublicBaseUrl,
+} from '~/server/utils/storage'
 
 export async function saveVote(
   submissionId: string,
@@ -36,7 +48,24 @@ export async function saveVote(
     })
   }
 
-  return withTransaction(async (tx) => {
+  const verdict = assessRejectionAttachments({
+    isRejection: input.approvalDecision === 'no',
+    reason: input.rejectionReason,
+    attachments: input.attachments,
+    publicBaseUrl: getBucketPublicBaseUrl(),
+    allowedPrefix: REJECTION_ATTACHMENT_PREFIX,
+  })
+  if (!verdict.ok) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: REJECTION_ATTACHMENT_MESSAGES[verdict.reason],
+    })
+  }
+  const incomingAttachments = verdict.attachments
+
+  let removedAttachments: ReturnType<typeof computeAttachmentReplacement>['removed'] = []
+
+  const vote = await withTransaction(async (tx) => {
     const [existingVote] = await tx
       .select()
       .from(submissionVotes)
@@ -98,6 +127,39 @@ export async function saveVote(
       })),
     )
 
+    // Replace the stored attachment set wholesale (delete-and-insert). Any
+    // URL that drops out has its storage object deleted after the commit.
+    const storedRows = await tx
+      .select()
+      .from(submissionVoteAttachments)
+      .where(eq(submissionVoteAttachments.voteId, vote.id))
+
+    removedAttachments = computeAttachmentReplacement(
+      toRejectionAttachments(storedRows),
+      incomingAttachments,
+    ).removed
+
+    await tx
+      .delete(submissionVoteAttachments)
+      .where(eq(submissionVoteAttachments.voteId, vote.id))
+
+    if (incomingAttachments.length) {
+      await tx.insert(submissionVoteAttachments).values(
+        incomingAttachments.map((attachment) => ({
+          voteId: vote.id,
+          ...attachment,
+        })),
+      )
+    }
+
     return vote
   })
+
+  // Storage objects for attachments that were removed by this save. Runs
+  // after the rows are committed so a storage hiccup cannot fail the save.
+  await deleteRejectionAttachmentObjects(
+    removedAttachments.map((attachment) => attachment.url),
+  )
+
+  return vote
 }

@@ -1,6 +1,7 @@
 import { createError, getRouterParam, readBody } from 'h3'
 import { z } from 'zod'
 
+import { RejectionAttachmentSchema } from '~/shared/schemas/attachment'
 import { saveVote } from '~/server/services/votes/save-vote'
 import { requireApprover } from '~/server/utils/permissions'
 
@@ -40,6 +41,7 @@ const bodySchema = z
     approvalDecision: z.enum(['yes', 'no']),
     rejectionReason: z.string().nullable(),
     rejectionExplanation: z.string().nullable().optional().default(null),
+    attachments: z.array(RejectionAttachmentSchema).default([]),
     filters: z.array(filterSchema),
   })
   .superRefine((value, ctx) => {

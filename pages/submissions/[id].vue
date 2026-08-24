@@ -97,7 +97,11 @@ onMounted(() => {
   </section>
 
   <section v-else-if="details" class="grid gap-6">
-    <MapInfoPanel :submission="details.submission" :mappers="details.mappers" />
+    <MapInfoPanel
+      :submission="details.submission"
+      :mappers="details.mappers"
+      :decision-attachments="details.decisionAttachments"
+    />
 
     <ApproverVoteForm
       v-if="isPending && mode === 'vote' && hasApproverRole"

@@ -1,6 +1,8 @@
 import { imageSize } from 'image-size'
 import { createError } from 'h3'
 
+import { MAX_REJECTION_ATTACHMENT_BYTES } from '~/shared/schemas/attachment'
+
 const JPEG_MAGIC_BYTES = [
   [0xff, 0xd8, 0xff],
 ]
@@ -18,11 +20,78 @@ export interface ValidatedImage {
   sizeBytes: number
 }
 
-export interface ValidatedAuthorizationImage {
+export interface ValidatedJpegPngImage {
   mimeType: 'image/jpeg' | 'image/png'
   width: number
   height: number
   sizeBytes: number
+}
+
+/**
+ * Shared JPG/PNG validation used by the port authorization screenshot and the
+ * rejection-attachment uploads: size cap, magic-byte sniffing, readable
+ * dimensions, no fixed resolution. `subject` is used in error messages.
+ */
+function validateJpegPngImage(
+  buffer: Buffer,
+  mimeType: string | null | undefined,
+  maxBytes: number,
+  subject: string,
+): ValidatedJpegPngImage {
+  if (buffer.byteLength > maxBytes) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: `${subject} must be smaller than 10 MB`,
+    })
+  }
+
+  const header = Array.from(buffer.slice(0, 8))
+  const isJpeg = JPEG_MAGIC_BYTES.some((pattern) =>
+    pattern.every((value, index) => header[index] === value),
+  )
+  const isPng = PNG_MAGIC_BYTES.every((value, index) => header[index] === value)
+
+  const declaredJpeg = !mimeType || mimeType === 'image/jpeg'
+  const declaredPng = !mimeType || mimeType === 'image/png'
+
+  if (isJpeg && declaredJpeg) {
+    // fall through to metadata check below
+  }
+  else if (isPng && declaredPng) {
+    // fall through to metadata check below
+  }
+  else {
+    throw createError({
+      statusCode: 400,
+      statusMessage: `${subject} must be a JPG or PNG file`,
+    })
+  }
+
+  const metadata = imageSize(buffer)
+  if (
+    metadata.type !== 'jpg' &&
+    metadata.type !== 'jpeg' &&
+    metadata.type !== 'png'
+  ) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: `${subject} must be a JPG or PNG file`,
+    })
+  }
+
+  if (!metadata.width || !metadata.height) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: `${subject} has invalid dimensions`,
+    })
+  }
+
+  return {
+    mimeType: metadata.type === 'png' ? 'image/png' : 'image/jpeg',
+    width: metadata.width,
+    height: metadata.height,
+    sizeBytes: buffer.byteLength,
+  }
 }
 
 export function validateCourseImage(buffer: Buffer, mimeType?: string | null): ValidatedImage {
@@ -69,59 +138,28 @@ export function validateCourseImage(buffer: Buffer, mimeType?: string | null): V
 export function validateAuthorizationImage(
   buffer: Buffer,
   mimeType?: string | null,
-): ValidatedAuthorizationImage {
-  if (buffer.byteLength > MAX_AUTHORIZATION_IMAGE_BYTES) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Authorization screenshot must be smaller than 10 MB',
-    })
-  }
-
-  const header = Array.from(buffer.slice(0, 8))
-  const isJpeg = JPEG_MAGIC_BYTES.some((pattern) =>
-    pattern.every((value, index) => header[index] === value),
+): ValidatedJpegPngImage {
+  return validateJpegPngImage(
+    buffer,
+    mimeType,
+    MAX_AUTHORIZATION_IMAGE_BYTES,
+    'Authorization screenshot',
   )
-  const isPng = PNG_MAGIC_BYTES.every((value, index) => header[index] === value)
+}
 
-  const declaredJpeg = !mimeType || mimeType === 'image/jpeg'
-  const declaredPng = !mimeType || mimeType === 'image/png'
-
-  if (isJpeg && declaredJpeg) {
-    // fall through to metadata check below
-  }
-  else if (isPng && declaredPng) {
-    // fall through to metadata check below
-  }
-  else {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Authorization screenshot must be a JPG or PNG file',
-    })
-  }
-
-  const metadata = imageSize(buffer)
-  if (
-    metadata.type !== 'jpg' &&
-    metadata.type !== 'jpeg' &&
-    metadata.type !== 'png'
-  ) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Authorization screenshot must be a JPG or PNG file',
-    })
-  }
-
-  if (!metadata.width || !metadata.height) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Authorization screenshot has invalid dimensions',
-    })
-  }
-
-  return {
-    mimeType: metadata.type === 'png' ? 'image/png' : 'image/jpeg',
-    width: metadata.width,
-    height: metadata.height,
-    sizeBytes: buffer.byteLength,
-  }
+/**
+ * Validates an image a reviewer wants to attach to a rejection reason.
+ * Mirrors the authorization-image rules: JPG/PNG only, magic-byte sniffing,
+ * ≤10 MB, readable dimensions, no fixed resolution.
+ */
+export function validateRejectionAttachment(
+  buffer: Buffer,
+  mimeType?: string | null,
+): ValidatedJpegPngImage {
+  return validateJpegPngImage(
+    buffer,
+    mimeType,
+    MAX_REJECTION_ATTACHMENT_BYTES,
+    'Rejection attachment',
+  )
 }

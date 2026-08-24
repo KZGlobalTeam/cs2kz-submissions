@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -79,6 +80,48 @@ export const submissionVoteFilters = pgTable(
       table.mode,
     ),
     index('submission_vote_filters_vote_idx').on(table.voteId),
+  ],
+)
+
+export const submissionVoteAttachments = pgTable(
+  'submission_vote_attachments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    voteId: uuid('vote_id')
+      .notNull()
+      .references(() => submissionVotes.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    mime: text('mime').notNull(),
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index('submission_vote_attachments_vote_idx').on(table.voteId),
+  ],
+)
+
+export const submissionDecisionAttachments = pgTable(
+  'submission_decision_attachments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    submissionId: uuid('submission_id')
+      .notNull()
+      .references(() => submissions.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    mime: text('mime').notNull(),
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index('submission_decision_attachments_submission_idx').on(table.submissionId),
   ],
 )
 

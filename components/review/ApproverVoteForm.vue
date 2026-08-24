@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import type { VoteFormFilter } from '~/composables/useVoteForm'
+import type { RejectionAttachment } from '~/shared/types/attachment'
 import type { SubmissionDetailVote } from '~/shared/types/submission-detail'
 
 import CourseFilterVoteTable from './CourseFilterVoteTable.vue'
 import VoteSummaryPanel from './VoteSummaryPanel.vue'
+import RejectionAttachmentStage from '../common/RejectionAttachmentStage.vue'
 
 interface CourseInput {
   id: string
@@ -27,6 +29,10 @@ const { form } = useVoteForm(props.courses, selfVote)
 const saving = shallowRef(false)
 const toast = useToast()
 const validationError = ref<string | null>(null)
+
+/** The attachments already saved on our previous vote — the stage keeps those
+ *  when the decision toggles away from rejection and restores them on return. */
+const storedAttachments: RejectionAttachment[] = selfVote?.attachments ?? []
 
 const decisionOptions = [
   { label: 'Yes', value: 'yes' },
@@ -84,6 +90,7 @@ async function submitVote() {
       body: {
         approvalDecision: form.approvalDecision,
         rejectionReason: form.approvalDecision === 'no' ? (form.rejectionReason || null) : null,
+        attachments: form.approvalDecision === 'no' ? form.attachments : [],
         filters: form.filters
           .filter((filter) => filter.enabled)
           .map((filter) => ({
@@ -140,9 +147,14 @@ async function submitVote() {
         <VoteSummaryPanel :votes="votes" :exclude-user-id="currentUserId" />
       </div>
 
-      <div v-if="form.approvalDecision === 'no'" class="mt-4 space-y-3">
+      <div v-show="form.approvalDecision === 'no'" class="mt-4 space-y-3">
         <UFormField label="Rejection Reason:" required>
           <UInput v-model="form.rejectionReason" placeholder="Reason" class="w-full" />
+          <RejectionAttachmentStage
+            v-model="form.attachments"
+            :stored="storedAttachments"
+            :active="form.approvalDecision === 'no'"
+          />
         </UFormField>
       </div>
     </UCard>

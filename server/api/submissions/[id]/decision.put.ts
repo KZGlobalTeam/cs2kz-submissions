@@ -1,6 +1,7 @@
 import { createError, getRouterParam, readBody } from 'h3'
 import { z } from 'zod'
 
+import { RejectionAttachmentSchema } from '~/shared/schemas/attachment'
 import { finalizeSubmission } from '~/server/services/submissions/finalize-submission'
 import { requireLeadApprover } from '~/server/utils/permissions'
 
@@ -31,6 +32,7 @@ const bodySchema = z
   .object({
     status: z.enum(['approved', 'rejected']),
     decisionNotes: z.string().nullable(),
+    attachments: z.array(RejectionAttachmentSchema).default([]),
     filters: z.array(filterSchema),
   })
   .superRefine((value, ctx) => {

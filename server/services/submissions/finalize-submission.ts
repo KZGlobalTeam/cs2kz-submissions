@@ -1,11 +1,21 @@
 import { and, eq } from 'drizzle-orm'
 import { createError } from 'h3'
 
-import { submissionFinalFilters, submissions } from '~/db/schema'
+import {
+  submissionDecisionAttachments,
+  submissionFinalFilters,
+  submissions,
+} from '~/db/schema'
 import type { LeadDecisionInput } from '~/shared/types/submission'
 
 import { withTransaction } from '~/db/client'
+import {
+  REJECTION_ATTACHMENT_MESSAGES,
+  REJECTION_ATTACHMENT_PREFIX,
+  assessRejectionAttachments,
+} from '~/server/utils/attachment-rules'
 import { db } from '~/server/utils/db'
+import { getBucketPublicBaseUrl } from '~/server/utils/storage'
 
 export async function finalizeSubmission(
   submissionId: string,
@@ -32,6 +42,20 @@ export async function finalizeSubmission(
     })
   }
 
+  const verdict = assessRejectionAttachments({
+    isRejection: input.status === 'rejected',
+    reason: input.decisionNotes,
+    attachments: input.attachments,
+    publicBaseUrl: getBucketPublicBaseUrl(),
+    allowedPrefix: REJECTION_ATTACHMENT_PREFIX,
+  })
+  if (!verdict.ok) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: REJECTION_ATTACHMENT_MESSAGES[verdict.reason],
+    })
+  }
+
   return withTransaction(async (tx) => {
     await tx
       .delete(submissionFinalFilters)
@@ -49,6 +73,18 @@ export async function finalizeSubmission(
           isRanked: filter.isRanked,
           notes: filter.notes,
           resolvedByUserId: leadUserId,
+        })),
+      )
+    }
+
+    // Decision attachments are written once at finalize time and never
+    // edited afterwards (finalization stays one-shot). Rows only exist for
+    // rejected finalizations, so an approval leaks nothing to the mapper.
+    if (input.status === 'rejected' && verdict.attachments.length) {
+      await tx.insert(submissionDecisionAttachments).values(
+        verdict.attachments.map((attachment) => ({
+          submissionId,
+          ...attachment,
         })),
       )
     }

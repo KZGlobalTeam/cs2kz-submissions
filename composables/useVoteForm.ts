@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 
+import type { RejectionAttachment } from '~/shared/types/attachment'
 import type { CourseFilterTier, Mode } from '~/shared/schemas/cs2kz'
 import type { ApprovalDecision } from '~/shared/types/submission'
 
@@ -21,6 +22,7 @@ export interface ExistingVote {
   approvalDecision: ApprovalDecision
   rejectionReason: string | null
   rejectionExplanation: string | null
+  attachments: RejectionAttachment[]
   filters: Array<{
     courseId: string
     mode: Mode
@@ -64,6 +66,7 @@ export function useVoteForm(
     approvalDecision: existing?.approvalDecision ?? ('yes' as ApprovalDecision),
     rejectionReason: existing?.rejectionReason ?? '',
     rejectionExplanation: existing?.rejectionExplanation ?? '',
+    attachments: existing?.attachments ?? [],
     filters: seedFilters(courses, existing),
   })
 

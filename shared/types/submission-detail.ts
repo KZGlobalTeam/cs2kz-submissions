@@ -1,4 +1,5 @@
 import type { ApprovalDecision, SubmissionStatus } from './submission'
+import type { RejectionAttachment } from './attachment'
 import type { CourseFilterState, CourseFilterTier, Mode } from '../schemas/cs2kz'
 
 /**
@@ -49,6 +50,7 @@ export interface SubmissionDetailVote {
   createdAt: string
   updatedAt: string
   approverName: string
+  attachments: RejectionAttachment[]
   filters: SubmissionDetailVoteFilter[]
 }
 
@@ -97,4 +99,8 @@ export interface SubmissionDetailResponse {
   mappers: SubmissionDetailMapper[]
   courses: SubmissionDetailCourse[]
   votes: SubmissionDetailVote[]
+  /** The lead approver's rejection attachments; populated for rejected
+   *  finalizations and visible to every role — this is the only rejection
+   *  material a mapper can ever see. */
+  decisionAttachments: RejectionAttachment[]
 }

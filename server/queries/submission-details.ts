@@ -3,14 +3,17 @@ import { eq, inArray } from 'drizzle-orm'
 import {
   submissionCourseMappers,
   submissionCourses,
+  submissionDecisionAttachments,
   submissionFinalFilters,
   submissionMappers,
+  submissionVoteAttachments,
   submissionVoteFilters,
   submissionVotes,
   submissions,
   users,
 } from '~/db/schema'
 
+import { toRejectionAttachments } from '~/server/utils/attachment-rules'
 import { db } from '~/server/utils/db'
 
 export async function getSubmissionDetails(submissionId: string) {
@@ -24,7 +27,7 @@ export async function getSubmissionDetails(submissionId: string) {
     return null
   }
 
-  const [mappers, courses, votes, finalFilters] = await Promise.all([
+  const [mappers, courses, votes, finalFilters, decisionAttachments] = await Promise.all([
     db().select().from(submissionMappers).where(eq(submissionMappers.submissionId, submissionId)),
     db()
       .select()
@@ -49,12 +52,16 @@ export async function getSubmissionDetails(submissionId: string) {
       .select()
       .from(submissionFinalFilters)
       .where(eq(submissionFinalFilters.submissionId, submissionId)),
+    db()
+      .select()
+      .from(submissionDecisionAttachments)
+      .where(eq(submissionDecisionAttachments.submissionId, submissionId)),
   ])
 
   const courseIds = courses.map((course) => course.id)
   const voteIds = votes.map((vote) => vote.id)
 
-  const [courseMappers, voteFilters] = await Promise.all([
+  const [courseMappers, voteFilters, voteAttachments] = await Promise.all([
     courseIds.length
       ? db()
           .select()
@@ -66,6 +73,12 @@ export async function getSubmissionDetails(submissionId: string) {
           .select()
           .from(submissionVoteFilters)
           .where(inArray(submissionVoteFilters.voteId, voteIds))
+      : [],
+    voteIds.length
+      ? db()
+          .select()
+          .from(submissionVoteAttachments)
+          .where(inArray(submissionVoteAttachments.voteId, voteIds))
       : [],
   ])
 
@@ -90,7 +103,11 @@ export async function getSubmissionDetails(submissionId: string) {
     })),
     votes: votes.map((vote) => ({
       ...vote,
+      attachments: toRejectionAttachments(
+        voteAttachments.filter((attachment) => attachment.voteId === vote.id),
+      ),
       filters: voteFilters.filter((filter) => filter.voteId === vote.id),
     })),
+    decisionAttachments: toRejectionAttachments(decisionAttachments),
   }
 }

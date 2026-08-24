@@ -1,12 +1,16 @@
 <script setup lang="ts">
+import type { RejectionAttachment } from '~/shared/types/attachment'
 import type {
   SubmissionDetailMapper,
   SubmissionDetailSubmission,
 } from '~/shared/types/submission-detail'
 
+import AttachmentLightbox from '../common/AttachmentLightbox.vue'
+
 const props = defineProps<{
   submission: SubmissionDetailSubmission
   mappers: SubmissionDetailMapper[]
+  decisionAttachments?: RejectionAttachment[]
 }>()
 
 const mapperNames = computed(() =>
@@ -27,6 +31,8 @@ const rejectedAtLabel = computed(() =>
 
 const isDecided = computed(() => props.submission.status !== 'pending')
 
+const revealedAttachments = computed(() => props.decisionAttachments ?? [])
+
 const statusColor = computed(() =>
   props.submission.status === 'approved'
     ? 'success'
@@ -34,6 +40,8 @@ const statusColor = computed(() =>
       ? 'error'
       : 'neutral',
 )
+
+const lightboxIndex = ref<number | null>(null)
 </script>
 
 <template>
@@ -93,6 +101,25 @@ const statusColor = computed(() =>
       <p v-if="submission.decisionNotes" class="mt-2 text-danger">
         {{ submission.decisionNotes }}
       </p>
+      <!-- The lead approver's rejection attachments, revealed to the mapper
+           once the decision is finalized (only populated for rejections). -->
+      <div v-if="revealedAttachments.length" class="mt-3 flex flex-wrap gap-2">
+        <img
+          v-for="(attachment, index) in revealedAttachments"
+          :key="attachment.url"
+          :src="attachment.url"
+          :alt="`Lead rejection attachment ${index + 1}`"
+          class="h-20 w-32 cursor-zoom-in rounded-md border border-white/10 object-cover"
+          @click="lightboxIndex = index"
+        >
+      </div>
     </div>
   </UCard>
+
+  <AttachmentLightbox
+    :open="lightboxIndex !== null"
+    :items="revealedAttachments"
+    :start="lightboxIndex ?? 0"
+    @update:open="lightboxIndex = $event ? lightboxIndex : null"
+  />
 </template>

@@ -1,4 +1,5 @@
 import type { UserRole } from './roles'
+import type { RejectionAttachment } from './attachment'
 import type {
   CourseFilterState,
   CourseFilterTier,
@@ -52,6 +53,8 @@ export interface SubmissionVoteInput {
   approvalDecision: ApprovalDecision
   rejectionReason: string | null
   rejectionExplanation: string | null
+  /** Only valid on a `no` vote, alongside a non-empty rejectionReason. */
+  attachments: RejectionAttachment[]
   filters: FilterVoteInput[]
 }
 
@@ -62,6 +65,8 @@ export interface FinalFilterInput extends FilterVoteInput {
 export interface LeadDecisionInput {
   status: SubmissionStatus
   decisionNotes: string | null
+  /** Only valid when status is `rejected`; written once at finalize time. */
+  attachments: RejectionAttachment[]
   filters: FinalFilterInput[]
 }
 

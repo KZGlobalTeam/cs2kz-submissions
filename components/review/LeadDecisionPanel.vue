@@ -5,11 +5,13 @@ import {
   tierToNumber,
 } from '~/shared/schemas/cs2kz'
 import type { CourseFilterState, CourseFilterTier, Mode } from '~/shared/schemas/cs2kz'
+import type { RejectionAttachment } from '~/shared/types/attachment'
 import type { SubmissionStatus } from '~/shared/types/submission'
 import type { SubmissionDetailVote } from '~/shared/types/submission-detail'
 
 import OtherApproverVotes from './OtherApproverVotes.vue'
 import VoteSummaryPanel from './VoteSummaryPanel.vue'
+import RejectionAttachmentStage from '../common/RejectionAttachmentStage.vue'
 
 interface CourseInput {
   id: string
@@ -51,6 +53,7 @@ function seedLeadFilters(courses: CourseInput[]): LeadFilter[] {
 const filters = reactive(seedLeadFilters(props.courses))
 const decisionStatus = shallowRef<SubmissionStatus>('approved')
 const decisionNotes = shallowRef('')
+const stagedAttachments = ref<RejectionAttachment[]>([])
 const saving = shallowRef(false)
 
 const tierOptions = Array.from({ length: tierCount }, (_, i) => ({
@@ -102,6 +105,8 @@ async function submitDecision() {
         status: decisionStatus.value,
         decisionNotes:
           decisionStatus.value === 'rejected' ? decisionNotes.value : null,
+        attachments:
+          decisionStatus.value === 'rejected' ? stagedAttachments.value : [],
         filters: filters.map((filter) => ({
           courseId: filter.courseId,
           mode: filter.mode,
@@ -227,7 +232,7 @@ async function submitDecision() {
       </div>
 
       <UFormField
-        v-if="decisionStatus === 'rejected'"
+        v-show="decisionStatus === 'rejected'"
         label="Reject Reason:"
         required
         class="mt-4"
@@ -237,6 +242,11 @@ async function submitDecision() {
           :rows="3"
           placeholder="Required when rejecting"
           class="w-full"
+        />
+        <RejectionAttachmentStage
+          v-model="stagedAttachments"
+          :stored="[]"
+          :active="decisionStatus === 'rejected'"
         />
       </UFormField>
     </UCard>

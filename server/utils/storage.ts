@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createError } from 'h3'
 
+import { REJECTION_ATTACHMENT_PREFIX, objectKeyFromStorageUrl } from './attachment-rules'
 import { getAppConfig } from './config'
 
 let client: SupabaseClient | null = null
@@ -45,9 +46,18 @@ function getStorageClient() {
   return client
 }
 
-export async function uploadCourseImage(buffer: Buffer, mimeType: string) {
+export function getBucketPublicBaseUrl(): string {
+  const { supabaseUrl, bucket } = getStorageConfig()
+  return `${supabaseUrl}/storage/v1/object/public/${bucket}/`
+}
+
+/** Shared upload path: key under `prefix`, public URL generation, unified
+ *  error mapping. Used by course, port-authorization, and rejection-upload
+ *  images. */
+async function uploadToBucket(prefix: string, buffer: Buffer, mimeType: string) {
   const config = getStorageConfig()
-  const key = `course-images/${crypto.randomUUID()}.jpg`
+  const extension = mimeType === 'image/png' ? 'png' : 'jpg'
+  const key = `${prefix}${crypto.randomUUID()}.${extension}`
 
   const storage = getStorageClient().storage.from(config.bucket)
   const { error: uploadError } = await storage.upload(key, buffer, {
@@ -73,34 +83,60 @@ export async function uploadCourseImage(buffer: Buffer, mimeType: string) {
   return { key, url: data.publicUrl }
 }
 
-export async function uploadPortImage(
-  buffer: Buffer,
-  mimeType: string,
-) {
+export async function uploadCourseImage(buffer: Buffer, mimeType: string) {
+  return uploadToBucket('course-images/', buffer, mimeType)
+}
+
+export async function uploadPortImage(buffer: Buffer, mimeType: string) {
+  return uploadToBucket('port-images/', buffer, mimeType)
+}
+
+export async function uploadRejectionAttachment(buffer: Buffer, mimeType: string) {
+  return uploadToBucket(REJECTION_ATTACHMENT_PREFIX, buffer, mimeType)
+}
+
+/** Removes a single rejection-attachment object by its public URL. Throws on
+ *  a URL outside this bucket or a storage failure. */
+export async function deleteRejectionAttachmentObject(url: string) {
   const config = getStorageConfig()
-  const extension = mimeType === 'image/png' ? 'png' : 'jpg'
-  const key = `port-images/${crypto.randomUUID()}.${extension}`
+  const key = objectKeyFromStorageUrl(url, getBucketPublicBaseUrl())
 
-  const storage = getStorageClient().storage.from(config.bucket)
-  const { error: uploadError } = await storage.upload(key, buffer, {
-    contentType: mimeType,
-    upsert: false,
-  })
+  if (!key) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Attachment URL is not in this storage bucket',
+    })
+  }
 
-  if (uploadError) {
+  const { error } = await getStorageClient().storage.from(config.bucket).remove([key])
+  if (error) {
     throw createError({
       statusCode: 502,
-      statusMessage: uploadError.message,
+      statusMessage: error.message,
     })
   }
+}
 
-  const { data } = storage.getPublicUrl(key)
-  if (!data.publicUrl) {
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Failed to generate public URL for uploaded image',
-    })
+/** Best-effort removal of many objects (used post-transaction by save paths,
+ *  where the rows are already committed and a storage hiccup must not fail
+ *  the request). */
+export async function deleteRejectionAttachmentObjects(urls: string[]) {
+  const config = getStorageConfig()
+  const base = getBucketPublicBaseUrl()
+
+  for (const url of urls) {
+    const key = objectKeyFromStorageUrl(url, base)
+    if (!key) {
+      continue
+    }
+    try {
+      const { error } = await getStorageClient().storage.from(config.bucket).remove([key])
+      if (error) {
+        console.error(`Failed to delete rejection attachment ${key}:`, error.message)
+      }
+    }
+    catch (err) {
+      console.error(`Failed to delete rejection attachment ${key}:`, err)
+    }
   }
-
-  return { key, url: data.publicUrl }
 }
