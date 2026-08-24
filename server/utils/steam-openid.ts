@@ -1,8 +1,9 @@
 import type { H3Event } from 'h3'
 
-import { createError } from 'h3'
+import { createError, getRequestURL } from 'h3'
 
 import { getAppConfig } from './config'
+import { buildAuthUrls } from './auth-host'
 
 const STEAM_OPENID_URL = 'https://steamcommunity.com/openid/login'
 const STEAM_PROFILE_API = 'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/'
@@ -21,7 +22,24 @@ function getAuthConfig(event?: H3Event) {
 }
 
 export async function getSteamLoginUrl(event?: H3Event) {
-  const { realm, returnUrl } = getAuthConfig(event)
+  let realm: string
+  let returnUrl: string
+
+  if (event) {
+    // Anchor auth to the host serving this request so Steam bounces the user
+    // back — and the session cookie is set — on the host they are actually
+    // browsing (custom domain, *.pages.dev, preview deployment). Falling back
+    // to a fixed configured host here is what stranded the cookie on a host
+    // users don't browse, causing constant re-logins.
+    const urls = buildAuthUrls(getRequestURL(event).origin)
+    realm = urls.realm
+    returnUrl = urls.returnUrl
+  }
+  else {
+    const config = getAuthConfig(event)
+    realm = config.realm
+    returnUrl = config.returnUrl
+  }
 
   const url = new URL(STEAM_OPENID_URL)
   url.searchParams.set('openid.ns', 'http://specs.openid.net/auth/2.0')

@@ -1,15 +1,15 @@
-import { eq } from 'drizzle-orm'
+import { eq, lt } from 'drizzle-orm'
 import {
   appendHeader,
   deleteCookie,
   getCookie,
+  getRequestURL,
   setCookie,
   type H3Event,
 } from 'h3'
 
 import { sessions } from '~/db/schema'
 
-import { getAppConfig } from './config'
 import { db } from './db'
 
 const SESSION_COOKIE_NAME = 'cs2kz_submission_session'
@@ -44,12 +44,20 @@ export async function persistSession(event: H3Event, userId: string) {
     expiresAt,
   })
 
-  const { siteUrl: siteUrlConfig } = getAppConfig(event)
-  const siteUrl = siteUrlConfig ?? 'http://localhost:11451'
+  // Housekeeping: nothing ever removes expired session rows (every login adds
+  // one), so the table grows without bound. Sweep them here — the delete only
+  // touches rows that are already unusable and `expiresAt` is indexed, so the
+  // per-login cost is trivial and cannot touch the row just inserted above.
+  await db().delete(sessions).where(lt(sessions.expiresAt, new Date()))
+
+  // Derive Secure from the protocol actually serving this request, not a
+  // configured site URL: a stale env value could flip the flag (or strand the
+  // cookie on a different host) and silently break persistence.
+  const secure = getRequestURL(event).protocol === 'https:'
   setCookie(event, SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: siteUrl.startsWith('https://'),
+    secure,
     expires: expiresAt,
     path: '/',
   })

@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm'
 import { createError, sendRedirect } from 'h3'
 
 import { users } from '~/db/schema'
-import { getAppConfig } from '~/server/utils/config'
 import { persistSession } from '~/server/utils/session'
 import {
   fetchSteamProfile,
@@ -58,9 +57,12 @@ export default defineEventHandler(async (event) => {
 
     await persistSession(event, userId!)
 
-    const { siteUrl } = getAppConfig(event)
-    const redirectBase = siteUrl ?? 'http://localhost:11451'
-    return sendRedirect(event, `${redirectBase.replace(/\/$/, '')}/submissions`, 302)
+    // Land the user back on the host that issued the login — and therefore
+    // holds the session cookie — instead of a configured site URL that may
+    // point at a different host (e.g. a stale deployment domain). Redirecting
+    // to a host without the cookie would immediately log the user out again.
+    const origin = getRequestURL(event).origin
+    return sendRedirect(event, `${origin}/submissions`, 302)
   }
   catch (error) {
     console.error('Steam auth callback failed:', error)
