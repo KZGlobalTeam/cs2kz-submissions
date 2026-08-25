@@ -3,9 +3,19 @@ import { createError, type H3Event } from 'h3'
 
 import { userRoles, users } from '~/db/schema'
 import type { SessionUser } from '~/shared/types/submission'
+import type { UserRole } from '~/shared/types/roles'
 
 import { db } from './db'
 import { lookupSessionByToken, readSessionToken } from './session'
+
+export async function getUserRoles(userId: string): Promise<UserRole[]> {
+  const rows = await db()
+    .select({ role: userRoles.role })
+    .from(userRoles)
+    .where(eq(userRoles.userId, userId))
+
+  return rows.map((item) => item.role)
+}
 
 export async function getCurrentUser(event: H3Event): Promise<SessionUser | null> {
   const token = readSessionToken(event)
@@ -28,18 +38,13 @@ export async function getCurrentUser(event: H3Event): Promise<SessionUser | null
     return null
   }
 
-  const roles = await db()
-    .select({ role: userRoles.role })
-    .from(userRoles)
-    .where(eq(userRoles.userId, user.id))
-
   return {
     id: user.id,
     steamId64: user.steamId64,
     name: user.displayName,
     avatarUrl: user.avatarUrl,
     profileUrl: user.profileUrl,
-    roles: roles.map((item) => item.role),
+    roles: await getUserRoles(user.id),
   }
 }
 

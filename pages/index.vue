@@ -26,10 +26,13 @@ void (async () => {
   checking.value = false
 
   // If a valid (non-expired) session already exists, skip the login page and
-  // head straight to the dashboard instead of showing an "Enter Dashboard"
+  // head straight to the review queue (approvers / lead approvers) or the
+  // submissions dashboard (mappers) instead of showing an "Enter Dashboard"
   // button.
   if (session.value.authenticated) {
-    await navigateTo('/submissions')
+    const roles = session.value.user?.roles ?? []
+    const isReviewer = roles.includes('approver') || roles.includes('lead_approver')
+    await navigateTo(isReviewer ? '/review' : '/submissions')
   }
 })()
 </script>

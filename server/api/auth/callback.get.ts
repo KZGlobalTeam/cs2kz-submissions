@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { createError, sendRedirect } from 'h3'
 
 import { users } from '~/db/schema'
+import { getUserRoles } from '~/server/utils/auth'
 import { persistSession } from '~/server/utils/session'
 import {
   fetchSteamProfile,
@@ -57,12 +58,18 @@ export default defineEventHandler(async (event) => {
 
     await persistSession(event, userId!)
 
+    // Land the user on the page matching their role: approvers / lead
+    // approvers go to the review queue, everyone else (mappers) to the
+    // submissions dashboard.
+    const roles = await getUserRoles(userId!)
+    const isReviewer = roles.includes('approver') || roles.includes('lead_approver')
+
     // Land the user back on the host that issued the login — and therefore
     // holds the session cookie — instead of a configured site URL that may
     // point at a different host (e.g. a stale deployment domain). Redirecting
     // to a host without the cookie would immediately log the user out again.
     const origin = getRequestURL(event).origin
-    return sendRedirect(event, `${origin}/submissions`, 302)
+    return sendRedirect(event, `${origin}${isReviewer ? '/review' : '/submissions'}`, 302)
   }
   catch (error) {
     console.error('Steam auth callback failed:', error)
