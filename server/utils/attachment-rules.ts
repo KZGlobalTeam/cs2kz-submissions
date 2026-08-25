@@ -1,7 +1,17 @@
 import type { RejectionAttachment } from '~/shared/types/attachment'
+import { z } from 'zod'
 import { MAX_REJECTION_ATTACHMENT_BYTES } from '~/shared/schemas/attachment'
 
 export const REJECTION_ATTACHMENT_PREFIX = 'rejection-attachments/'
+
+/** Input contract for the DELETE endpoint: the target URL arrives in the
+ *  query string. The Cloudflare Pages runtime only forwards request bodies
+ *  for POST/PUT/PATCH — a DELETE body is dropped at the worker entry and
+ *  crashes workerd — so the handler must never read the URL from the body.
+ *  Keep the query shape ({ url } at the top level) in sync with the client. */
+export const rejectionAttachmentDeleteQuerySchema = z.object({
+  url: z.string().min(1),
+})
 
 // Re-exported so server code has one import site for the re-use limit.
 export { MAX_REJECTION_ATTACHMENT_BYTES }

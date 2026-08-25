@@ -73,9 +73,12 @@ async function onFileSelected(event: Event) {
 
 async function deleteAttachmentObject(url: string) {
   try {
+    // URL goes in the query string, NOT the body: the Cloudflare Pages runtime
+    // drops DELETE request bodies at the worker entry (only POST/PUT/PATCH are
+    // forwarded), which crashes workerd with a 1101.
     await $fetch('/api/uploads/rejection-attachment', {
       method: 'DELETE',
-      body: { url },
+      query: { url },
     })
   }
   catch {

@@ -6,6 +6,7 @@ import {
   isRejectionAttachmentKey,
   isUrlUnderPrefix,
   objectKeyFromStorageUrl,
+  rejectionAttachmentDeleteQuerySchema,
 } from '~/server/utils/attachment-rules'
 import type { RejectionAttachment } from '~/shared/types/attachment'
 
@@ -165,5 +166,25 @@ describe('storage URL helpers', () => {
     expect(isRejectionAttachmentKey(`${PREFIX}../course-images/steal.jpg`)).toBe(false)
     expect(isRejectionAttachmentKey('course-images/x.png')).toBe(false)
     expect(isRejectionAttachmentKey(`${PREFIX}3a6a29d0.gif`)).toBe(false)
+  })
+})
+
+describe('delete endpoint input (query string, not body)', () => {
+  it('accepts a top-level { url } — the shape the client sends in the query string', () => {
+    expect(rejectionAttachmentDeleteQuerySchema.parse({ url: validUrl })).toEqual({ url: validUrl })
+  })
+
+  // Regression (production 1101): the Cloudflare Pages runtime drops DELETE
+  // request bodies at the worker entry, so the handler cannot read the target
+  // from a body. If an input shape that is the body never parses, someone is
+  // trying to move the URL back into a DELETE body — fail loudly.
+  it('rejects a nested { body: { url } } shape (a DELETE body can never reach the handler)', () => {
+    expect(() => rejectionAttachmentDeleteQuerySchema.parse({ body: { url: validUrl } })).toThrow()
+  })
+
+  it('rejects missing / empty url', () => {
+    expect(() => rejectionAttachmentDeleteQuerySchema.parse({})).toThrow()
+    expect(() => rejectionAttachmentDeleteQuerySchema.parse({ url: '' })).toThrow()
+    expect(() => rejectionAttachmentDeleteQuerySchema.parse(undefined)).toThrow()
   })
 })
