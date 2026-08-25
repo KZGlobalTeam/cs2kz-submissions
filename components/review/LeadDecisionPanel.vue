@@ -233,7 +233,7 @@ async function submitDecision() {
 
       <UFormField
         v-show="decisionStatus === 'rejected'"
-        label="Reject Reason:"
+        label="Reason for Rejection:"
         required
         class="mt-4"
       >

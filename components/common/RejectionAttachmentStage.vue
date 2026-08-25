@@ -118,7 +118,6 @@ watch(
 <template>
   <div v-if="active" class="mt-3 space-y-2">
     <div class="flex items-center justify-between gap-2">
-      <span class="text-sm text-muted">Rejection attachments ({{ modelValue.length }})</span>
       <UButton
         icon="i-lucide-image-plus"
         size="xs"

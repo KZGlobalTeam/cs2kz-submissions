@@ -48,7 +48,7 @@ const bodySchema = z
     if (value.approvalDecision === 'no' && !value.rejectionReason) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Rejection reason is required when approval decision is No',
+        message: 'Reason for rejection is required when approval decision is No',
         path: ['rejectionReason'],
       })
     }

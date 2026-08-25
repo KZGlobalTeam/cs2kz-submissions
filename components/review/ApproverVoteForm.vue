@@ -64,7 +64,7 @@ function validateForm(): string | null {
   }
 
   if (form.approvalDecision === 'no' && !form.rejectionReason.trim()) {
-    return 'Rejection Reason is required when Status of Approval is No.'
+    return 'Reason for rejection is required when Status of Approval is No.'
   }
 
   return null
@@ -148,7 +148,7 @@ async function submitVote() {
       </div>
 
       <div v-show="form.approvalDecision === 'no'" class="mt-4 space-y-3">
-        <UFormField label="Rejection Reason:" required>
+        <UFormField label="Reason for Rejection:" required>
           <UInput v-model="form.rejectionReason" placeholder="Reason" class="w-full" />
           <RejectionAttachmentStage
             v-model="form.attachments"
