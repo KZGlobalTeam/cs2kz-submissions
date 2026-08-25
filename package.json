@@ -21,6 +21,7 @@
     "@nuxt/ui": "^4.0.0",
     "@supabase/supabase-js": "^2.57.4",
     "drizzle-orm": "^0.44.4",
+    "fflate": "^0.8.3",
     "h3": "^1.15.4",
     "image-size": "^2.0.2",
     "marked": "^18.0.7",

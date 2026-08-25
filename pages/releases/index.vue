@@ -85,6 +85,8 @@ async function copyExport() {
   }
 }
 
+const { downloadingId, downloadImages } = useReleaseImagePack()
+
 const { items, total, page, pageSize, status, refresh } = usePaginatedTable<ReleaseRow>(
   'releases',
   ({ page, pageSize }) =>
@@ -188,6 +190,12 @@ async function confirmDeleteRelease() {
               label="Export JSON"
               :loading="exporting"
               @click="exportRelease(row.original.id, row.original.name)"
+            />
+            <UButton
+              variant="outline"
+              label="Download Images"
+              :loading="downloadingId === row.original.id"
+              @click="downloadImages(row.original.id, row.original.name)"
             />
             <UButton
               variant="ghost"
