@@ -21,15 +21,8 @@ logs
 # Local env files
 .env
 .env.*
-!.env.example
 
-.trae
-.dbg
-.codegraph
-docs
 .playwright-cli
 .wrangler
 
-# Agent harness (local)
-AGENTS.md
-.pi/
+.pi
