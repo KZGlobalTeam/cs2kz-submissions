@@ -1,5 +1,6 @@
 import { createError, type H3Event } from 'h3'
 
+import { isPlainApprover } from './approver-gate'
 import { requireRole, requireUser } from './auth'
 
 export async function requireAuth(event: H3Event) {
@@ -12,6 +13,22 @@ export async function requireApprover(event: H3Event) {
 
 export async function requireLeadApprover(event: H3Event) {
   return requireRole(event, 'lead_approver')
+}
+
+/** Strict plain-approver gate used by the approver-checklist endpoints. The
+ *  user must hold the `approver` role and must not hold `lead_approver` —
+ *  unlike `requireApprover`, which deliberately admits lead approvers too. */
+export async function requirePlainApprover(event: H3Event) {
+  const user = await requireUser(event)
+
+  if (!isPlainApprover(user.roles)) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Forbidden',
+    })
+  }
+
+  return user
 }
 
 /** Approver **or** lead approver — used by the rejection-attachment upload

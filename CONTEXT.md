@@ -37,3 +37,11 @@ _Avoid_: Draft, editable, open
 **In review**:
 A pending submission that has received at least one approver vote; from this point its submitting mapper can no longer edit or delete it.
 _Avoid_: Under review, approval in process
+
+**Approver checklist**:
+An approver's private, per-submission record of which submission-rule groups they have verified, presented as the same grouped rules the mapper acknowledges before submitting. Visible only to the approver who wrote it — never to other approvers, the lead approver, or the submitting mapper.
+_Avoid_: Rule check-off, verification log
+
+**Approver note**:
+A free-text note an approver attaches to their own Approver checklist, private to that approver in the same way.
+_Avoid_: Private note, comment
