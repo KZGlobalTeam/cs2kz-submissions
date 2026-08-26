@@ -18,6 +18,10 @@ const props = defineProps<{
   courses: CourseInput[]
   votes: SubmissionDetailVote[]
   currentUserId: string
+  /** Optional hook awaited before the vote is saved — the page wires it to
+   *  flush the Approver checklist's pending auto-save, so a tick or note
+   *  made immediately before Save Vote is never lost. */
+  beforeSave?: () => Promise<void> | void
 }>()
 
 const emit = defineEmits<{ saved: [] }>()
@@ -85,6 +89,15 @@ async function submitVote() {
   validationError.value = null
   saving.value = true
   try {
+    // The Approver checklist is purely advisory: a failed flush must never
+    // block the vote. The section's own indicator surfaces the failure, and
+    // its unmount flush retries.
+    try {
+      await props.beforeSave?.()
+    }
+    catch {
+      // ignore — checklist persistence is best-effort
+    }
     await $fetch(`/api/submissions/${props.submissionId}/vote`, {
       method: 'PUT',
       body: {

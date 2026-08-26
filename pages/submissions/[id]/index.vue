@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SubmissionDetailResponse } from '~/shared/types/submission-detail'
 
+import ApproverChecklistSection from '~/components/review/ApproverChecklistSection.vue'
 import ApproverVoteForm from '~/components/review/ApproverVoteForm.vue'
 import CoursesReadonly from '~/components/review/CoursesReadonly.vue'
 import LeadDecisionPanel from '~/components/review/LeadDecisionPanel.vue'
@@ -31,6 +32,22 @@ const { data: details } = useAsyncData<SubmissionDetailResponse>(
 const userId = computed(() => session.value.user?.id ?? '')
 
 const isPending = computed(() => details.value?.submission.status === 'pending')
+
+/** The strict plain-approver gate mirrors the API: `approver` role held and
+ *  `lead_approver` not held — lead approvers never see the checklist. */
+const isPlainApprover = computed(
+  () => hasApproverRole.value && !isLeadApprover.value,
+)
+
+const checklistRef = ref<InstanceType<typeof ApproverChecklistSection> | null>(null)
+
+/** Flush the checklist's pending auto-save before the vote persists, so a
+ *  tick or note made right before Save Vote is never dropped. */
+async function flushChecklistBeforeVote() {
+  if (isPlainApprover.value && mode.value === 'vote') {
+    await checklistRef.value?.flush()
+  }
+}
 
 const defaultMode = computed<PanelMode | null>(() => {
   if (isLeadApprover.value) {
@@ -103,15 +120,31 @@ onMounted(() => {
       :decision-attachments="details.decisionAttachments"
     />
 
-    <ApproverVoteForm
+    <div
       v-if="isPending && mode === 'vote' && hasApproverRole"
-      :key="`vote-${voteFormKey}`"
-      :submission-id="details.submission.id"
-      :courses="details.courses"
-      :votes="details.votes"
-      :current-user-id="userId"
-      @saved="onSaved"
-    />
+      :class="isPlainApprover ? 'grid gap-6 lg:grid-cols-2' : ''"
+    >
+      <ApproverVoteForm
+        :key="`vote-${voteFormKey}`"
+        :submission-id="details.submission.id"
+        :courses="details.courses"
+        :votes="details.votes"
+        :current-user-id="userId"
+        :before-save="flushChecklistBeforeVote"
+        @saved="onSaved"
+      />
+
+      <!-- Sticky card: the wrapper (grid item) stretches to the vote
+           column's height, so the card pins at the top while scrolling. -->
+      <div v-if="isPlainApprover">
+        <ApproverChecklistSection
+          ref="checklistRef"
+          :submission-id="details.submission.id"
+          :is-port="details.submission.isPort"
+          class="lg:sticky lg:top-6"
+        />
+      </div>
+    </div>
 
     <LeadDecisionPanel
       v-if="isPending && mode === 'approve' && isLeadApprover"
