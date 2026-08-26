@@ -10,34 +10,22 @@ import type {
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected'
 export type ApprovalDecision = 'yes' | 'no'
 
-export interface SteamMapperInput {
-  steamId64: string
-  displayName: string
-}
+/** The validated submission-content shape lives in the shared schema so the
+ *  create and edit write paths consume one definition; the type is derived
+ *  from it and re-exported here for importers of this module. */
+export type { SubmissionInput } from '../schemas/submission'
 
+/** Loose image-meta shape used by the client form state before validation
+ *  (e.g. `mime` is a plain string because the form also holds unvalidated
+ *  uploads). The stricter validated wire shape is defined in
+ *  `shared/schemas/submission` — course images are fixed 1920×1080 JPG, port
+ *  images are JPG/PNG with no fixed resolution. */
 export interface CourseImageMeta {
   url: string
   mime: string
   width: number
   height: number
   sizeBytes: number
-}
-
-export interface SubmissionCourseInput {
-  name: string
-  image: CourseImageMeta
-  mappers: SteamMapperInput[]
-}
-
-export interface SubmissionInput {
-  workshopUrl: string
-  mapName: string
-  notes: string | null
-  isPort: boolean
-  portAuthorizationImage: CourseImageMeta | null
-  portNotes: string | null
-  mappers: SteamMapperInput[]
-  courses: SubmissionCourseInput[]
 }
 
 export interface FilterVoteInput {
