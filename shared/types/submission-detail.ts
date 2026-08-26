@@ -103,4 +103,8 @@ export interface SubmissionDetailResponse {
    *  finalizations and visible to every role — this is the only rejection
    *  material a mapper can ever see. */
   decisionAttachments: RejectionAttachment[]
+  /** Server-derived: true only for the creator of a pending, zero-vote
+   *  submission. Computed before the votes payload is stripped from
+   *  non-approvers, so the edit page can gate on it client-side. */
+  editable: boolean
 }

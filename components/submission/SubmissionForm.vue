@@ -3,9 +3,27 @@ import { z } from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import CourseEditorList from './CourseEditorList.vue'
 import MapperListField from './MapperListField.vue'
-import { useSubmissionForm } from '~/composables/useSubmissionForm'
+import { useSubmissionForm, type SubmissionFormValue } from '~/composables/useSubmissionForm'
 
-const { form } = useSubmissionForm()
+const props = withDefaults(
+  defineProps<{
+    /** `create` POSTs a new submission; `edit` PUTs a replacement. */
+    mode?: 'create' | 'edit'
+    /** Required in `edit` mode: the submission being replaced. */
+    submissionId?: string
+    /** Pre-filled content in `edit` mode (mapped from the detail response). */
+    initialValue?: SubmissionFormValue
+  }>(),
+  {
+    mode: 'create',
+    submissionId: undefined,
+    initialValue: undefined,
+  },
+)
+
+const isEditing = computed(() => props.mode === 'edit')
+
+const { form } = useSubmissionForm(props.initialValue)
 const submitting = shallowRef(false)
 const confirmOpen = shallowRef(false)
 const uploadingPortImage = shallowRef(false)
@@ -171,23 +189,33 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
 
 async function confirmSubmit() {
   submitting.value = true
+  const payload = {
+    workshopUrl: form.workshopUrl,
+    mapName: form.mapName,
+    notes: form.notes || null,
+    isPort: form.isPort,
+    portAuthorizationImage: form.isPort ? form.portAuthorizationImage : null,
+    portNotes: form.isPort ? (form.portNotes || null) : null,
+    mappers: form.mappers,
+    courses: form.courses.map((course) => ({
+      ...course,
+      image: course.image!,
+    })),
+  }
+
   try {
-    await $fetch('/api/submissions', {
-      method: 'POST',
-      body: {
-        workshopUrl: form.workshopUrl,
-        mapName: form.mapName,
-        notes: form.notes || null,
-        isPort: form.isPort,
-        portAuthorizationImage: form.isPort ? form.portAuthorizationImage : null,
-        portNotes: form.isPort ? (form.portNotes || null) : null,
-        mappers: form.mappers,
-        courses: form.courses.map((course) => ({
-          ...course,
-          image: course.image!,
-        })),
-      },
-    })
+    if (isEditing.value) {
+      await $fetch(`/api/submissions/${props.submissionId}`, {
+        method: 'PUT',
+        body: payload,
+      })
+    }
+    else {
+      await $fetch('/api/submissions', {
+        method: 'POST',
+        body: payload,
+      })
+    }
 
     // Drop the cached submissions list so the index page refetches (and shows
     // the table loading state) instead of rendering the stale list.
@@ -199,7 +227,7 @@ async function confirmSubmit() {
       : 'Failed to submit'
     toast.add({
       color: 'error',
-      title: 'Submission failed',
+      title: isEditing.value ? 'Save failed' : 'Submission failed',
       description: message,
     })
   } finally {
@@ -211,7 +239,9 @@ async function confirmSubmit() {
 
 <template>
   <UForm :state="form" :schema="schema" class="space-y-6" @submit="onSubmit">
-    <h1 class="text-2xl font-semibold">New Submission</h1>
+    <h1 class="text-2xl font-semibold">
+      {{ isEditing ? 'Edit Submission' : 'New Submission' }}
+    </h1>
 
     <div class="grid gap-4">
       <UFormField label="Map Name" name="mapName" required>
@@ -302,16 +332,18 @@ async function confirmSubmit() {
     <div class="flex justify-end">
       <UButton
         type="submit"
-        label="Submit"
+        :label="isEditing ? 'Save Changes' : 'Submit'"
         :loading="submitting"
       />
     </div>
 
     <CommonConfirmDialog
       :open="confirmOpen"
-      title="Submit"
-      description="Submit this map for review? You won't be able to edit it after submission."
-      confirm-label="Submit"
+      :title="isEditing ? 'Save Changes' : 'Submit'"
+      :description="isEditing
+        ? 'Save these changes? This replaces the current submission content.'
+        : 'Submit this map for review? You can edit it until approvers start voting.'"
+      :confirm-label="isEditing ? 'Save' : 'Submit'"
       :loading="submitting"
       @confirm="confirmSubmit"
       @cancel="confirmOpen = false"

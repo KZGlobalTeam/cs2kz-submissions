@@ -58,6 +58,10 @@ function openSubmission(id: string) {
   return navigateTo(`/submissions/${id}`)
 }
 
+function openSubmissionEdit(id: string) {
+  return navigateTo(`/submissions/${id}/edit`)
+}
+
 const removing = shallowRef<string | null>(null)
 const pendingDelete = shallowRef<SubmissionRow | null>(null)
 
@@ -144,6 +148,13 @@ async function confirmDeleteSubmission() {
 
         <template #actions-cell="{ row }">
           <div class="flex flex-wrap items-center gap-2">
+            <UButton
+              v-if="ownerActionsVisible(row.original)"
+              variant="ghost"
+              color="neutral"
+              label="Edit"
+              @click="openSubmissionEdit(row.original.id)"
+            />
             <UButton
               v-if="ownerActionsVisible(row.original)"
               variant="ghost"
