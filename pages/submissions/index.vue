@@ -150,7 +150,7 @@ async function confirmDeleteSubmission() {
           <div class="flex flex-wrap items-center gap-2">
             <UButton
               v-if="ownerActionsVisible(row.original)"
-              variant="ghost"
+              variant="outline"
               color="neutral"
               label="Edit"
               @click="openSubmissionEdit(row.original.id)"
