@@ -4,6 +4,7 @@ import { submissionRulesSteps } from '~/components/submission/submissionRules'
 import type { ApproverChecklist } from '~/shared/schemas/approver-checklist'
 import {
   buildChecklistPayload,
+  hasSavedContent,
   normalizeNote,
   seedChecklistGroups,
   visibleRuleGroups,
@@ -90,6 +91,36 @@ describe('normalizeNote', () => {
     expect(normalizeNote('Jumpstat blocks look consistent')).toBe(
       'Jumpstat blocks look consistent',
     )
+  })
+})
+
+describe('hasSavedContent', () => {
+  it('is false when there is no row (never saved)', () => {
+    expect(hasSavedContent(null, null)).toBe(false)
+    expect(hasSavedContent(undefined, undefined)).toBe(false)
+  })
+
+  it('is false for an empty checklist with no note', () => {
+    expect(hasSavedContent({}, null)).toBe(false)
+  })
+
+  it('is false for a reset-to-nothing row: all unchecked and note cleared', () => {
+    // An explicit reset save persists a real row, but read-only it renders
+    // exactly like never-saved — never an empty box.
+    expect(hasSavedContent({ naming: [false, false, false], other: [false] }, null)).toBe(false)
+  })
+
+  it('is true when at least one rule is ticked', () => {
+    expect(hasSavedContent({ naming: [false, true, false] }, null)).toBe(true)
+  })
+
+  it('is true when a note is present even with no ticks', () => {
+    expect(hasSavedContent({ naming: [false], other: [false] }, 'check the jumpstat blocks')).toBe(true)
+  })
+
+  it('treats an empty or whitespace-only note as no content', () => {
+    expect(hasSavedContent({}, '')).toBe(false)
+    expect(hasSavedContent({}, '   ')).toBe(false)
   })
 })
 

@@ -49,6 +49,30 @@ export function normalizeNote(note: string): string | null {
   return trimmed === '' ? null : trimmed
 }
 
+/**
+ * Whether a saved row carries anything worth showing read-only: any tick set
+ * or a non-empty note. Drives the "never saved ⇒ hidden entirely" rule for
+ * the read-only section — both a missing row and a reset-to-nothing row
+ * (every box unchecked, note cleared) render nothing, so a finished
+ * submission never shows an empty box.
+ */
+export function hasSavedContent(
+  ticks: ApproverChecklist | null | undefined,
+  note: string | null | undefined,
+): boolean {
+  if (ticks) {
+    for (const groupTicks of Object.values(ticks)) {
+      if (groupTicks.some(Boolean)) {
+        return true
+      }
+    }
+  }
+  if (note) {
+    return note.trim() !== ''
+  }
+  return false
+}
+
 export interface ApproverChecklistPayload {
   checklist: ApproverChecklist
   note: string | null

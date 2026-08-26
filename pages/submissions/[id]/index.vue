@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SubmissionDetailResponse } from '~/shared/types/submission-detail'
 
+import ApproverChecklistReadonly from '~/components/review/ApproverChecklistReadonly.vue'
 import ApproverChecklistSection from '~/components/review/ApproverChecklistSection.vue'
 import ApproverVoteForm from '~/components/review/ApproverVoteForm.vue'
 import CoursesReadonly from '~/components/review/CoursesReadonly.vue'
@@ -38,6 +39,11 @@ const isPending = computed(() => details.value?.submission.status === 'pending')
 const isPlainApprover = computed(
   () => hasApproverRole.value && !isLeadApprover.value,
 )
+
+/** True while the read-only checklist card has something to show (saved
+ *  content or a load error). The page renders the two-column layout only
+ *  then, so a never-saved approver gets no empty side column after review. */
+const readonlyChecklistVisible = shallowRef(false)
 
 const checklistRef = ref<InstanceType<typeof ApproverChecklistSection> | null>(null)
 
@@ -157,8 +163,33 @@ onMounted(() => {
     />
 
     <CoursesReadonly
-      v-if="showReadonlyCourses"
+      v-if="showReadonlyCourses && !(!isPending && isPlainApprover)"
       :courses="details.courses"
     />
+
+    <!-- Once the submission has left review, the owning plain approver sees
+         their saved checklist and note read-only, in the same side-column
+         spot the editable card occupied during review: two columns on
+         desktop, stacked on mobile. The second column is collapsible and the
+         grid falls back to one column when the approver never saved
+         anything — never an empty box. Same porting rule as the editable
+         section: the porting group renders only when the submission is a
+         port. Leads and mappers never reach this branch. -->
+    <div
+      v-else-if="!isPending && isPlainApprover"
+      class="grid gap-6"
+      :class="{ 'lg:grid-cols-2': readonlyChecklistVisible }"
+    >
+      <CoursesReadonly :courses="details.courses" />
+
+      <div v-show="readonlyChecklistVisible">
+        <ApproverChecklistReadonly
+          :submission-id="details.submission.id"
+          :is-port="details.submission.isPort"
+          class="lg:sticky lg:top-6"
+          @loaded="readonlyChecklistVisible = $event"
+        />
+      </div>
+    </div>
   </section>
 </template>
