@@ -10,11 +10,24 @@ export interface PageBounds {
   offset: number
 }
 
+/** One row of the "mine" submissions list: the submission's stored row (with
+ *  timestamps serialised to ISO strings, as they cross HTTP/JSON) plus a
+ *  computed vote count, so the client can hide the owner Edit/Delete actions
+ *  as soon as review has started without an extra request. */
+export type OwnSubmissionRow = Omit<
+  (typeof submissions)['$inferSelect'],
+  'createdAt' | 'updatedAt'
+> & {
+  createdAt: string
+  updatedAt: string
+  voteCount: number
+}
+
 export async function listOwnSubmissions(
   userId: string,
   status: SubmissionStatus | undefined,
   bounds?: PageBounds,
-) {
+): Promise<OwnSubmissionRow[]> {
   const query = db()
     .select()
     .from(submissions)
@@ -28,7 +41,29 @@ export async function listOwnSubmissions(
   if (bounds) {
     query.limit(bounds.limit).offset(bounds.offset)
   }
-  return query
+  const rows = await query
+
+  if (rows.length === 0) {
+    return []
+  }
+
+  const ids = rows.map((row) => row.id)
+  const voteAgg = await db()
+    .select({ submissionId: submissionVotes.submissionId, voteCount: count() })
+    .from(submissionVotes)
+    .where(inArray(submissionVotes.submissionId, ids))
+    .groupBy(submissionVotes.submissionId)
+
+  const voteCountBySub = new Map(
+    voteAgg.map((vote) => [vote.submissionId, Number(vote.voteCount)]),
+  )
+
+  return rows.map((row) => ({
+    ...row,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    voteCount: voteCountBySub.get(row.id) ?? 0,
+  }))
 }
 
 export async function countOwnSubmissions(

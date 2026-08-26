@@ -117,12 +117,25 @@ export async function deleteRejectionAttachmentObject(url: string) {
   }
 }
 
-/** Best-effort removal of many objects (used post-transaction by save paths,
- *  where the rows are already committed and a storage hiccup must not fail
- *  the request). */
-export async function deleteRejectionAttachmentObjects(urls: string[]) {
-  const config = getStorageConfig()
-  const base = getBucketPublicBaseUrl()
+/** Best-effort removal of many objects by public URL (used after a write is
+ *  committed, where a storage hiccup must not fail the request). URLs outside
+ *  this bucket are skipped; an unconfigured storage removes nothing and the
+ *  caller's committed write still succeeds. */
+export async function deleteStorageObjects(urls: string[]) {
+  if (urls.length === 0) {
+    return
+  }
+
+  let config: ReturnType<typeof getStorageConfig>
+  let base: string
+  try {
+    config = getStorageConfig()
+    base = getBucketPublicBaseUrl()
+  }
+  catch (err) {
+    console.error('Skipping storage cleanup: storage is not configured', err)
+    return
+  }
 
   for (const url of urls) {
     const key = objectKeyFromStorageUrl(url, base)
@@ -132,11 +145,11 @@ export async function deleteRejectionAttachmentObjects(urls: string[]) {
     try {
       const { error } = await getStorageClient().storage.from(config.bucket).remove([key])
       if (error) {
-        console.error(`Failed to delete rejection attachment ${key}:`, error.message)
+        console.error(`Failed to delete storage object ${key}:`, error.message)
       }
     }
     catch (err) {
-      console.error(`Failed to delete rejection attachment ${key}:`, err)
+      console.error(`Failed to delete storage object ${key}:`, err)
     }
   }
 }

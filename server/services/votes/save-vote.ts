@@ -19,7 +19,7 @@ import {
 } from '~/server/utils/attachment-rules'
 import { db } from '~/server/utils/db'
 import {
-  deleteRejectionAttachmentObjects,
+  deleteStorageObjects,
   getBucketPublicBaseUrl,
 } from '~/server/utils/storage'
 
@@ -157,7 +157,7 @@ export async function saveVote(
 
   // Storage objects for attachments that were removed by this save. Runs
   // after the rows are committed so a storage hiccup cannot fail the save.
-  await deleteRejectionAttachmentObjects(
+  await deleteStorageObjects(
     removedAttachments.map((attachment) => attachment.url),
   )
 
