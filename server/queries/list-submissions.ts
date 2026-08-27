@@ -1,6 +1,6 @@
 import { and, count, desc, eq, inArray, notExists, type SQL } from 'drizzle-orm'
 
-import { submissionMappers, submissionVotes, submissions, users } from '~/db/schema'
+import { submissionCourses, submissionMappers, submissionVotes, submissions } from '~/db/schema'
 import type { ReviewSubmissionRow, SubmissionStatus } from '~/shared/types/submission'
 
 import { db } from '~/server/utils/db'
@@ -144,13 +144,11 @@ export async function listAllSubmissionsForReview(
       mapName: submissions.mapName,
       workshopId: submissions.workshopId,
       workshopUrl: submissions.workshopUrl,
-      submittedBy: users.displayName,
       status: submissions.status,
       createdAt: submissions.createdAt,
       approvedAt: submissions.approvedAt,
     })
     .from(submissions)
-    .innerJoin(users, eq(submissions.createdByUserId, users.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(
       status === 'approved'
@@ -172,7 +170,7 @@ export async function listAllSubmissionsForReview(
 
   const ids = rows.map((row) => row.id)
 
-  const [mappers, voteAgg, myVotes] = await Promise.all([
+  const [mappers, voteAgg, myVotes, courseAgg] = await Promise.all([
     db()
       .select({
         submissionId: submissionMappers.submissionId,
@@ -199,6 +197,14 @@ export async function listAllSubmissionsForReview(
         inArray(submissionVotes.submissionId, ids),
         eq(submissionVotes.approverUserId, userId),
       )),
+    db()
+      .select({
+        submissionId: submissionCourses.submissionId,
+        courseCount: count(submissionCourses.id),
+      })
+      .from(submissionCourses)
+      .where(inArray(submissionCourses.submissionId, ids))
+      .groupBy(submissionCourses.submissionId),
   ])
 
   const mappersBySub = new Map<string, string[]>()
@@ -226,12 +232,16 @@ export async function listAllSubmissionsForReview(
     }
   }
 
+  const courseCountBySub = new Map(
+    courseAgg.map((course) => [course.submissionId, Number(course.courseCount)]),
+  )
+
   return rows.map((row) => ({
     id: row.id,
     mapName: row.mapName,
     workshopId: row.workshopId,
     workshopUrl: row.workshopUrl,
-    submittedBy: row.submittedBy,
+    courseCount: courseCountBySub.get(row.id) ?? 0,
     status: row.status,
     createdAt: row.createdAt.toISOString(),
     approvedAt: row.approvedAt ? row.approvedAt.toISOString() : null,

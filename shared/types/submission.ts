@@ -89,7 +89,7 @@ export interface ReviewSubmissionRow {
   mapName: string
   workshopId: number
   workshopUrl: string
-  submittedBy: string
+  courseCount: number
   status: SubmissionStatus
   createdAt: string
   approvedAt: string | null
