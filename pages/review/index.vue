@@ -27,6 +27,7 @@ function coerceStatus(value: unknown): SubmissionStatus {
 }
 
 const statusFilter = ref<SubmissionStatus>(coerceStatus(route.query.status))
+const unvotedOnly = ref(route.query.unvoted === 'true')
 
 function formatDateYearMonthDay(value: string): string {
   const date = new Date(value)
@@ -44,17 +45,22 @@ const { items, total, page, pageSize, status, refresh } = usePaginatedTable<Revi
       params: {
         scope: 'all',
         status: statusFilter.value,
+        unvoted: unvotedOnly.value ? 'true' : undefined,
         page,
         pageSize,
       },
     }),
 )
 
-watch(statusFilter, (value) => {
+watch([statusFilter, unvotedOnly], () => {
   void router.replace({
-    query: { ...route.query, status: value === 'pending' ? undefined : value },
+    query: {
+      ...route.query,
+      status: statusFilter.value === 'pending' ? undefined : statusFilter.value,
+      unvoted: unvotedOnly.value ? 'true' : undefined,
+    },
   })
-  // Reset to the first page whenever the filter changes — exactly one refetch.
+  // Reset to the first page whenever a filter changes — exactly one refetch.
   if (page.value !== 1) {
     page.value = 1
   }
@@ -150,6 +156,10 @@ async function confirmDeleteSubmission() {
         :items="statusOptions"
         value-key="value"
         class="w-40"
+      />
+      <UCheckbox
+        v-model="unvotedOnly"
+        label="Unvoted only"
       />
     </div>
 

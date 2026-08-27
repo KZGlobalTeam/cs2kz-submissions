@@ -25,6 +25,8 @@ export default defineEventHandler(async (event) => {
   const scopeParsed = rawScope === undefined ? undefined : scopeSchema.safeParse(rawScope)
   const scope = scopeParsed && scopeParsed.success ? scopeParsed.data : 'mine'
 
+  const unvoted = getQuery(event).unvoted === 'true'
+
   const { page, pageSize, limit, offset } = parsePagination(event)
   const bounds: PageBounds = { limit, offset }
 
@@ -32,8 +34,8 @@ export default defineEventHandler(async (event) => {
     // Gated: only approvers (lead implies approver) see the full review queue.
     const user = await requireApprover(event)
     const [items, total] = await Promise.all([
-      listAllSubmissionsForReview(status, user.id, bounds),
-      countAllSubmissions(status),
+      listAllSubmissionsForReview(status, user.id, bounds, unvoted),
+      countAllSubmissions(status, unvoted, user.id),
     ])
     return { items, total, page, pageSize } satisfies PaginatedResult<unknown>
   }

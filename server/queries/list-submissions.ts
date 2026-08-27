@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, notExists, type SQL } from 'drizzle-orm'
 
 import { submissionMappers, submissionVotes, submissions, users } from '~/db/schema'
 import type { ReviewSubmissionRow, SubmissionStatus } from '~/shared/types/submission'
@@ -8,6 +8,21 @@ import { db } from '~/server/utils/db'
 export interface PageBounds {
   limit: number
   offset: number
+}
+
+/** Predicate for submissions the given approver has not voted on yet — the
+ *  "Unvoted only" filter of the review queue. Uses a correlated NOT EXISTS so
+ *  it composes with the status filter and the count query. */
+function hasNoVoteFrom(userId: string): SQL {
+  return notExists(
+    db()
+      .select({ id: submissionVotes.id })
+      .from(submissionVotes)
+      .where(and(
+        eq(submissionVotes.submissionId, submissions.id),
+        eq(submissionVotes.approverUserId, userId),
+      )),
+  )
 }
 
 /** One row of the "mine" submissions list: the submission's stored row (with
@@ -89,11 +104,23 @@ export async function listAllSubmissions(status?: SubmissionStatus) {
     .orderBy(desc(submissions.createdAt))
 }
 
-export async function countAllSubmissions(status: SubmissionStatus | undefined) {
+export async function countAllSubmissions(
+  status: SubmissionStatus | undefined,
+  unvotedOnly = false,
+  userId?: string,
+) {
+  const conditions: SQL[] = []
+  if (status) {
+    conditions.push(eq(submissions.status, status))
+  }
+  if (unvotedOnly && userId) {
+    conditions.push(hasNoVoteFrom(userId))
+  }
+
   const [row] = await db()
     .select({ value: count() })
     .from(submissions)
-    .where(status ? eq(submissions.status, status) : undefined)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
   return Number(row?.value ?? 0)
 }
 
@@ -101,7 +128,16 @@ export async function listAllSubmissionsForReview(
   status: SubmissionStatus | undefined,
   userId: string,
   bounds?: PageBounds,
+  unvotedOnly = false,
 ): Promise<ReviewSubmissionRow[]> {
+  const conditions: SQL[] = []
+  if (status) {
+    conditions.push(eq(submissions.status, status))
+  }
+  if (unvotedOnly) {
+    conditions.push(hasNoVoteFrom(userId))
+  }
+
   const query = db()
     .select({
       id: submissions.id,
@@ -115,7 +151,7 @@ export async function listAllSubmissionsForReview(
     })
     .from(submissions)
     .innerJoin(users, eq(submissions.createdByUserId, users.id))
-    .where(status ? eq(submissions.status, status) : undefined)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(
       status === 'approved'
         ? desc(submissions.approvedAt)
