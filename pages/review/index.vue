@@ -171,13 +171,7 @@ async function confirmDeleteSubmission() {
         class="min-w-0"
       >
         <template #mapName-cell="{ row }">
-          <UButton
-            variant="ghost"
-            color="neutral"
-            class="-mx-1 px-1 font-medium"
-            :label="row.original.mapName"
-            @click="openSubmission(row.original.id)"
-          />
+          <span class="font-medium">{{ row.original.mapName }}</span>
         </template>
 
         <template #workshopId-cell="{ row }">
@@ -239,6 +233,13 @@ async function confirmDeleteSubmission() {
 
         <template #actions-cell="{ row }">
           <div class="flex flex-wrap items-center gap-2">
+            <UButton
+              v-if="row.original.status !== 'pending'"
+              variant="outline"
+              color="neutral"
+              label="Details"
+              @click="openSubmission(row.original.id)"
+            />
             <UButton
               v-if="hasApproverRole"
               variant="outline"

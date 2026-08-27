@@ -29,9 +29,10 @@ const { items, total, page, pageSize, status, refresh } = usePaginatedTable<Subm
 const rulesOpen = shallowRef(false)
 const toast = useToast()
 
-/** The owner may delete a submission only while it is pending and unreviewed
- *  (zero approver votes). The action is hidden at render time as soon as any
- *  vote exists, so the blocked state is never reachable from the UI. */
+/** The owner may edit or delete a submission only while it is pending and
+ *  unreviewed (zero approver votes). The actions are hidden at render time as
+ *  soon as any vote exists, so the blocked state is never reachable from the
+ *  UI. Details stays available in every state. */
 const ownerActionsVisible = (row: SubmissionRow) =>
   row.status === 'pending' && row.voteCount === 0
 
@@ -129,13 +130,7 @@ async function confirmDeleteSubmission() {
         class="min-w-0"
       >
         <template #mapName-cell="{ row }">
-          <UButton
-            variant="ghost"
-            color="neutral"
-            class="-mx-1 px-1 font-medium"
-            :label="row.original.mapName"
-            @click="openSubmission(row.original.id)"
-          />
+          <span class="font-medium">{{ row.original.mapName }}</span>
         </template>
 
         <template #status-cell="{ row }">
@@ -148,6 +143,12 @@ async function confirmDeleteSubmission() {
 
         <template #actions-cell="{ row }">
           <div class="flex flex-wrap items-center gap-2">
+            <UButton
+              variant="outline"
+              color="neutral"
+              label="Details"
+              @click="openSubmission(row.original.id)"
+            />
             <UButton
               v-if="ownerActionsVisible(row.original)"
               variant="outline"
