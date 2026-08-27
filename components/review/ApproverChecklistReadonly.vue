@@ -97,9 +97,6 @@ onMounted(async () => {
     :ui="{ body: 'p-4 sm:p-4' }"
   >
     <h3 class="mb-1 text-lg font-semibold">Approver checklist</h3>
-    <p class="mb-4 text-xs text-muted">
-      Private to you — kept read-only once this submission left review.
-    </p>
 
     <div
       v-if="loadError"

@@ -188,9 +188,6 @@ defineExpose({ flush })
         Save failed
       </span>
     </div>
-    <p class="mb-4 text-xs text-muted">
-      Private to you — it never affects the vote.
-    </p>
 
     <div v-if="!ready" class="flex items-center gap-3 text-muted">
       <UIcon name="i-lucide-loader-circle" class="animate-spin" />
@@ -259,7 +256,7 @@ defineExpose({ flush })
           v-model="note"
           :rows="4"
           maxlength="2000"
-          placeholder="Optional note, visible only to you…"
+          placeholder="Optional note, visible only to you"
           class="w-full"
         />
       </div>
