@@ -2,7 +2,7 @@
 
 Internal workflow workspace for the CS2KZ community: map submission, peer
 review, and release export — all in one place. Mappers submit workshop maps
-(ports included), approvers vote, and lead approvers bundle approved maps into
+(ports included), approvers vote, and lead approvers group approved maps into
 releases that export to the CS2KZ backend.
 
 Built with [Nuxt 4](https://nuxt.com) + [Nuxt UI](https://ui.nuxt.com),
@@ -37,7 +37,7 @@ and Supabase Storage for course/proof-of-permission images.
 | ORM          | Drizzle ORM + drizzle-kit migrations                |
 | Validation   | Zod / drizzle-zod                                   |
 | Storage      | Supabase Storage (course & port-authorization imgs) |
-| Auth         | Steam OpenID (`openid`)                             |
+| Auth         | Steam OpenID (hand-rolled)                         |
 | Testing      | Vitest                                              |
 | Linting      | ESLint (`@nuxt/eslint`)                             |
 | Deploy       | Cloudflare Pages (Wrangler)                         |
