@@ -21,3 +21,5 @@ Implemented and verified 2026-08-26:
 - Tests: `approver-checklist-schema.spec.ts` (11) + `approver-gate.spec.ts` (4). Full suite 61 passing; typecheck, lint, and build clean.
 - Live API battery: 401 anonymous; 403 lead-only / approver+lead / mapper; plain-approver write/read-back unchanged incl. reset; cross-approver data isolation; shared submission-detail payload carries no checklist/note.
 - Reviewed via code-review skill (Standards: no violations; Spec: OK, fresh-DB clause now attested).
+
+- **Superseded 2026-08-27**: the strict plain-approver gate described here was relaxed by #04 — any user holding the `approver` role (lead status irrelevant) may now read/write their own checklist; lead-only, both-roles, and mapper verdicts in the live battery and the truth-table test are updated there.

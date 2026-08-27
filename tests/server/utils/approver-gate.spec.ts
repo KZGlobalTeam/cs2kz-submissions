@@ -1,22 +1,22 @@
 import { describe, expect, it } from 'vitest'
 
-import { isPlainApprover } from '~/server/utils/approver-gate'
+import { hasApproverRole } from '~/server/utils/approver-gate'
 
-describe('isPlainApprover', () => {
+describe('hasApproverRole', () => {
   it('passes a user holding only the approver role', () => {
-    expect(isPlainApprover(['approver'])).toBe(true)
+    expect(hasApproverRole(['approver'])).toBe(true)
   })
 
-  it('rejects a user holding only the lead approver role', () => {
-    expect(isPlainApprover(['lead_approver'])).toBe(false)
+  it('passes a user holding both approver and lead approver roles', () => {
+    expect(hasApproverRole(['approver', 'lead_approver'])).toBe(true)
+    expect(hasApproverRole(['lead_approver', 'approver'])).toBe(true)
   })
 
-  it('rejects a user holding both approver and lead approver roles', () => {
-    expect(isPlainApprover(['approver', 'lead_approver'])).toBe(false)
-    expect(isPlainApprover(['lead_approver', 'approver'])).toBe(false)
+  it('rejects a lead-only user', () => {
+    expect(hasApproverRole(['lead_approver'])).toBe(false)
   })
 
   it('rejects a user holding neither role', () => {
-    expect(isPlainApprover([])).toBe(false)
+    expect(hasApproverRole([])).toBe(false)
   })
 })

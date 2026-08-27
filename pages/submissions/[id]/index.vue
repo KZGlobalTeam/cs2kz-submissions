@@ -34,11 +34,10 @@ const userId = computed(() => session.value.user?.id ?? '')
 
 const isPending = computed(() => details.value?.submission.status === 'pending')
 
-/** The strict plain-approver gate mirrors the API: `approver` role held and
- *  `lead_approver` not held — lead approvers never see the checklist. */
-const isPlainApprover = computed(
-  () => hasApproverRole.value && !isLeadApprover.value,
-)
+/** Any user holding the `approver` role sees the checklist — a user who also
+ *  holds `lead_approver` is still an approver and sees their own private
+ *  checklist (mirrors the API's `hasApproverRole`). Lead-*only* users and
+ *  mappers never see it. */
 
 /** True while the read-only checklist card has something to show (saved
  *  content or a load error). The page renders the two-column layout only
@@ -50,7 +49,7 @@ const checklistRef = ref<InstanceType<typeof ApproverChecklistSection> | null>(n
 /** Flush the checklist's pending auto-save before the vote persists, so a
  *  tick or note made right before Save Vote is never dropped. */
 async function flushChecklistBeforeVote() {
-  if (isPlainApprover.value && mode.value === 'vote') {
+  if (hasApproverRole.value && mode.value === 'vote') {
     await checklistRef.value?.flush()
   }
 }
@@ -128,7 +127,7 @@ onMounted(() => {
 
     <div
       v-if="isPending && mode === 'vote' && hasApproverRole"
-      :class="isPlainApprover ? 'grid gap-6 lg:grid-cols-2' : ''"
+      class="grid gap-6 lg:grid-cols-2"
     >
       <ApproverVoteForm
         :key="`vote-${voteFormKey}`"
@@ -142,7 +141,7 @@ onMounted(() => {
 
       <!-- Sticky card: the wrapper (grid item) stretches to the vote
            column's height, so the card pins at the top while scrolling. -->
-      <div v-if="isPlainApprover">
+      <div>
         <ApproverChecklistSection
           ref="checklistRef"
           :submission-id="details.submission.id"
@@ -163,20 +162,21 @@ onMounted(() => {
     />
 
     <CoursesReadonly
-      v-if="showReadonlyCourses && !(!isPending && isPlainApprover)"
+      v-if="showReadonlyCourses && !(!isPending && hasApproverRole)"
       :courses="details.courses"
     />
 
-    <!-- Once the submission has left review, the owning plain approver sees
-         their saved checklist and note read-only, in the same side-column
-         spot the editable card occupied during review: two columns on
-         desktop, stacked on mobile. The second column is collapsible and the
-         grid falls back to one column when the approver never saved
-         anything — never an empty box. Same porting rule as the editable
-         section: the porting group renders only when the submission is a
-         port. Leads and mappers never reach this branch. -->
+    <!-- Once the submission has left review, an approver sees their saved
+         checklist and note read-only, in the same side-column spot the
+         editable card occupied during review: two columns on desktop,
+         stacked on mobile. The second column is collapsible and the grid
+         falls back to one column when the approver never saved anything —
+         never an empty box. Same porting rule as the editable section: the
+         porting group renders only when the submission is a port. A user who
+         holds `approver` (lead or not) reaches this branch with their own
+         private checklist; lead-only users and mappers never do. -->
     <div
-      v-else-if="!isPending && isPlainApprover"
+      v-else-if="!isPending && hasApproverRole"
       class="grid gap-6"
       :class="{ 'lg:grid-cols-2': readonlyChecklistVisible }"
     >

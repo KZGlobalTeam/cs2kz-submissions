@@ -39,7 +39,7 @@ A pending submission that has received at least one approver vote; from this poi
 _Avoid_: Under review, approval in process
 
 **Approver checklist**:
-An approver's private, per-submission record of which submission-rule groups they have verified, presented as the same grouped rules the mapper acknowledges before submitting. Visible only to the approver who wrote it — never to other approvers, the lead approver, or the submitting mapper.
+An approver's private, per-submission record of which submission-rule groups they have verified, presented as the same grouped rules the mapper acknowledges before submitting. Visible only to the approver who wrote it — an approver who also holds `lead_approver` sees only their own record, and no other approver, lead-only user, or the submitting mapper ever sees it.
 _Avoid_: Rule check-off, verification log
 
 **Approver note**:

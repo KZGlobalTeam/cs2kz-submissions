@@ -1,10 +1,10 @@
 import { createError, getRouterParam } from 'h3'
 
 import { getApproverChecklist } from '~/server/services/approver-checklists/get-approver-checklist'
-import { requirePlainApprover } from '~/server/utils/permissions'
+import { requireApproverRole } from '~/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
-  const user = await requirePlainApprover(event)
+  const user = await requireApproverRole(event)
   const submissionId = getRouterParam(event, 'id')
 
   if (!submissionId) {
