@@ -1,10 +1,8 @@
 import type { UserRole } from './roles'
-import type { RejectionAttachment } from './attachment'
 import type {
   CourseFilterState,
   CourseFilterTier,
   MapState,
-  Mode,
 } from '../schemas/cs2kz'
 
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected'
@@ -14,6 +12,17 @@ export type ApprovalDecision = 'yes' | 'no'
  *  create and edit write paths consume one definition; the type is derived
  *  from it and re-exported here for importers of this module. */
 export type { SubmissionInput } from '../schemas/submission'
+
+/** The validated Vote and Decision write shapes live in the shared schemas so
+ *  both write endpoints and both services consume one definition; the input
+ *  types are inferred from them and re-exported here for importers of this
+ *  module. */
+export type {
+  SubmissionVoteInput,
+  VoteFilterInput,
+  LeadDecisionInput,
+  FinalFilterInput,
+} from '../schemas/review'
 
 /** Loose image-meta shape used by the client form state before validation
  *  (e.g. `mime` is a plain string because the form also holds unvalidated
@@ -26,36 +35,6 @@ export interface CourseImageMeta {
   width: number
   height: number
   sizeBytes: number
-}
-
-export interface FilterVoteInput {
-  courseId: string
-  mode: Mode
-  nubTier: CourseFilterTier
-  proTier: CourseFilterTier
-  isRanked: boolean
-  notes: string | null
-}
-
-export interface SubmissionVoteInput {
-  approvalDecision: ApprovalDecision
-  rejectionReason: string | null
-  rejectionExplanation: string | null
-  /** Only valid on a `no` vote, alongside a non-empty rejectionReason. */
-  attachments: RejectionAttachment[]
-  filters: FilterVoteInput[]
-}
-
-export interface FinalFilterInput extends FilterVoteInput {
-  state: CourseFilterState
-}
-
-export interface LeadDecisionInput {
-  status: SubmissionStatus
-  decisionNotes: string | null
-  /** Only valid when status is `rejected`; written once at finalize time. */
-  attachments: RejectionAttachment[]
-  filters: FinalFilterInput[]
 }
 
 export interface ReleaseExportMap {

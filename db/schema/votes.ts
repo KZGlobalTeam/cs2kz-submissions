@@ -10,28 +10,26 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core'
 
+import {
+  courseFilterStateValues,
+  courseFilterTierValues,
+  modeValues,
+} from '../../shared/schemas/cs2kz'
 import { submissionCourses, submissions } from './submissions'
 import { timestamps, users } from './users'
 
 export const approvalDecisionEnum = pgEnum('approval_decision', ['yes', 'no'])
-export const modeEnum = pgEnum('course_mode', ['classic', 'vanilla'])
-export const courseFilterTierEnum = pgEnum('course_filter_tier', [
-  'very-easy',
-  'easy',
-  'medium',
-  'advanced',
-  'hard',
-  'very-hard',
-  'extreme',
-  'death',
-  'unfeasible',
-  'impossible',
-])
-export const courseFilterStateEnum = pgEnum('course_filter_state', [
-  'unranked',
-  'pending',
-  'ranked',
-])
+/** Derives from the shared value arrays so the DB enum cannot drift from the
+ *  schemas the write endpoints validate against. */
+export const modeEnum = pgEnum('course_mode', modeValues)
+export const courseFilterTierEnum = pgEnum(
+  'course_filter_tier',
+  courseFilterTierValues,
+)
+export const courseFilterStateEnum = pgEnum(
+  'course_filter_state',
+  courseFilterStateValues,
+)
 
 export const submissionVotes = pgTable(
   'submission_votes',
