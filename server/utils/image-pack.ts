@@ -1,6 +1,8 @@
 import { Zip, ZipPassThrough } from 'fflate'
 import { createError } from 'h3'
 
+import type { ReleaseContents } from '~/server/services/release-contents'
+
 /**
  * One course's contribution to an image pack.
  */
@@ -66,6 +68,33 @@ async function runWithConcurrency<T>(
     },
   )
   await Promise.all(workers)
+}
+
+/** The pack-builder's input: the ordered manifest rendered into pack shape. */
+export interface ReleaseImagePackManifest {
+  releaseName: string
+  maps: ImagePackMap[]
+}
+
+/** Shapes the ordered manifest into the pack-builder's input: `mapName`, and
+ *  per course the raw `orderIndex` (which becomes the file name), `name` and
+ *  `imageUrl`. Everything else in the manifest is export plumbing the pack
+ *  never reads. The approved-only guard and the deterministic ordering live
+ *  in the shared resolution; this is pure shape. */
+export function toImagePackManifest(
+  contents: ReleaseContents,
+): ReleaseImagePackManifest {
+  return {
+    releaseName: contents.releaseName,
+    maps: contents.maps.map((map) => ({
+      mapName: map.mapName,
+      courses: map.courses.map((course) => ({
+        orderIndex: course.orderIndex,
+        name: course.name,
+        imageUrl: course.imageUrl,
+      })),
+    })),
+  }
 }
 
 /**

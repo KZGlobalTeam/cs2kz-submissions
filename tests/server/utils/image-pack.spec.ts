@@ -3,6 +3,7 @@ import { unzipSync } from 'fflate'
 
 import {
   IMAGE_PACK_CONCURRENCY,
+  toImagePackManifest,
   toImagePackStream,
   type ImagePackFetcher,
   type ImagePackMap,
@@ -267,5 +268,70 @@ describe('buildImagePack (via toImagePackStream)', () => {
     expect(state.maxFetchInFlight).toBeLessThanOrEqual(IMAGE_PACK_CONCURRENCY)
     expect(state.maxCheckInFlight).toBeGreaterThan(1)
     expect(state.maxFetchInFlight).toBeGreaterThan(1)
+  })
+})
+
+describe('toImagePackManifest', () => {
+  const contents = () => ({
+    releaseName: 'Release One',
+    maps: [
+      {
+        mapName: 'mute',
+        workshopId: 2798160350,
+        createdAt: new Date('2026-01-01T00:00:00Z'),
+        mappers: ['76561197960265728'],
+        courses: [
+          {
+            courseId: 'c0ffee00-0000-4000-8000-000000000001',
+            orderIndex: 1,
+            name: 'Main',
+            imageUrl: 'https://storage.example/main.jpg',
+            mappers: [],
+            filters: { classic: null, vanilla: null },
+          },
+          {
+            courseId: 'c0ffee00-0000-4000-8000-000000000002',
+            orderIndex: 2,
+            name: 'Bonus',
+            imageUrl: 'https://storage.example/bonus.jpg',
+            mappers: [],
+            filters: { classic: null, vanilla: null },
+          },
+        ],
+      },
+    ],
+  })
+
+  it('renders the manifest into the pack shape, keeping order and name', () => {
+    expect(toImagePackManifest(contents())).toEqual({
+      releaseName: 'Release One',
+      maps: [
+        {
+          mapName: 'mute',
+          courses: [
+            {
+              orderIndex: 1,
+              name: 'Main',
+              imageUrl: 'https://storage.example/main.jpg',
+            },
+            {
+              orderIndex: 2,
+              name: 'Bonus',
+              imageUrl: 'https://storage.example/bonus.jpg',
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  it('keeps manifest fields the pack never reads out of the shape', () => {
+    const manifest = toImagePackManifest(contents())
+    expect(Object.keys(manifest.maps[0]!)).toEqual(['mapName', 'courses'])
+    expect(Object.keys(manifest.maps[0]!.courses[0]!)).toEqual([
+      'orderIndex',
+      'name',
+      'imageUrl',
+    ])
   })
 })

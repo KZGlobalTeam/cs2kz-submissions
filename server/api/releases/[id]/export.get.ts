@@ -1,9 +1,7 @@
 import { createError, getRouterParam } from 'h3'
-import { eq } from 'drizzle-orm'
 
-import { releases } from '~/db/schema'
 import { buildReleaseExport } from '~/server/services/releases/build-export'
-import { db } from '~/server/utils/db'
+import { markReleaseExported } from '~/server/services/release-contents'
 import { requireLeadApprover } from '~/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -19,13 +17,12 @@ export default defineEventHandler(async (event) => {
 
   const payload = await buildReleaseExport(releaseId)
 
-  await db()
-    .update(releases)
-    .set({
-      exportedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(releases.id, releaseId))
+  // The export is the artifact that marks the release as exported (ADR-0008:
+  // a read with a state-changing side effect, deliberately accepted). Only
+  // the JSON export stamps it — the image pack download never does. A build
+  // failure above (non-approved map, missing finalized filters) throws before
+  // this write, so an invalid release is never marked exported.
+  await markReleaseExported(releaseId)
 
   return payload
 })

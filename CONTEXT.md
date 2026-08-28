@@ -131,3 +131,7 @@ _Avoid_: Download Images
 **Release export**:
 The JSON describing the maps in a release — workshop IDs, mappers, and per-course finalized filters. Recording it is what marks a release as exported. The payload is shaped for the external CS2KZ dashboard's import dialog and is always rebuilt from the release's live data, never persisted.
 _Avoid_: Export JSON, ship file
+
+**Ordered manifest**:
+The single, deterministically ordered view of a release's maps and courses that both the release export and the image pack render from: maps ordered by submission creation time (map name as tie-break), courses by their order index. Resolved once by the release-contents module; the JSON export and the image pack are formatting adapters over it, so the two artifacts cannot drift on content or ordering.
+_Avoid_: Manifest (alone)

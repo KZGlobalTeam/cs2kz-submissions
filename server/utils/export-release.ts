@@ -1,6 +1,7 @@
 import { createError } from 'h3'
 
 import { NewMapSchema, type NewMap } from '~/shared/schemas/cs2kz'
+import type { ReleaseContents } from '~/server/services/release-contents'
 
 interface ExportReleaseInput {
   name: string
@@ -45,4 +46,46 @@ export function toReleaseExport(maps: ExportReleaseInput[]): NewMap[] {
 
     return parsed.data
   })
+}
+
+/** Shapes the ordered manifest into the validated export payload. The
+ *  filters-presence refusal is an export concern — the `NewMap` schema
+ *  requires both modes' finalized filters, and the image pack renders
+ *  neither — so it lives here, not in the shared resolution. */
+export function toReleaseExportPayload(contents: ReleaseContents): NewMap[] {
+  return toReleaseExport(
+    contents.maps.map((map) => ({
+      name: map.mapName,
+      workshopId: map.workshopId,
+      mappers: map.mappers,
+      courses: map.courses.map((course) => {
+        const classic = course.filters.classic
+        const vanilla = course.filters.vanilla
+        if (!classic || !vanilla) {
+          throw createError({
+            statusCode: 400,
+            statusMessage: `Missing finalized filters for course ${course.name}`,
+          })
+        }
+        return {
+          name: course.name,
+          mappers: course.mappers,
+          filters: {
+            classic: {
+              nub_tier: classic.nubTier,
+              pro_tier: classic.proTier,
+              state: classic.state,
+              notes: classic.notes,
+            },
+            vanilla: {
+              nub_tier: vanilla.nubTier,
+              pro_tier: vanilla.proTier,
+              state: vanilla.state,
+              notes: vanilla.notes,
+            },
+          },
+        }
+      }),
+    })),
+  )
 }
