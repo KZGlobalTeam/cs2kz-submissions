@@ -52,7 +52,7 @@ function createPoolDatabase() {
   return { db: drizzlePool({ client: pool, schema }), pool }
 }
 
-type TransactionClient = NeonTransaction<
+export type TransactionClient = NeonTransaction<
   typeof schema,
   ExtractTablesWithRelations<typeof schema>
 >

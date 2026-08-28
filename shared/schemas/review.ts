@@ -7,6 +7,13 @@ import {
   ModeSchema,
 } from './cs2kz'
 
+/** Domain rule (CONTEXT.md): a rejection carries a required reason — a
+ *  whitespace-only string is not a reason. Shared by the Vote and Decision
+ *  bodies so the two write paths cannot disagree.*/
+function hasWrittenReason(value: string | null): boolean {
+  return value !== null && value.trim().length > 0
+}
+
 /** One proposed rating of a single Course in a single Course mode, carried on
  *  an approver's Vote. Composes the shared tier and mode schemas so the wire
  *  shape cannot drift from the DB enums or the UI tier scale. */
@@ -29,7 +36,7 @@ export const SubmissionVoteSchema = z
     filters: z.array(VoteFilterSchema),
   })
   .superRefine((value, ctx) => {
-    if (value.approvalDecision === 'no' && !value.rejectionReason) {
+    if (value.approvalDecision === 'no' && !hasWrittenReason(value.rejectionReason)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Reason for rejection is required when approval decision is No',
@@ -53,7 +60,7 @@ export const LeadDecisionSchema = z
     filters: z.array(FinalFilterSchema),
   })
   .superRefine((value, ctx) => {
-    if (value.status === 'rejected' && !value.decisionNotes) {
+    if (value.status === 'rejected' && !hasWrittenReason(value.decisionNotes)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'Decision notes are required for rejected submissions',

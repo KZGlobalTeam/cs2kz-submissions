@@ -79,11 +79,20 @@ describe('SubmissionVoteSchema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('still accepts a whitespace-only rejection reason (hole deliberately open)', () => {
+  it('rejects a whitespace-only rejection reason (a rejection needs a written reason)', () => {
     const result = SubmissionVoteSchema.safeParse(
       voteBody({ approvalDecision: 'no', rejectionReason: '   ' }),
     )
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message:
+            'Reason for rejection is required when approval decision is No',
+          path: ['rejectionReason'],
+        }),
+      ])
+    }
   })
 
   it('rejects a no vote without a rejection reason', () => {
@@ -184,6 +193,21 @@ describe('LeadDecisionSchema', () => {
   it('rejects a rejected decision without decision notes', () => {
     const result = LeadDecisionSchema.safeParse(
       decisionBody({ status: 'rejected', decisionNotes: null }),
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Decision notes are required for rejected submissions',
+          path: ['decisionNotes'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a whitespace-only decision note on a rejected decision', () => {
+    const result = LeadDecisionSchema.safeParse(
+      decisionBody({ status: 'rejected', decisionNotes: '   ' }),
     )
     expect(result.success).toBe(false)
     if (!result.success) {
