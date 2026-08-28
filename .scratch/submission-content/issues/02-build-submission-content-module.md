@@ -14,7 +14,7 @@ Exactly three operations:
 
 **Blocked by:** 01 (the wire schema should be sealed before the module's internal `assertWorkshopId` derivation builds on it)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] `server/services/submission-content/` exists with `types.ts`, factory + spine, `drizzle-store.ts` adapter, and bound `index.ts` entry points; the three old files under `server/services/submissions/` are untouched for now.
 - [ ] The spine re-reads in-transaction and maps missing/non-creator → opaque 404, review-started → 409, exactly as the current services do.
@@ -26,4 +26,15 @@ Exactly three operations:
 
 ## Answer
 
-*(pending implementation)*
+Implemented in commit `fa0105e`.
+
+`server/services/submission-content/` mirrors the review-write module: `types.ts` (narrow `SubmissionContentStore`/`SubmissionContentDeps` + record shapes), `save-submission-content.ts` (`createSubmissionContentService(deps)` with injected `{ runTransaction, deleteStorageObjects }`), `drizzle-store.ts` (binds the real transaction client), and an `index.ts` exposing the bound `createSubmission`/`updateSubmission`/`deleteSubmission` entry points. The three old files under `server/services/submissions/` are untouched (issue 03 rewires the endpoints and removes them).
+
+- **Spine** — `runGuardedWrite` re-reads the row inside the transaction, maps missing *and* non-creator to the same opaque 404, runs `canMutateSubmission({ status, voteCount })` inside the transaction on the owner path, skips the gate when no owner is passed (lead path), then compensates storage after commit. The 5-column port-image projection and the mapper/course/per-course mapper writes are each derived exactly once (`toContentWrite`, `writeContent`) and shared by insert and replace.
+- **insert** — create row at `pending`, then `writeContent`; on failure, best-effort delete of the body's upload URLs (the fresh row rolled back, so none are referenced).
+- **replace** — full gate sequence plus belt-and-braces: `updateSubmissionContent` is guarded on `status = 'pending'` and a zero-row match throws the 409 inside the transaction, rolling the write back; post-commit stale-image cleanup is `oldUrls − newUrls`; on failure, compensation re-reads the (rolled-back) references in a fresh transaction and deletes only body uploads no persisted row references — carried-over pre-filled-edit URLs stay referenced and are excluded.
+- **delete** — `ownerUserId?` split: owner path runs the gate, lead path skips it; post-commit full sweep (course images, port-authorization image, vote/decision attachment objects) unchanged.
+
+Specs at `tests/server/services/submission-content/` (19 tests: 5 + 9 + 5) drive all three operations through an in-memory fake with commit/discard transaction semantics, covering the 404/409 gate sequences, rollback on mid-write failure (both insert and replace), the belt-and-braces zero-row 409, compensation on failure (never touching a still-referenced carried-over URL), stale-cleanup and full-sweep success paths, and delete-without-owner.
+
+`pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass. Reviewed on both axes (Standards: no hard violations; Spec: all seven checklist items met) — merged with P2 notes; the three duplication smells flagged were fixed in the same commit.
