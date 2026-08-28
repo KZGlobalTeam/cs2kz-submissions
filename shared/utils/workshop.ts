@@ -1,3 +1,5 @@
+import { createError } from 'h3'
+
 const WORKSHOP_ID_PATTERNS = [
   /[?&]id=(\d+)/i,
   /\/filedetails\/\?id=(\d+)/i,
@@ -33,7 +35,15 @@ export function assertWorkshopId(workshopUrl: string): number {
   const workshopId = extractWorkshopId(workshopUrl)
 
   if (!workshopId || Number.isNaN(workshopId)) {
-    throw new Error('Invalid Steam Workshop URL')
+    // A happy-path derivation: the shared wire schema's refine already admits
+    // only URLs with a numeric `id`, so this only fires for a URL that passed
+    // the digit check yet has no usable id — an id overflowing a safe integer,
+    // or a falsy 0 that is not a real workshop item. A caller mistake: 400,
+    // never a raw-Error 500.
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid Steam Workshop URL',
+    })
   }
 
   return workshopId

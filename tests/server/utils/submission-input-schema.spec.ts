@@ -66,6 +66,118 @@ describe('SubmissionInputSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepts a sharedfiles workshop URL with a numeric id', () => {
+    const result = SubmissionInputSchema.safeParse(
+      body({ workshopUrl: 'https://steamcommunity.com/sharedfiles/filedetails/?id=123456789' }),
+    )
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts a workshop filedetails URL with a numeric id', () => {
+    const result = SubmissionInputSchema.safeParse(
+      body({ workshopUrl: 'https://steamcommunity.com/workshop/filedetails/?id=123456789' }),
+    )
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects an empty workshop URL with the client message', () => {
+    const result = SubmissionInputSchema.safeParse(body({ workshopUrl: '' }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Workshop URL is required',
+          path: ['workshopUrl'],
+        }),
+        expect.objectContaining({
+          message: 'Must be a valid URL',
+          path: ['workshopUrl'],
+        }),
+        expect.objectContaining({
+          message: 'Must be a Steam Workshop URL',
+          path: ['workshopUrl'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a workshop URL that is not a valid URL with the client messages', () => {
+    const result = SubmissionInputSchema.safeParse(body({ workshopUrl: 'not a url' }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Must be a valid URL',
+          path: ['workshopUrl'],
+        }),
+        expect.objectContaining({
+          message: 'Must be a Steam Workshop URL',
+          path: ['workshopUrl'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a workshop URL on a non-steamcommunity host', () => {
+    const result = SubmissionInputSchema.safeParse(
+      body({ workshopUrl: 'https://example.com/sharedfiles/filedetails/?id=123456789' }),
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Must be a Steam Workshop URL',
+          path: ['workshopUrl'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a workshop URL whose path is not a filedetails page', () => {
+    const result = SubmissionInputSchema.safeParse(
+      body({ workshopUrl: 'https://steamcommunity.com/files/details/?id=123456789' }),
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Must be a Steam Workshop URL',
+          path: ['workshopUrl'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a workshop URL with a non-numeric id', () => {
+    const result = SubmissionInputSchema.safeParse(
+      body({ workshopUrl: 'https://steamcommunity.com/sharedfiles/filedetails/?id=abc' }),
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Must be a Steam Workshop URL',
+          path: ['workshopUrl'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a workshop URL without an id', () => {
+    const result = SubmissionInputSchema.safeParse(
+      body({ workshopUrl: 'https://steamcommunity.com/sharedfiles/filedetails/' }),
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Must be a Steam Workshop URL',
+          path: ['workshopUrl'],
+        }),
+      ])
+    }
+  })
+
   it('requires an authorization screenshot on a port', () => {
     const result = SubmissionInputSchema.safeParse(body({ isPort: true }))
     expect(result.success).toBe(false)

@@ -1,4 +1,5 @@
 import { createError, getRouterParam, readBody } from 'h3'
+import { ZodError } from 'zod'
 
 import { updateSubmission } from '~/server/services/submissions/update-submission'
 import { SubmissionInputSchema } from '~/shared/schemas/submission'
@@ -22,7 +23,23 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = SubmissionInputSchema.parse(await readBody(event))
+  let body: ReturnType<typeof SubmissionInputSchema.parse>
+  try {
+    body = SubmissionInputSchema.parse(await readBody(event))
+  }
+  catch (error) {
+    if (error instanceof ZodError) {
+      // Same contract as the create endpoint: a malformed body — including
+      // the workshop-URL rule the shared schema enforces — is the caller's
+      // mistake, folded into a 400 (nothing written) instead of a raw 500.
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Invalid submission body',
+        data: error.issues,
+      })
+    }
+    throw error
+  }
 
   return updateSubmission(submissionId, user.id, body)
 })
