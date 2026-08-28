@@ -1,4 +1,7 @@
-import type { SubmissionVoteInput } from '~/shared/schemas/review'
+import type {
+  LeadDecisionInput,
+  SubmissionVoteInput,
+} from '~/shared/schemas/review'
 
 import { withTransaction } from '~/db/client'
 import { REJECTION_ATTACHMENT_PREFIX } from '~/server/utils/attachment-rules'
@@ -39,10 +42,21 @@ export function saveVote(
   return reviewWriteService.saveVote(submissionId, approverUserId, input)
 }
 
+/** Bound entry point: the endpoint stays a thin parse-and-delegate adapter. */
+export function finalizeSubmission(
+  submissionId: string,
+  leadUserId: string,
+  input: LeadDecisionInput,
+) {
+  return reviewWriteService.finalizeSubmission(submissionId, leadUserId, input)
+}
+
 export type {
+  FinalFilterRecord,
   ReviewWriteDeps,
   ReviewWriteStore,
   ReviewWriteTransaction,
+  SubmissionDecisionWrite,
   SubmissionRecord,
   VoteRecord,
   VoteWrite,

@@ -1,13 +1,22 @@
 import { createError } from 'h3'
 
-import type { SubmissionVoteInput } from '~/shared/schemas/review'
+import type {
+  LeadDecisionInput,
+  SubmissionVoteInput,
+} from '~/shared/schemas/review'
 import {
   REJECTION_ATTACHMENT_MESSAGES,
   assessRejectionAttachments,
   computeAttachmentReplacement,
 } from '~/server/utils/attachment-rules'
 
-import type { ReviewWriteDeps, ReviewWriteStore, VoteRecord } from './types'
+import type {
+  FinalFilterRecord,
+  ReviewWriteDeps,
+  ReviewWriteStore,
+  SubmissionRecord,
+  VoteRecord,
+} from './types'
 
 interface GuardedWriteOptions {
   notFoundMessage: string
@@ -57,6 +66,11 @@ export interface ReviewWriteService {
     approverUserId: string,
     input: SubmissionVoteInput,
   ): Promise<VoteRecord>
+  finalizeSubmission(
+    submissionId: string,
+    leadUserId: string,
+    input: LeadDecisionInput,
+  ): Promise<SubmissionRecord>
 }
 
 /** Binds the review-write spine to a concrete store/transaction and storage
@@ -115,6 +129,88 @@ export function createReviewWriteService(deps: ReviewWriteDeps): ReviewWriteServ
             result: vote,
             removedUrls: removed.map((attachment) => attachment.url),
           }
+        },
+      )
+    },
+
+    async finalizeSubmission(submissionId, leadUserId, input) {
+      const { publicBaseUrl, allowedPrefix } = deps.attachmentScope()
+      const verdict = assessRejectionAttachments({
+        isRejection: input.status === 'rejected',
+        reason: input.decisionNotes,
+        attachments: input.attachments,
+        publicBaseUrl,
+        allowedPrefix,
+      })
+      if (!verdict.ok) {
+        // Same rule-failure-to-error mapping as the vote path — the shared
+        // spine owns it, once.
+        throw createError({
+          statusCode: 400,
+          statusMessage: REJECTION_ATTACHMENT_MESSAGES[verdict.reason],
+        })
+      }
+
+      return runGuardedWrite(
+        deps,
+        submissionId,
+        {
+          notFoundMessage: 'Submission not found',
+          notPendingMessage: 'Only pending submissions can be finalized',
+        },
+        async (store) => {
+          // `isRanked` is derived from `state` at write time: the decision
+          // wire carries no `isRanked`, so the stored column always reflects
+          // the invariant (`isRanked ⇔ state = 'ranked'`).
+          const finalFilters: FinalFilterRecord[] = input.filters.map(
+            (filter) => ({
+              courseId: filter.courseId,
+              mode: filter.mode,
+              nubTier: filter.nubTier,
+              proTier: filter.proTier,
+              state: filter.state,
+              isRanked: filter.state === 'ranked',
+              notes: filter.notes,
+            }),
+          )
+
+          // An approval writes the Finalized filters; a rejection leaves none.
+          await store.replaceFinalFilters(
+            submissionId,
+            input.status === 'approved' ? finalFilters : [],
+            leadUserId,
+          )
+
+          // Decision attachments are written once and never edited, so there
+          // is nothing to diff and nothing to delete from storage — the write
+          // step always reports no removals.
+          if (input.status === 'rejected' && verdict.attachments.length > 0) {
+            await store.insertDecisionAttachments(
+              submissionId,
+              verdict.attachments,
+            )
+          }
+
+          const updated = await store.completeSubmission(submissionId, {
+            status: input.status,
+            decisionByUserId: leadUserId,
+            decisionNotes: input.decisionNotes,
+            approvedAt: input.status === 'approved' ? new Date() : null,
+            rejectedAt: input.status === 'rejected' ? new Date() : null,
+          })
+
+          if (!updated) {
+            // Belt-and-braces: the in-transaction re-read already verified
+            // `pending`, so a zero-row guarded update means the status moved
+            // between the re-read and the write. A clear conflict instead of
+            // an empty 200 — and the throw rolls the whole write back.
+            throw createError({
+              statusCode: 409,
+              statusMessage: 'Only pending submissions can be finalized',
+            })
+          }
+
+          return { result: updated, removedUrls: [] }
         },
       )
     },

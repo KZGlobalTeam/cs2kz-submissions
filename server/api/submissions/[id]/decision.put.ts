@@ -2,7 +2,7 @@ import { createError, getRouterParam, readBody } from 'h3'
 import { ZodError } from 'zod'
 
 import { LeadDecisionSchema } from '~/shared/schemas/review'
-import { finalizeSubmission } from '~/server/services/submissions/finalize-submission'
+import { finalizeSubmission } from '~/server/services/review-write'
 import { requireLeadApprover } from '~/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {

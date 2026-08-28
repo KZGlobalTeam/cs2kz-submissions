@@ -113,7 +113,6 @@ async function submitDecision() {
           nubTier: filter.nubTier,
           proTier: filter.proTier,
           state: filter.state,
-          isRanked: filter.state === 'ranked',
           notes: null,
         })),
       },

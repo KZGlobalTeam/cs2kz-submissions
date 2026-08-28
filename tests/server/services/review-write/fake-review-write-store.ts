@@ -1,8 +1,10 @@
 import type { RejectionAttachment } from '~/shared/types/attachment'
 import type { VoteFilterInput } from '~/shared/schemas/review'
 import type {
+  FinalFilterRecord,
   ReviewWriteDeps,
   ReviewWriteStore,
+  SubmissionDecisionWrite,
   SubmissionRecord,
   VoteRecord,
   VoteWrite,
@@ -16,6 +18,12 @@ export function attachmentUrl(key: string): string {
   return `${FAKE_PUBLIC_BASE_URL}${FAKE_ALLOWED_PREFIX}${key}`
 }
 
+/** A Finalized filter row as the fake stores it (mirrors the DB table: the
+ *  derived `isRanked` column and the lead stamped as `resolvedByUserId`). */
+export type FakeFinalFiltersRow = FinalFilterRecord & {
+  resolvedByUserId: string
+}
+
 /** In-memory picture of the tables the review write touches. The runner
  *  clones it per transaction; a successful write is committed back, a throw
  *  leaves the committed state untouched. */
@@ -26,6 +34,8 @@ export interface FakeDb {
   voteKeys: Map<string, string>
   voteFilters: Map<string, VoteFilterInput[]>
   voteAttachments: Map<string, RejectionAttachment[]>
+  finalFilters: Map<string, FakeFinalFiltersRow[]>
+  decisionAttachments: Map<string, RejectionAttachment[]>
 }
 
 export function createFakeDb(): FakeDb {
@@ -35,6 +45,8 @@ export function createFakeDb(): FakeDb {
     voteKeys: new Map(),
     voteFilters: new Map(),
     voteAttachments: new Map(),
+    finalFilters: new Map(),
+    decisionAttachments: new Map(),
   }
 }
 
@@ -52,6 +64,12 @@ export interface FakeStoreOptions {
     voteId: string,
     attachments: RejectionAttachment[],
   ) => Promise<void>
+  /** When set, replaces the guarded terminal update (e.g. to model a zero-row
+   *  result inside the transaction). */
+  completeSubmission?: (
+    submissionId: string,
+    update: SubmissionDecisionWrite,
+  ) => Promise<SubmissionRecord | null>
 }
 
 export function createFakeStore(
@@ -108,6 +126,36 @@ export function createFakeStore(
       }
       db.voteAttachments.set(voteId, [...attachments])
     },
+
+    async replaceFinalFilters(submissionId, filters, resolvedByUserId) {
+      db.finalFilters.set(
+        submissionId,
+        filters.map((filter) => ({ ...filter, resolvedByUserId })),
+      )
+    },
+
+    async insertDecisionAttachments(submissionId, attachments) {
+      db.decisionAttachments.set(submissionId, [
+        ...(db.decisionAttachments.get(submissionId) ?? []),
+        ...attachments,
+      ])
+    },
+
+    async completeSubmission(submissionId, update) {
+      if (options.completeSubmission) {
+        return options.completeSubmission(submissionId, update)
+      }
+      const submission = db.submissions.get(submissionId)
+      if (!submission || submission.status !== 'pending') {
+        return null
+      }
+      const updated: SubmissionRecord = {
+        id: submission.id,
+        status: update.status,
+      }
+      db.submissions.set(submissionId, updated)
+      return updated
+    },
   }
 }
 
@@ -124,6 +172,8 @@ function commitScratch(scratch: FakeDb, committed: FakeDb): void {
   commitMap(scratch.voteKeys, committed.voteKeys)
   commitMap(scratch.voteFilters, committed.voteFilters)
   commitMap(scratch.voteAttachments, committed.voteAttachments)
+  commitMap(scratch.finalFilters, committed.finalFilters)
+  commitMap(scratch.decisionAttachments, committed.decisionAttachments)
 }
 
 /** Binds the module under test to the fake: writes apply to a scratch copy

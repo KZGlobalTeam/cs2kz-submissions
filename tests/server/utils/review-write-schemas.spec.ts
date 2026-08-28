@@ -47,8 +47,12 @@ function rawVoteBody(overrides: Record<string, unknown>): unknown {
 
 function finalFilter(overrides: Partial<FinalFilterInput> = {}): FinalFilterInput {
   return {
-    ...voteFilter,
+    courseId: COURSE_ID,
+    mode: 'classic',
+    nubTier: 'medium',
+    proTier: 'hard',
     state: 'ranked',
+    notes: null,
     ...overrides,
   }
 }
@@ -169,6 +173,25 @@ describe('LeadDecisionSchema', () => {
   it('accepts a complete approval with finalized filters', () => {
     const result = LeadDecisionSchema.safeParse(decisionBody())
     expect(result.success).toBe(true)
+    if (result.success) {
+      // The wire carries no `isRanked` — the write derives it from `state`.
+      expect(result.data.filters[0]).not.toHaveProperty('isRanked')
+    }
+  })
+
+  it('tolerates a redundant isRanked on the wire (stripped — state is the source of truth at write time)', () => {
+    // A previously released client still sent `isRanked` computed from
+    // `state`; the schema strips the redundant key instead of rejecting so
+    // the two can never disagree.
+    const result = LeadDecisionSchema.safeParse(
+      decisionBody({
+        filters: [{ ...finalFilter(), isRanked: false }],
+      }),
+    )
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.filters[0]).not.toHaveProperty('isRanked')
+    }
   })
 
   it('accepts a rejection with decision notes and attachments', () => {

@@ -14,16 +14,23 @@ function hasWrittenReason(value: string | null): boolean {
   return value !== null && value.trim().length > 0
 }
 
-/** One proposed rating of a single Course in a single Course mode, carried on
- *  an approver's Vote. Composes the shared tier and mode schemas so the wire
- *  shape cannot drift from the DB enums or the UI tier scale. */
-export const VoteFilterSchema = z.object({
+/** The Course-filter fields shared by a Vote proposal and a Finalized filter:
+ *  the Course, the mode, the two tier ratings, and optional notes. Composes
+ *  the shared tier and mode schemas so the wire shape cannot drift from the
+ *  DB enums or the UI tier scale. */
+const FilterFieldsSchema = z.object({
   courseId: z.string().uuid(),
   mode: ModeSchema,
   nubTier: CourseFilterTierSchema,
   proTier: CourseFilterTierSchema,
-  isRanked: z.boolean(),
   notes: z.string().nullable(),
+})
+
+/** One proposed rating of a single Course in a single Course mode, carried on
+ *  an approver's Vote. Proposals carry their own `isRanked` — a proposal has
+ *  no `state` to derive it from. */
+export const VoteFilterSchema = FilterFieldsSchema.extend({
+  isRanked: z.boolean(),
 })
 
 /** The Vote request body (`PUT /api/submissions/[id]/vote`). */
@@ -45,13 +52,19 @@ export const SubmissionVoteSchema = z
     }
   })
 
-/** The lead approver's settled version of a Vote's proposed filter: the same
- *  shape plus the Finalized filter state. */
-export const FinalFilterSchema = VoteFilterSchema.extend({
+/** The lead approver's settled version of a Vote's proposed filter: the shared
+ *  filter fields plus the Finalized filter state. The wire carries no
+ *  `isRanked` — the write derives it from `state` (`isRanked ⇔
+ *  state = 'ranked'`), an invariant nothing on the wire would enforce. */
+export const FinalFilterSchema = FilterFieldsSchema.extend({
   state: CourseFilterStateSchema,
 })
 
-/** The Decision request body (`PUT /api/submissions/[id]/decision`). */
+/** The Decision request body (`PUT /api/submissions/[id]/decision`). Enforces
+ *  the same rejection rules as the Vote body: a rejection requires a trimmed
+ *  non-empty Decision note (below), and Rejection attachments are only valid
+ *  on a rejection alongside one — that guard lives in the attachment-rules
+ *  module, invoked once from the review-write spine shared by both paths. */
 export const LeadDecisionSchema = z
   .object({
     status: z.enum(['approved', 'rejected']),
