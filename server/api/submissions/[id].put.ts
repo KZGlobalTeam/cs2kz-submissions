@@ -1,7 +1,7 @@
 import { createError, getRouterParam, readBody } from 'h3'
 import { ZodError } from 'zod'
 
-import { updateSubmission } from '~/server/services/submissions/update-submission'
+import { updateSubmission } from '~/server/services/submission-content'
 import { SubmissionInputSchema } from '~/shared/schemas/submission'
 import { requireAuth } from '~/server/utils/permissions'
 

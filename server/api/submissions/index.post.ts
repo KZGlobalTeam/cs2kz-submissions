@@ -1,7 +1,7 @@
 import { createError, readBody } from 'h3'
 import { ZodError } from 'zod'
 
-import { createSubmission } from '~/server/services/submissions/create-submission'
+import { createSubmission } from '~/server/services/submission-content'
 import { SubmissionInputSchema } from '~/shared/schemas/submission'
 import { requireAuth } from '~/server/utils/permissions'
 

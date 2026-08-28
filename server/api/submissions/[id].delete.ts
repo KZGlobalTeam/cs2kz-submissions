@@ -1,6 +1,7 @@
 import { createError, getRouterParam } from 'h3'
 
-import { deleteSubmission } from '~/server/services/submissions/delete-submission'
+import { deleteSubmission } from '~/server/services/submission-content'
+import { hasLeadApproverRole } from '~/server/utils/approver-gate'
 import { requireAuth } from '~/server/utils/permissions'
 
 export default defineEventHandler(async (event) => {
@@ -18,7 +19,10 @@ export default defineEventHandler(async (event) => {
   // delete any submission regardless of creator or votes. Everyone else goes
   // through the owner path — the service responds with an opaque 404 for
   // non-creators and a 409 once review has started.
-  const isLeadApprover = user.roles.includes('lead_approver')
+  const canDeleteUnrestricted = hasLeadApproverRole(user.roles)
 
-  return deleteSubmission(submissionId, isLeadApprover ? undefined : user.id)
+  return deleteSubmission(
+    submissionId,
+    canDeleteUnrestricted ? undefined : user.id,
+  )
 })
