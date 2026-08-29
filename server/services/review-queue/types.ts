@@ -22,14 +22,20 @@ export type PageOrder = 'createdAt' | 'approvedAt'
 export type PageBoundsWithOrder = PageBounds & { orderBy: PageOrder }
 
 /** Predicate for a submissions read: exactly one of two branches — the owner
- *  (`mine`) read, or the review-queue read. `unvoted` cannot be stated
- *  without its viewer's user id (the old list/count guard asymmetry becomes a
- *  type error); the bare `{ status? }` form is the queue read without the
- *  Unvoted filter. When a caller supplies both keys, `resolveFilters`
+ *  (`mine`) read, or the review-queue read. The queue read is one of three
+ *  mutually exclusive forms: with the Unvoted filter (whose `userId` is also
+ *  the viewer), with an explicit viewer identity only, or bare (no viewer —
+ *  the queue read without the Unvoted filter, `myVote` null). `unvoted`
+ *  cannot be stated without its user (the old list/count guard asymmetry
+ *  becomes a type error). A malformed value carrying both `unvoted` and
+ *  `viewerId` still resolves deterministically: `resolveFilters` prefers the
+ *  Unvoted branch, so the exclusion and the myVote identity can never name
+ *  different users. When a caller supplies the owner key, `resolveFilters`
  *  deterministically prefers the owner branch. */
 export type ReviewQueueFilters = { status?: SubmissionStatus } & (
   | { ownerId: string }
-  | { unvoted?: { userId: string } }
+  | { unvoted: { userId: string } }
+  | { viewerId?: string }
 )
 
 /** The filters resolved to their flat form. Both the Drizzle adapter and the
@@ -37,19 +43,39 @@ export type ReviewQueueFilters = { status?: SubmissionStatus } & (
  *  owner match, and unvoted meaning "no vote row from that viewer" — is
  *  enforced identically against the real database and in tests. Consumers
  *  test the fields for truthiness, never for key presence (resolution leaves
- *  absent filters as `undefined`). */
+ *  absent filters as `undefined`). `viewerId` is the queue read's identity
+ *  for the module's myVote aggregation — never a predicate; the adapter and
+ *  the fake ignore it when they build their conditions, so the Unvoted
+ *  exclusion and the viewer's own votes are decoupled. On the unvoted
+ *  branch it coalesces to the unvoted filter's user, so every queue read
+ *  with a viewer reports `myVote` exactly as today. */
 export interface ResolvedFilters {
   status?: SubmissionStatus
   ownerId?: string
   unvotedUserId?: string
+  viewerId?: string
 }
 
-/** Resolves the discriminated filters value to its flat form. */
+/** Resolves the discriminated filters value to its flat form. The Unvoted
+ *  branch's user is the viewer, so it lands on both `unvotedUserId` (the
+ *  predicate) and `viewerId` (the identity) — one value, never two names.
+ *  A malformed value carrying both queue keys (or an empty `unvoted`) can
+ *  still reach runtime: presence decides, and the Unvoted branch wins, so
+ *  the exclusion and the myVote identity can never name different users. */
 export function resolveFilters(filters: ReviewQueueFilters): ResolvedFilters {
   if ('ownerId' in filters) {
     return { status: filters.status, ownerId: filters.ownerId }
   }
-  return { status: filters.status, unvotedUserId: filters.unvoted?.userId }
+  const unvoted = 'unvoted' in filters ? filters.unvoted : undefined
+  const viewerId = 'viewerId' in filters ? filters.viewerId : undefined
+  if (unvoted) {
+    return {
+      status: filters.status,
+      unvotedUserId: unvoted.userId,
+      viewerId: unvoted.userId,
+    }
+  }
+  return { status: filters.status, viewerId }
 }
 
 /** One page row of the submissions table as the store returns it — raw DB
