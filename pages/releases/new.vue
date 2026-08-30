@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
+import type { ReviewSubmissionRow } from '~/server/services/review-queue/review-queue'
 import type { PaginatedResult } from '~/shared/types/pagination'
-import type { ReviewSubmissionRow } from '~/shared/types/submission'
 
 definePageMeta({
   middleware: ['auth', 'lead-approver'],

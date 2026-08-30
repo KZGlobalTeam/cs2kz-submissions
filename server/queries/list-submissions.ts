@@ -1,7 +1,8 @@
 import { and, count, desc, eq, inArray, notExists, type SQL } from 'drizzle-orm'
 
 import { submissionCourses, submissionMappers, submissionVotes, submissions } from '~/db/schema'
-import type { ReviewSubmissionRow, SubmissionStatus } from '~/shared/types/submission'
+import type { ReviewSubmissionRow } from '~/server/services/review-queue/review-queue'
+import type { SubmissionStatus } from '~/shared/types/submission'
 
 import { db } from '~/server/utils/db'
 

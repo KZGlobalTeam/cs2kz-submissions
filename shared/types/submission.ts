@@ -63,21 +63,6 @@ export interface ReleaseExportMap {
   }>
 }
 
-export interface ReviewSubmissionRow {
-  id: string
-  mapName: string
-  workshopId: number
-  workshopUrl: string
-  courseCount: number
-  status: SubmissionStatus
-  createdAt: string
-  approvedAt: string | null
-  mappers: string[]
-  yesVotes: number
-  noVotes: number
-  myVote: ApprovalDecision | null
-}
-
 export interface SessionUser {
   id: string
   steamId64: string
