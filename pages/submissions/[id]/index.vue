@@ -46,25 +46,10 @@ const isOwner = computed(
   () => details.value?.submission.createdByUserId === userId.value,
 )
 
-/** Any user holding the `approver` role sees the checklist — a user who also
- *  holds `lead_approver` is still an approver and sees their own private
- *  checklist (mirrors the API's `hasApproverRole`). Lead-*only* users and
- *  mappers never see it. */
-
 /** True while the read-only checklist card has something to show (saved
  *  content or a load error). The page renders the two-column layout only
  *  then, so a never-saved approver gets no empty side column after review. */
 const readonlyChecklistVisible = shallowRef(false)
-
-const checklistRef = ref<InstanceType<typeof ApproverChecklistSection> | null>(null)
-
-/** Flush the checklist's pending auto-save before the vote persists, so a
- *  tick or note made right before Save Vote is never dropped. */
-async function flushChecklistBeforeVote() {
-  if (hasApproverRole.value && mode.value === 'vote') {
-    await checklistRef.value?.flush()
-  }
-}
 
 const defaultMode = computed<PanelMode | null>(() => {
   if (isOwner.value) {
@@ -159,7 +144,6 @@ watch(details, () => {
         :courses="details.courses"
         :votes="details.votes"
         :current-user-id="userId"
-        :before-save="flushChecklistBeforeVote"
         @saved="onSaved"
       />
 
@@ -167,7 +151,7 @@ watch(details, () => {
            column's height, so the card pins at the top while scrolling. -->
       <div>
         <ApproverChecklistSection
-          ref="checklistRef"
+          :user-id="userId"
           :submission-id="details.submission.id"
           :is-port="details.submission.isPort"
           class="lg:sticky lg:top-6"
