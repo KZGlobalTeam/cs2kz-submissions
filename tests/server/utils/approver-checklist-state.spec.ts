@@ -95,7 +95,7 @@ describe('normalizeNote', () => {
 })
 
 describe('hasSavedContent', () => {
-  it('is false when there is no row (never saved)', () => {
+  it('is false when nothing was ever saved (key absent)', () => {
     expect(hasSavedContent(null, null)).toBe(false)
     expect(hasSavedContent(undefined, undefined)).toBe(false)
   })
@@ -104,8 +104,8 @@ describe('hasSavedContent', () => {
     expect(hasSavedContent({}, null)).toBe(false)
   })
 
-  it('is false for a reset-to-nothing row: all unchecked and note cleared', () => {
-    // An explicit reset save persists a real row, but read-only it renders
+  it('is false for a reset-to-nothing state: all unchecked and note cleared', () => {
+    // A reset-to-nothing save removes the key, so read-only it renders
     // exactly like never-saved — never an empty box.
     expect(hasSavedContent({ naming: [false, false, false], other: [false] }, null)).toBe(false)
   })
@@ -146,7 +146,7 @@ describe('buildChecklistPayload', () => {
     expect(payload.checklist.naming).toEqual([false, false, false, false, false, false])
   })
 
-  it('round-trips a saved row unchanged: seeding then building reproduces it', () => {
+  it('round-trips a saved state unchanged: seeding then building reproduces it', () => {
     const saved: {
       checklist: ApproverChecklist
       note: string
