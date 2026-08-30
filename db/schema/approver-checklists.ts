@@ -7,8 +7,6 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core'
 
-import type { ApproverChecklist } from '~/shared/schemas/approver-checklist'
-
 import { submissions } from './submissions'
 import { timestamps, users } from './users'
 
@@ -36,7 +34,7 @@ export const submissionApproverChecklists = pgTable(
     /** Rule-group key → per-rule verified ticks. Loose keys: a rule-text
      *  change never invalidates a stored save; unknown keys are merely never
      *  rendered. */
-    checklist: jsonb('checklist').$type<ApproverChecklist>().notNull(),
+    checklist: jsonb('checklist').$type<Record<string, boolean[]>>().notNull(),
     note: text('note'),
     ...timestamps,
   },

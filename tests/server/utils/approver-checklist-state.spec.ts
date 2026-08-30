@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { submissionRulesSteps } from '~/components/submission/submissionRules'
-import type { ApproverChecklist } from '~/shared/schemas/approver-checklist'
+import type { ApproverChecklist } from '~/components/review/approver-checklist-storage'
 import {
   buildChecklistPayload,
   hasSavedContent,

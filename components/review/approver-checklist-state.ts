@@ -1,8 +1,9 @@
-import type { ApproverChecklist } from '~/shared/schemas/approver-checklist'
-
 import type { SubmissionRulesStep } from '../submission/submissionRules'
 
-import type { ApproverChecklistState } from './approver-checklist-storage'
+import type {
+  ApproverChecklist,
+  ApproverChecklistState,
+} from './approver-checklist-storage'
 
 /**
  * Pure client-side state helpers for the Approver checklist section. Kept

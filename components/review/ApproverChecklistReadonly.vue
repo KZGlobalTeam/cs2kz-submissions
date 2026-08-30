@@ -3,7 +3,6 @@ import { marked } from 'marked'
 
 import { submissionRulesSteps } from '~/components/submission/submissionRules'
 import type { SubmissionRulesStep } from '~/components/submission/submissionRules'
-import type { ApproverChecklist } from '~/shared/schemas/approver-checklist'
 
 import {
   hasSavedContent,
@@ -13,6 +12,7 @@ import {
 import {
   approverChecklistDeltaFromEvent,
   createApproverChecklistStorage,
+  type ApproverChecklist,
   type ApproverChecklistStorage,
 } from './approver-checklist-storage'
 

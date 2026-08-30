@@ -1,4 +1,12 @@
-import type { ApproverChecklist } from '~/shared/schemas/approver-checklist'
+/**
+ * One approver's saved ticks: rule-group key → per-rule booleans. The keys
+ * are deliberately loose — the rule set can change without breaking saves —
+ * and unknown keys are merely never rendered. Ticks are per-index within
+ * each group, so a rule-text edit reflects on both surfaces without a
+ * migration; a stored tick may then sit against updated text at the same
+ * index, accepted for a private scratchpad (ADR 0014).
+ */
+export type ApproverChecklist = Record<string, boolean[]>
 
 /**
  * Browser-storage backing for the Approver checklist and Approver note: a
@@ -17,9 +25,9 @@ import type { ApproverChecklist } from '~/shared/schemas/approver-checklist'
  */
 
 /** One viewer's saved state for one submission: the loose-key ticks map (the
- *  same `{ <groupKey>: boolean[] }` shape the `checklist` jsonb column
- *  carried, and the section's payload builder produces) plus the normalized
- *  note. */
+ *  `{ <groupKey>: boolean[] }` shape the section's payload builder produces,
+ *  and the same shape the old `checklist` jsonb column carried) plus the
+ *  normalized note. */
 export interface ApproverChecklistState {
   checklist: ApproverChecklist
   /** Trimmed, at most 2000 characters, null when empty or whitespace-only —
