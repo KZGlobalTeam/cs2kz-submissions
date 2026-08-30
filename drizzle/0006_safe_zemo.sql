@@ -1,0 +1,1 @@
+DROP TABLE "submission_approver_checklists" CASCADE;
