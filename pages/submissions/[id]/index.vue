@@ -46,9 +46,10 @@ const isOwner = computed(
   () => details.value?.submission.createdByUserId === userId.value,
 )
 
-/** True while the read-only checklist card has something to show (saved
- *  content or a load error). The page renders the two-column layout only
- *  then, so a never-saved approver gets no empty side column after review. */
+/** True while the read-only checklist card has something to show (any tick
+ *  set or a non-empty note saved to the viewer's browser). The page renders
+ *  the two-column layout only then, so a never-saved approver gets no empty
+ *  side column after review. */
 const readonlyChecklistVisible = shallowRef(false)
 
 const defaultMode = computed<PanelMode | null>(() => {
@@ -192,6 +193,7 @@ watch(details, () => {
 
       <div v-show="readonlyChecklistVisible">
         <ApproverChecklistReadonly
+          :user-id="userId"
           :submission-id="details.submission.id"
           :is-port="details.submission.isPort"
           class="lg:sticky lg:top-6"

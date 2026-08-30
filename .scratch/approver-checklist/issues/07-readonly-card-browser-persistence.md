@@ -1,0 +1,25 @@
+# 07: Read-only card reads the browser
+
+**What to build:** Once the submission has left review, the approving viewer's saved ticks and note render read-only from the browser for that viewer; nothing renders when nothing was ever saved.
+
+**Blocked by:** 05 — Browser storage adapter and state re-pointing
+
+**Status:** resolved
+
+- [x] The read-only card seeds from the viewer's browser key for that submission.
+- [x] It renders hidden when the key is absent or holds no content (no ticks, empty note) — finished submissions never show an empty box.
+- [x] When shown, it renders exactly the saved ticks and note with all controls disabled (non-editable).
+- [x] It never accesses browser storage during server-side rendering.
+- [x] Visibility follows the same session gate as before: the card renders only for viewers whose session reports the approver role — lead-only users, mappers, and anonymous visitors still see nothing anywhere.
+- [ ] Full suite green (244/244); typecheck, lint, and build clean ✓; live browser verification: an approved/rejected submission with saved state renders the card ✓; a fresh browser renders nothing ✓; a different account on the same browser renders nothing — **pending a second Steam account login by the user** (see Comments).
+
+## Comments
+
+Implemented and verified 2026-08-30:
+
+- **Card rewired to the browser** (`components/review/ApproverChecklistReadonly.vue`): the read-only card stops calling `GET /api/submissions/[id]/approver-checklist` (that surface is torn down in ticket 08) and reads the viewer's browser state instead. A new `user-id` prop (the page's session user id, same source as the editable section) composes the per-viewer key `approver-checklist:{userId}:{submissionId}`. The store is bound in `onMounted` only — never during SSR — seeded from `store.read()`; content visibility (`hasContent`) is judged from the seed against the *rendered* groups (porting dropped when the submission is not a port), so an absent key, a fully-cleared state, or stale foreign ticks all render nothing. The `ready`/`loadError` shell is gone: browser reads are synchronous and never throw (the storage module degrades in-memory), so a failed-load error box is obsolete. Template and rule texts unchanged; the porting group renders only for port submissions.
+- **Page wiring** (`pages/submissions/[id]/index.vue`): passes `:user-id="userId"` and the comment above `readonlyChecklistVisible` no longer mentions the load-error box. The session gate is untouched — the card renders only in the existing `!isPending && hasApproverRole` branch, so lead-only users, mappers, and anonymous visitors still never see it anywhere.
+- **Cross-tab listener**: the card also adopts `storage`-event deltas (per field, key removal hides it live), mirroring the editable section's proven pattern, aligned with the umbrella spec's cross-tab decision and story 24. The card never writes to storage, so adopting a delta cannot echo back. (This goes slightly beyond ticket 07's own bullet list — recorded as a P2 note by the code review; low severity.)
+- **Live browser verification** (headless Chrome via the saved `cs2kz` pw-session, approver+lead account "Reeed"): ticked three rules + note on pending `kz_engram` → localStorage key `approver-checklist:97c8cd36…:c5322c3e…` written through; rejected the submission via the lead panel (`?mode=approve`, Reason: "Missing workshop proof; bhop checkpoints unbalanced."); reopening the submission rendered the read-only card with exactly those three ticks checked, the note verbatim, all checkboxes disabled, groups collapsible, no porting group. A fresh headless browser (same account's session cookie restored from the saved snapshot, empty localStorage) rendered **no** card and the single-column layout — the never-saved case. SSR: server HTML contains no card markup and the component touches `window.localStorage` only inside `onMounted`/the storage listener; a hydration-mismatch console warning on the submission page reproduces identically on the pre-change commit (verified by stashing), so it is pre-existing dev-server noise, not introduced here.
+- **Outstanding**: the third live sub-check — "a different account on the same browser renders nothing" — needs signing out and logging into a second Steam account in the shared browser. The mechanism is fully covered by the unit-tested per-account key composition and the live absent-key→nothing path, but the end-to-end login step needs a second account owned by the user; the headless window can be opened on request.
+- **Review (code-review skill)**: both axes OK with notes — Spec: the storage listener is aligned with the umbrella spec's cross-tab decision; Standards: the ~35-line storage-binding lifecycle glue duplicates the editable section's (P2 heuristic; extraction into a composable deferred — the section's identical pattern shipped and was reviewed in ticket 06, and the ticket's data-source-only scope favours minimal diff). No P0/P1 on either axis.
