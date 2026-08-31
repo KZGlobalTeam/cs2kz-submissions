@@ -4,6 +4,10 @@ import type {
   VoteFilterInput,
 } from '~/shared/schemas/review'
 import type { ApprovalDecision, SubmissionStatus } from '~/shared/types/submission'
+import type {
+  DecisionCastFacts,
+  VoteRecordedFacts,
+} from '~/server/services/notifications/types'
 
 /** The fields of the submission row the spine's status guard reads. */
 export interface SubmissionRecord {
@@ -93,6 +97,18 @@ export interface ReviewWriteDeps {
   /** Best-effort storage deletion after the write commits; a storage hiccup
    *  must never fail the already-committed save. */
   deleteStorageObjects: (urls: string[]) => Promise<void>
+  /** Post-commit Discord vote ping: fires on *every* committed `saveVote` —
+   *  including a same-approver re-save — carrying the in-hand vote facts
+   *  (`VoteRecordedFacts`); the notifier resolves the approver's display
+   *  name on its own post-commit read. The notifier swallows its own
+   *  failures, so this never fails the caller. */
+  notifyVoteRecorded: (facts: VoteRecordedFacts) => Promise<void>
+  /** Post-commit Discord decision ping: fires exactly once, when the
+   *  `finalizeSubmission` write commits, carrying the in-hand decision facts
+   *  (`DecisionCastFacts`); the notifier resolves the lead's display name on
+   *  its own post-commit read. The notifier swallows its own failures, so
+   *  this never fails the caller. */
+  notifyDecisionCast: (facts: DecisionCastFacts) => Promise<void>
   /** Storage facts the rejection-attachment rules need, resolved per call. */
   attachmentScope: () => { publicBaseUrl: string; allowedPrefix: string }
 }

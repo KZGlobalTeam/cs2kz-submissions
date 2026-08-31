@@ -247,4 +247,135 @@ describe('finalizeSubmission', () => {
     expect(db.decisionAttachments.size).toBe(0)
     expect(deleted).toEqual([])
   })
+
+  it('fires the decision ping exactly once after an approved finalize, carrying the facts', async () => {
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    await service.finalizeSubmission(SUBMISSION_ID, LEAD_ID, decisionBody({
+      decisionNotes: 'Clean routes, great flow',
+    }))
+
+    expect(notified.decisions).toEqual([
+      {
+        submissionId: SUBMISSION_ID,
+        leadUserId: LEAD_ID,
+        status: 'approved',
+        decisionNotes: 'Clean routes, great flow',
+      },
+    ])
+    expect(notified.votes).toEqual([])
+  })
+
+  it('fires the decision ping on a rejection, carrying the note', async () => {
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    await service.finalizeSubmission(SUBMISSION_ID, LEAD_ID, decisionBody({
+      status: 'rejected',
+      decisionNotes: 'Does not meet the rules',
+    }))
+
+    expect(notified.decisions).toEqual([
+      {
+        submissionId: SUBMISSION_ID,
+        leadUserId: LEAD_ID,
+        status: 'rejected',
+        decisionNotes: 'Does not meet the rules',
+      },
+    ])
+  })
+
+  it('fires the decision ping with a null note when the approval carries none', async () => {
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    await service.finalizeSubmission(SUBMISSION_ID, LEAD_ID, decisionBody())
+
+    // The null note reaches the ping unchanged — the notifier renders the
+    // non-empty placeholder itself.
+    expect(notified.decisions).toEqual([
+      {
+        submissionId: SUBMISSION_ID,
+        leadUserId: LEAD_ID,
+        status: 'approved',
+        decisionNotes: null,
+      },
+    ])
+  })
+
+  it('never pings on a 404 or a 409', async () => {
+    const missing = createFakeDb()
+    const missingDeps = createFakeDeps(missing)
+    const missingService = createReviewWriteService(missingDeps.deps)
+
+    await expect(
+      missingService.finalizeSubmission(SUBMISSION_ID, LEAD_ID, decisionBody()),
+    ).rejects.toMatchObject({ statusCode: 404 })
+    expect(missingDeps.notified.decisions).toEqual([])
+
+    // Already terminal — a repeat finalize is a conflict, not a re-ping.
+    const decided = createFakeDb()
+    seedSubmission(decided, { id: SUBMISSION_ID, status: 'approved' })
+    const decidedDeps = createFakeDeps(decided)
+    const decidedService = createReviewWriteService(decidedDeps.deps)
+
+    await expect(
+      decidedService.finalizeSubmission(SUBMISSION_ID, LEAD_ID, decisionBody()),
+    ).rejects.toMatchObject({ statusCode: 409 })
+    expect(decidedDeps.notified.decisions).toEqual([])
+  })
+
+  it('never pings when the write rolls back', async () => {
+    // The zero-row guarded update path: the throw inside the transaction
+    // discards the already-written filters and nothing pings.
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db, {
+      completeSubmission: async () => null,
+    })
+    const service = createReviewWriteService(deps)
+
+    await expect(
+      service.finalizeSubmission(SUBMISSION_ID, LEAD_ID, decisionBody()),
+    ).rejects.toMatchObject({ statusCode: 409 })
+    expect(notified.decisions).toEqual([])
+  })
+
+  it('never pings when the rejection-attachment rules reject the decision', async () => {
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    await expect(
+      service.finalizeSubmission(SUBMISSION_ID, LEAD_ID, decisionBody({
+        attachments: [attachment('a.png')],
+      })),
+    ).rejects.toMatchObject({ statusCode: 400 })
+    expect(notified.decisions).toEqual([])
+  })
+
+  it('pings even when the post-commit storage compensation fails', async () => {
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db, {}, {
+      deleteStorageObjects: async () => {
+        throw new Error('storage cleanup failed')
+      },
+    })
+    const service = createReviewWriteService(deps)
+
+    const updated = await service.finalizeSubmission(
+      SUBMISSION_ID,
+      LEAD_ID,
+      decisionBody(),
+    )
+
+    // The committed finalize still returned and the ping fired regardless of
+    // the cleanup outcome (here a no-op compensation over zero removed URLs).
+    expect(updated.status).toBe('approved')
+    expect(db.submissions.get(SUBMISSION_ID)?.status).toBe('approved')
+    expect(notified.decisions).toHaveLength(1)
+  })
 })

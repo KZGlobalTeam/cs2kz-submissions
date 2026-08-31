@@ -249,4 +249,145 @@ describe('saveVote', () => {
     expect(db.votes.has(vote.id)).toBe(true)
     expect(db.voteAttachments.get(vote.id)).toHaveLength(2)
   })
+
+  it('fires the vote ping once after a successful save, carrying the vote facts', async () => {
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      approvalDecision: 'no',
+      rejectionReason: 'The blocker is broken',
+    }))
+
+    expect(notified.votes).toEqual([
+      {
+        submissionId: SUBMISSION_ID,
+        approverUserId: APPROVER_ID,
+        approvalDecision: 'no',
+        rejectionReason: 'The blocker is broken',
+      },
+    ])
+    expect(notified.decisions).toEqual([])
+  })
+
+  it('re-pings on a same-approver re-save, carrying the changed vote', async () => {
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody())
+    await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      approvalDecision: 'no',
+      rejectionReason: 'The blocker is broken',
+    }))
+
+    // A re-ping is the change signal: the upsert re-save re-pings with its
+    // (updated) facts, deliberately identical in shape to the first.
+    expect(notified.votes).toEqual([
+      {
+        submissionId: SUBMISSION_ID,
+        approverUserId: APPROVER_ID,
+        approvalDecision: 'yes',
+        rejectionReason: null,
+      },
+      {
+        submissionId: SUBMISSION_ID,
+        approverUserId: APPROVER_ID,
+        approvalDecision: 'no',
+        rejectionReason: 'The blocker is broken',
+      },
+    ])
+  })
+
+  it('never pings on a 404', async () => {
+    const db = createFakeDb()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    await expect(
+      service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody()),
+    ).rejects.toMatchObject({ statusCode: 404 })
+    expect(notified.votes).toEqual([])
+  })
+
+  it('never pings on a 409 — already decided or flipped between read and write', async () => {
+    // Already terminal when the request arrives.
+    const decided = createFakeDb()
+    seedSubmission(decided, { id: SUBMISSION_ID, status: 'approved' })
+    const decidedDeps = createFakeDeps(decided)
+    const decidedService = createReviewWriteService(decidedDeps.deps)
+
+    await expect(
+      decidedService.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody()),
+    ).rejects.toMatchObject({ statusCode: 409 })
+    expect(decidedDeps.notified.votes).toEqual([])
+
+    // The concurrent-writer flip: `pending` when the request starts, terminal
+    // by the in-transaction re-read — the write rolls back, nothing pings.
+    const raced = pendingSubmission()
+    const racedDeps = createFakeDeps(raced, {
+      getSubmission: async (id) => ({ id, status: 'rejected' }),
+    })
+    const racedService = createReviewWriteService(racedDeps.deps)
+
+    await expect(
+      racedService.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody()),
+    ).rejects.toMatchObject({ statusCode: 409 })
+    expect(racedDeps.notified.votes).toEqual([])
+  })
+
+  it('never pings when the rejection-attachment rules reject the vote', async () => {
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    await expect(
+      service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+        attachments: [attachment('a.png')],
+      })),
+    ).rejects.toMatchObject({ statusCode: 400 })
+    expect(notified.votes).toEqual([])
+  })
+
+  it('never pings when the write step throws and the transaction rolls back', async () => {
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db, {
+      replaceVoteAttachments: async () => {
+        throw new Error('storage write failed')
+      },
+    })
+    const service = createReviewWriteService(deps)
+
+    await expect(
+      service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+        approvalDecision: 'no',
+        rejectionReason: 'The blocker is broken',
+        attachments: [attachment('a.png')],
+      })),
+    ).rejects.toThrow('storage write failed')
+    expect(notified.votes).toEqual([])
+  })
+
+  it('pings even when the post-commit storage compensation fails', async () => {
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db, {}, {
+      deleteStorageObjects: async () => {
+        throw new Error('storage cleanup failed')
+      },
+    })
+    const service = createReviewWriteService(deps)
+
+    const vote = await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      approvalDecision: 'no',
+      rejectionReason: 'The blocker is broken',
+      attachments: [attachment('a.png')],
+    }))
+
+    // The committed save still returned, the ping fired regardless of the
+    // cleanup outcome, and this vote's removed URL simply leaked to storage.
+    expect(vote.id).toBeDefined()
+    expect(db.votes.has(vote.id)).toBe(true)
+    expect(notified.votes).toHaveLength(1)
+  })
 })

@@ -1,6 +1,10 @@
 import type { RejectionAttachment } from '~/shared/types/attachment'
 import type { VoteFilterInput } from '~/shared/schemas/review'
 import type {
+  DecisionCastFacts,
+  VoteRecordedFacts,
+} from '~/server/services/notifications/types'
+import type {
   FinalFilterRecord,
   ReviewWriteDeps,
   ReviewWriteStore,
@@ -176,14 +180,36 @@ function commitScratch(scratch: FakeDb, committed: FakeDb): void {
   commitMap(scratch.decisionAttachments, committed.decisionAttachments)
 }
 
+/** The pings the recording fake notifier fired, in order — `votes` for
+ *  `saveVote`, `decisions` for `finalizeSubmission`. */
+export interface FakeNotifierLog {
+  votes: VoteRecordedFacts[]
+  decisions: DecisionCastFacts[]
+}
+
+/** Dep-level behavior overrides (store behavior lives in `FakeStoreOptions`).
+ *  Currently only the post-commit storage seam, so a test can prove a storage
+ *  hiccup never suppresses the ping. */
+export interface FakeDepsOverrides {
+  /** When set, replaces the best-effort storage deletion (e.g. to throw). */
+  deleteStorageObjects?: (urls: string[]) => Promise<void>
+}
+
 /** Binds the module under test to the fake: writes apply to a scratch copy
  *  of the db, success commits it back, a throw discards it. Storage
- *  deletions are recorded in the returned `deleted` array. */
+ *  deletions are recorded in the returned `deleted` array and Discord pings
+ *  in `notified`. */
 export function createFakeDeps(
   db: FakeDb,
   options: FakeStoreOptions = {},
-): { deps: ReviewWriteDeps; deleted: string[] } {
+  depsOverrides: FakeDepsOverrides = {},
+): {
+  deps: ReviewWriteDeps
+  deleted: string[]
+  notified: FakeNotifierLog
+} {
   const deleted: string[] = []
+  const notified: FakeNotifierLog = { votes: [], decisions: [] }
 
   const deps: ReviewWriteDeps = {
     runTransaction: async (fn) => {
@@ -193,14 +219,22 @@ export function createFakeDeps(
       commitScratch(scratch, db)
       return result
     },
-    deleteStorageObjects: async (urls) => {
-      deleted.push(...urls)
-    },
+    deleteStorageObjects:
+      depsOverrides.deleteStorageObjects ??
+      (async (urls) => {
+        deleted.push(...urls)
+      }),
     attachmentScope: () => ({
       publicBaseUrl: FAKE_PUBLIC_BASE_URL,
       allowedPrefix: FAKE_ALLOWED_PREFIX,
     }),
+    notifyVoteRecorded: async (facts) => {
+      notified.votes.push(facts)
+    },
+    notifyDecisionCast: async (facts) => {
+      notified.decisions.push(facts)
+    },
   }
 
-  return { deps, deleted }
+  return { deps, deleted, notified }
 }

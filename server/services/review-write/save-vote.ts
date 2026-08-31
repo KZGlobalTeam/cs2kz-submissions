@@ -25,10 +25,11 @@ interface GuardedWriteOptions {
 
 /** Shared transaction spine for review writes: re-read the submission inside
  *  the transaction, fail with a conflict when it is no longer `pending`, run
- *  the kind-specific write step, then compensate storage after the commit.
- *  A throw inside the transaction discards every row the step wrote — the
- *  loser of a race that flips the status between the write starting and the
- *  re-read rolls back instead of committing. */
+ *  the kind-specific write step, then run the post-commit effects — storage
+ *  compensation and the caller's Discord ping — best-effort. A throw inside
+ *  the transaction discards every row the step wrote — the loser of a race
+ *  that flips the status between the write starting and the re-read rolls
+ *  back instead of committing, and nothing pings on a rollback. */
 async function runGuardedWrite<T>(
   deps: ReviewWriteDeps,
   submissionId: string,
@@ -36,6 +37,9 @@ async function runGuardedWrite<T>(
   write: (
     store: ReviewWriteStore,
   ) => Promise<{ result: T; removedUrls: string[] }>,
+  /** The post-commit ping for the event that just committed — the caller's
+   *  `notifyVoteRecorded` / `notifyDecisionCast` with the in-hand facts. */
+  notify: () => Promise<void>,
 ): Promise<T> {
   let outcome: { result: T; removedUrls: string[] } | undefined
 
@@ -56,7 +60,15 @@ async function runGuardedWrite<T>(
     outcome = await write(store)
   })
 
-  await deps.deleteStorageObjects(outcome!.removedUrls)
+  // The post-commit effects — storage compensation and the Discord ping —
+  // are independent and strictly best-effort: a storage hiccup must never
+  // suppress the ping, a notification failure (already swallowed inside the
+  // notifier) must never fail the committed save, and neither touches the
+  // returned result.
+  await Promise.allSettled([
+    deps.deleteStorageObjects(outcome!.removedUrls),
+    notify(),
+  ])
   return outcome!.result
 }
 
@@ -130,6 +142,17 @@ export function createReviewWriteService(deps: ReviewWriteDeps): ReviewWriteServ
             removedUrls: removed.map((attachment) => attachment.url),
           }
         },
+        // The vote ping fires on every save — including a same-approver
+        // re-save, where the re-ping is the change signal — after the
+        // transaction committed, carrying the in-hand vote facts (the
+        // notifier resolves the approver's display name itself).
+        () =>
+          deps.notifyVoteRecorded({
+            submissionId,
+            approverUserId,
+            approvalDecision: input.approvalDecision,
+            rejectionReason: input.rejectionReason,
+          }),
       )
     },
 
@@ -212,6 +235,17 @@ export function createReviewWriteService(deps: ReviewWriteDeps): ReviewWriteServ
 
           return { result: updated, removedUrls: [] }
         },
+        // The decision ping fires exactly once — a Decision is written once
+        // by construction, and a repeat finalize never commits — after the
+        // transaction committed, carrying the in-hand decision facts (the
+        // notifier resolves the lead's display name itself).
+        () =>
+          deps.notifyDecisionCast({
+            submissionId,
+            leadUserId,
+            status: input.status,
+            decisionNotes: input.decisionNotes,
+          }),
       )
     },
   }

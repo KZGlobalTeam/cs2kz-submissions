@@ -9,6 +9,10 @@ import {
   deleteStorageObjects,
   getBucketPublicBaseUrl,
 } from '~/server/utils/storage'
+import {
+  notifyDecisionCast,
+  notifyVoteRecorded,
+} from '~/server/services/notifications'
 
 import { transactionStore } from './drizzle-store'
 import { createReviewWriteService } from './save-vote'
@@ -23,10 +27,13 @@ function runTransaction<T>(
 }
 
 /** Production wiring: real transaction, real best-effort storage cleanup,
- *  and the real bucket facts for the rejection-attachment rules. */
+ *  the real Discord notifier, and the real bucket facts for the
+ *  rejection-attachment rules. */
 const reviewWriteService = createReviewWriteService({
   runTransaction,
   deleteStorageObjects,
+  notifyVoteRecorded,
+  notifyDecisionCast,
   attachmentScope: () => ({
     publicBaseUrl: getBucketPublicBaseUrl(),
     allowedPrefix: REJECTION_ATTACHMENT_PREFIX,

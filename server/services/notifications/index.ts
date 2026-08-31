@@ -79,19 +79,19 @@ const notificationsService = createNotificationsService({
 } satisfies NotificationsDeps)
 
 /** Bound entry point: a submission-created ping after the create commits
- *  (ticket 03 binds it into the submission-content service). */
+ *  (ticket 04 binds it into the submission-content service). */
 export function notifySubmissionCreated(facts: SubmissionCreatedFacts) {
   return notificationsService.notifySubmissionCreated(facts)
 }
 
-/** Bound entry point: a vote ping after every `saveVote` commits (ticket 04
+/** Bound entry point: a vote ping after every `saveVote` commits (ticket 03
  *  binds it into the review-write service). */
 export function notifyVoteRecorded(facts: VoteRecordedFacts) {
   return notificationsService.notifyVoteRecorded(facts)
 }
 
 /** Bound entry point: a decision ping after `finalizeSubmission` commits
- *  (ticket 04 binds it into the review-write service). */
+ *  (ticket 03 binds it into the review-write service). */
 export function notifyDecisionCast(facts: DecisionCastFacts) {
   return notificationsService.notifyDecisionCast(facts)
 }
