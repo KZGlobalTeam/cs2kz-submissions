@@ -39,6 +39,7 @@ export default defineNuxtConfig({
     supabaseServiceRoleKey: '',
     supabaseStorageBucket: '',
     databaseUrl: '',
+    discordWebhookUrl: '',
     public: {
       siteUrl: 'http://localhost:11451',
       appName: 'CS2KZ Submissions',

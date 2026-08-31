@@ -97,6 +97,7 @@ cp .env.example .env
 
 ```env
 DATABASE_URL=                 # postgres connection string
+NUXT_DISCORD_WEBHOOK_URL=     # optional — leave blank to disable Discord notifications
 NUXT_SESSION_SECRET=         # random secret for signing sessions
 NUXT_STEAM_REALM=             # e.g. http://localhost:11451/
 NUXT_STEAM_RETURN_URL=        # e.g. http://localhost:11451/api/auth/callback
