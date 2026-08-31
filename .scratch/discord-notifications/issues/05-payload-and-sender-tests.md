@@ -4,8 +4,19 @@
 
 **Blocked by:** 02
 
-**Status:** needs-triage
+**Status:** resolved
 
-- [ ] Template tests: exact titles, colors, field sets, links, the port flag, and rejection reason / decision note inclusion per event.
-- [ ] Sender tests via a stubbed HTTP-post dep: success, 429 retry-once-then-drop, non-2xx logged, network error swallowed, no-op when unset.
-- [ ] Context-read mapping tests: submitter/approver/lead display names and the course count resolved from the read.
+- [x] Template tests: exact titles, colors, field sets, links, the port flag, and rejection reason / decision note inclusion per event.
+- [x] Sender tests via a stubbed HTTP-post dep: success, 429 retry-once-then-drop, non-2xx logged, network error swallowed, no-op when unset.
+- [x] Context-read mapping tests: submitter/approver/lead display names and the course count resolved from the read.
+
+## Comments
+
+Implemented 2026-08-31 (shipped with the 02 commit alongside the module; the ticket was never closed):
+
+- **Template tests** (`tests/server/services/notifications/payloads.spec.ts`, 9 tests): the settled embed per event — exact titles (`Submission:`, `Vote:`, `Approved:`/`Rejected:`), colors (blue/green/red via `EMBED_COLOR`), field sets (Submitter/Workshop/Courses; Approver/Decision/[Rejection reason]; Lead approver/Decision note), the `/submissions/{id}` link on every embed, the Port field appearing only on a port, the no-vote rejection reason and the null-noted decision embed (the `—` marker), plus the course count rendered as a string.
+- **Sender tests** (`tests/server/services/notifications/notifications.spec.ts`, 13 tests) against stubbed deps only (`getWebhookUrl`/`getSiteUrl`/`postJson`/`readContext` — no Discord, no database, no network): unset/empty URL ⇒ single log line with no read and no post; success posts the exact payload once with the submitter name and course count from the context read; approver and lead display names resolved from the vote/decision facts; trailing-slash stripping and the link omitted when the site origin is unset; a 429 honours `Retry-After` (fake timers) for exactly one retry then sends; a persistent 429 (or failure) after the one retry ends the attempt with a logged drop; the retry wait clamps to the 60s cap; a non-2xx logs and drops without retrying; a network failure is logged and swallowed, never thrown; a null context read and a throwing read both drop the notification without reaching the caller.
+- **Context-read mapping tests** (`tests/server/services/notifications/context.spec.ts`, 3 tests): `toNotificationContext` maps the map name, the submitting account's display name and the course count, maps every requested user id to its `users.displayName`, and returns null when the submission row is gone (the post-commit delete race).
+- **Hermeticity**: 33 new tests, all pure/stub-driven in the sibling services' style; the full suite stays green with no webhook URL configured — nothing touches Discord, the database, or the network.
+- **Verification**: the four spec files pass (33/33), full suite 283/283 green, `pnpm typecheck` exit 0, `pnpm eslint` clean.
+- **Code-review follow-up (this session)**: the review's one finding inside the 05 mandate was that the real `Retry-After` extraction (header precedence, NaN guards, the contested-units body guard) lived in `index.ts` `postJson` with zero hermetic coverage — the sender tests injected `retryAfterSeconds` directly into the stub result, bypassing the parser the ticket's "429 retries once via `Retry-After`" claims. Fixed test-first: the parser moved to a pure `parseRetryAfterSeconds` (`server/services/notifications/retry.ts`) behind the `RetryResponse` seam (a real `Response` satisfies it structurally), `postJson` now calls it, and `retry.spec.ts` (8 tests) pins the precedence, garbage-header skip, milliseconds guard (≥100 ⇒ ÷1000), unreadable-body fallback, and the no-window ⇒ undefined default. Two other review notes were suppressed as non-issues: the import-time `db()` binding is the release-contents/review-queue sibling precedent, and the plain `await` in `save-submission-content` is safe because the notifier's own contract is never-throw (the review-write `allSettled` exists for `deleteStorageObjects`, a different subsystem). The fetch-without-abort-timeout note is recorded as a deliberate residual risk matching the `deleteStorageObjects` precedent.
