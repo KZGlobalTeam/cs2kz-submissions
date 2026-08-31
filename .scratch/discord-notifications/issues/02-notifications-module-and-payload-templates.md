@@ -4,10 +4,20 @@
 
 **Blocked by:** 01
 
-**Status:** needs-triage
+**Status:** resolved
 
-- [ ] Three embed templates match the settled payloads, colors, sender name, and site links exactly.
-- [ ] Context read resolves submitter/approver/lead display names and the course count on its own post-commit query; no store-contract changes in the write modules.
-- [ ] Sender is best-effort: fetch failures logged and swallowed, a 429 retried once via `Retry-After` then dropped, never thrown to the caller.
-- [ ] Unset URL ⇒ no-op with a single log line.
-- [ ] Injectable factory shape (`create…Service(deps)` + bound `index.ts` exports) with an HTTP-post seam a test can stub.
+- [x] Three embed templates match the settled payloads, colors, sender name, and site links exactly.
+- [x] Context read resolves submitter/approver/lead display names and the course count on its own post-commit query; no store-contract changes in the write modules.
+- [x] Sender is best-effort: fetch failures logged and swallowed, a 429 retried once via `Retry-After` then dropped, never thrown to the caller.
+- [x] Unset URL ⇒ no-op with a single log line.
+- [x] Injectable factory shape (`create…Service(deps)` + bound `index.ts` exports) with an HTTP-post seam a test can stub.
+
+## Comments
+
+Implemented 2026-08-31:
+
+- **Module shape** (`server/services/notifications/`): `types.ts` holds the event-fact interfaces (`SubmissionCreatedFacts`, `VoteRecordedFacts`, `DecisionCastFacts`), the `NotificationContext`/store contract, the pure `toNotificationContext` row→context assembly (the `resolveFilters` precedent in `review-queue/types`), and the `NotificationsDeps` seam (per-call `getWebhookUrl`/`getSiteUrl` like `attachmentScope`, the `postJson` HTTP-post seam, and the `readContext` post-commit read). `payloads.ts` is the pure per-event templates; `notifications.ts` is the `createNotificationsService(deps)` factory with the sender; `drizzle-store.ts` is the adapter-only context read over the HTTP database; `index.ts` binds real config/`fetch`/read and exports `notifySubmissionCreated` / `notifyVoteRecorded` / `notifyDecisionCast` for tickets 03/04.
+- **Templates** (spec §Payloads/§Presentation settle exactly, no drift): blue `0x3498DB` submission — `Submission: <mapName>`, fields *Submitter* (the owning *account's* `users.displayName` via the `createdByUserId` join, never the mapper snapshot), *Workshop*, *Courses* (count), *Port* on a port; green/red vote — `Vote: <mapName>`, *Approver*, *Decision* (YES/NO), *Rejection reason* on a no-vote; green/red decision — `Approved: <mapName>` / `Rejected: <mapName>`, *Lead approver*, *Decision note* (a null note renders a non-empty placeholder because Discord rejects empty field values). Fixed sender name `CS2KZ Submissions`; every embed links to `/submissions/{id}` (absolute from `siteUrl`, trailing slash stripped, omitted when the origin is unset rather than risking a relative URL Discord validates).
+- **Context read**: one post-commit query on the notifier's own store contract — the submission row joined to its submitter, the course count, and `users.displayName` for the voted/lead user id the event facts hand over. The write modules are untouched (no store-contract changes; verified diff-wise).
+- **Sender**: best-effort at every step — unset URL ⇒ one log line before any read; the whole emit is wrapped so a context-read hiccup is logged and dropped; `postJson` is wrapped so a fetch failure is logged and swallowed; a 429 honours the retry window (extracted `X-RateLimit-Reset-After` header → `Retry-After` header → `retry_after` body with a seconds/ms guard, clamped to 60s) for exactly one retry then log-and-drop; any other non-2xx logs and drops. The caller never sees a notification failure.
+- **Tests** (25 new, same style as the pure-function + stub-driven sibling tests — no database, no network): payload-template spec (title, color, fields, link, port flag, reason/note inclusion), service spec through stubbed deps (disabled no-op, success, Retry-After wait + retry-once, retry-then-drop, non-2xx dropped, network error swallowed, context-read null/throw dropped, link composition), and a `toNotificationContext` mapping spec. Full suite 256/256 green, `pnpm typecheck` exit 0, `pnpm eslint` clean.
