@@ -1,4 +1,5 @@
 import type { RejectionAttachment } from '~/shared/types/attachment'
+import type { SubmissionCreatedFacts } from '~/server/services/notifications/types'
 import type {
   SubmissionContentDeps,
   SubmissionContentStore,
@@ -274,14 +275,22 @@ function commitScratch(scratch: FakeDb, committed: FakeDb): void {
   commitMap(scratch.decisionAttachments, committed.decisionAttachments)
 }
 
+/** The pings the recording fake notifier fired, in order — `submissions`
+ *  for `createSubmission` (owner edits and lead deletes never appear). */
+export interface FakeNotifierLog {
+  submissions: SubmissionCreatedFacts[]
+}
+
 /** Binds the module under test to the fake: writes apply to a scratch copy
  *  of the db, success commits it back, a throw discards it. Storage
- *  deletions are recorded in the returned `deleted` array. */
+ *  deletions are recorded in the returned `deleted` array and the
+ *  submission-created pings in `notified`. */
 export function createFakeDeps(
   db: FakeDb,
   options: FakeStoreOptions = {},
-): { deps: SubmissionContentDeps; deleted: string[] } {
+): { deps: SubmissionContentDeps; deleted: string[]; notified: FakeNotifierLog } {
   const deleted: string[] = []
+  const notified: FakeNotifierLog = { submissions: [] }
 
   const deps: SubmissionContentDeps = {
     runTransaction: async (fn) => {
@@ -294,9 +303,12 @@ export function createFakeDeps(
     deleteStorageObjects: async (urls) => {
       deleted.push(...urls)
     },
+    notifySubmissionCreated: async (facts) => {
+      notified.submissions.push(facts)
+    },
   }
 
-  return { deps, deleted }
+  return { deps, deleted, notified }
 }
 
 /** The validated submission-content shape, with all defaults set. Builds a

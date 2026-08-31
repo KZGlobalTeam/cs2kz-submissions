@@ -113,6 +113,25 @@ describe('deleteSubmission', () => {
     ])
   })
 
+  it('never pings on a delete, on either path', async () => {
+    // Owner path: a pending, own submission.
+    const owner = seededSubmission()
+    const ownerDeps = createFakeDeps(owner)
+    const ownerService = createSubmissionContentService(ownerDeps.deps)
+
+    await ownerService.deleteSubmission(SUBMISSION_ID, CREATOR_ID)
+    expect(ownerDeps.notified.submissions).toEqual([])
+
+    // Lead path: reviewed and decided, passed with no owner.
+    const lead = seededSubmission({ status: 'approved', createdByUserId: OTHER_USER })
+    lead.voteCounts.set(SUBMISSION_ID, 1)
+    const leadDeps = createFakeDeps(lead)
+    const leadService = createSubmissionContentService(leadDeps.deps)
+
+    await leadService.deleteSubmission(SUBMISSION_ID)
+    expect(leadDeps.notified.submissions).toEqual([])
+  })
+
   it('returns the opaque 404 for a missing submission on both paths', async () => {
     const db = createFakeDb()
     const { deps, deleted } = createFakeDeps(db)

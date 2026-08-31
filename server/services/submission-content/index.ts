@@ -1,6 +1,7 @@
 import type { SubmissionInput } from '~/shared/schemas/submission'
 
 import { withTransaction } from '~/db/client'
+import { notifySubmissionCreated } from '~/server/services/notifications'
 import { deleteStorageObjects } from '~/server/utils/storage'
 
 import { transactionStore } from './drizzle-store'
@@ -18,11 +19,12 @@ function runTransaction<T>(
   return withTransaction((tx) => fn(transactionStore(tx)))
 }
 
-/** Production wiring: real transaction and real best-effort storage
- *  cleanup. */
+/** Production wiring: real transaction, real best-effort storage cleanup,
+ *  and the real Discord notifier. */
 const submissionContentService = createSubmissionContentService({
   runTransaction,
   deleteStorageObjects,
+  notifySubmissionCreated,
 } satisfies SubmissionContentDeps)
 
 /** Bound entry point: the create endpoint stays a thin parse-and-delegate

@@ -292,6 +292,33 @@ describe('updateSubmission', () => {
     expect(deleted).toEqual([NEW_COURSE_URL])
   })
 
+  it('never pings on an owner edit', async () => {
+    const db = seededSubmission()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createSubmissionContentService(deps)
+
+    await service.updateSubmission(
+      SUBMISSION_ID,
+      CREATOR_ID,
+      submissionInput({ mapName: 'New name' }),
+    )
+
+    // Owner edits stay silent (spec §Trigger semantics): the submission ping
+    // belongs to the create only.
+    expect(notified.submissions).toEqual([])
+  })
+
+  it('never pings on a refused owner edit either', async () => {
+    const db = seededSubmission()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createSubmissionContentService(deps)
+
+    await expect(
+      service.updateSubmission(SUBMISSION_ID, OTHER_USER, submissionInput()),
+    ).rejects.toMatchObject({ statusCode: 404 })
+    expect(notified.submissions).toEqual([])
+  })
+
   it('returns the opaque 404 for a missing submission and writes nothing', async () => {
     const db = createFakeDb()
     const { deps } = createFakeDeps(db)

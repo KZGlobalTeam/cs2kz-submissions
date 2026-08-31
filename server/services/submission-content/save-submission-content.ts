@@ -215,24 +215,42 @@ export function createSubmissionContentService(
       const content = toContentWrite(input)
       const bodyUrls = contentImageUrls(input)
 
+      let submission: SubmissionRow
       try {
-        return await deps.runTransaction(async (store) => {
-          const submission = await store.createSubmission(
+        submission = await deps.runTransaction(async (store) => {
+          const created = await store.createSubmission(
             createdByUserId,
             content,
           )
-          await writeContent(store, submission.id, input)
-          return submission
+          await writeContent(store, created.id, input)
+          return created
         })
       }
       catch (err) {
         // A throw rolled the fresh row (and its children) back, so nothing
         // persists yet: every upload URL the body referenced is orphaned
         // (none are referenced). Best-effort, like post-commit cleanup —
-        // never fail the caller.
+        // never fail the caller. The throw also means nothing reaches the
+        // post-commit ping: failed creates and rolled-back writes (the
+        // orphan-compensation path) never notify.
         await deps.deleteStorageObjects(bodyUrls)
         throw err
       }
+
+      // The create committed: fire the submission ping strictly after the
+      // commit, carrying the in-hand create facts — the persisted row's map
+      // name, workshop URL, and port flag (the notifier resolves the
+      // submitter's display name and the course count on its own post-commit
+      // read). The notifier swallows its own failures, so this never fails
+      // the caller.
+      await deps.notifySubmissionCreated({
+        submissionId: submission.id,
+        submitterUserId: createdByUserId,
+        mapName: submission.mapName,
+        workshopUrl: submission.workshopUrl,
+        isPort: submission.isPort,
+      })
+      return submission
     },
 
     async updateSubmission(submissionId, ownerUserId, input) {

@@ -99,7 +99,7 @@ describe('createSubmission', () => {
 
   it('returns a 400 and writes nothing when the workshop id cannot be derived', async () => {
     const db = freshDb()
-    const { deps, deleted } = createFakeDeps(db)
+    const { deps, deleted, notified } = createFakeDeps(db)
     const service = createSubmissionContentService(deps)
 
     // A digit-only id that overflows a safe integer passes the shared
@@ -117,16 +117,17 @@ describe('createSubmission', () => {
       statusMessage: 'Invalid Steam Workshop URL',
     })
 
-    // A derivation failure happens before the transaction: no rows, and no
-    // compensation — the caller mistake is surfaced as-is.
+    // A derivation failure happens before the transaction: no rows, no
+    // compensation, and no ping — the caller mistake is surfaced as-is.
     expect(db.submissions.size).toBe(0)
     expect(db.courses.size).toBe(0)
     expect(deleted).toEqual([])
+    expect(notified.submissions).toEqual([])
   })
 
   it('discards the fresh row and deletes every body upload URL when the write fails mid-transaction', async () => {
     const db = freshDb()
-    const { deps, deleted } = createFakeDeps(db, {
+    const { deps, deleted, notified } = createFakeDeps(db, {
       replaceCourses: async () => {
         throw new Error('course insert failed')
       },
@@ -149,13 +150,14 @@ describe('createSubmission', () => {
     expect(db.courseMappers.size).toBe(0)
 
     // Nothing persists yet, so every upload URL the failed body referenced
-    // is orphaned and compensated.
+    // is orphaned and compensated — and the rollback means no ping.
     expect(deleted).toEqual([COURSE_A_URL, COURSE_B_URL])
+    expect(notified.submissions).toEqual([])
   })
 
   it('compensates on a failed create too, before the row could exist', async () => {
     const db = freshDb()
-    const { deps, deleted } = createFakeDeps(db, {
+    const { deps, deleted, notified } = createFakeDeps(db, {
       createSubmission: async () => {
         throw new Error('submission row insert failed')
       },
@@ -168,5 +170,57 @@ describe('createSubmission', () => {
 
     expect(db.submissions.size).toBe(0)
     expect(deleted).toEqual(['https://storage.example/course-images/course-one.jpg'])
+    // The failed insert never reached the post-commit ping.
+    expect(notified.submissions).toEqual([])
+  })
+
+  it('fires the submission ping once after a successful create, carrying the create facts', async () => {
+    const db = freshDb()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createSubmissionContentService(deps)
+
+    const result = await service.createSubmission(
+      CREATOR_ID,
+      submissionInput({ mapName: 'The Spike Rush' }),
+    )
+
+    // The ping fired exactly once, after the commit, with the in-hand create
+    // facts — the persisted row's id, the creator user id, and the content
+    // facts (the notifier resolves the submitter display name and the course
+    // count on its own post-commit read).
+    expect(notified.submissions).toEqual([
+      {
+        submissionId: result.id,
+        submitterUserId: CREATOR_ID,
+        mapName: 'The Spike Rush',
+        workshopUrl: 'https://steamcommunity.com/sharedfiles/filedetails/?id=1234567',
+        isPort: false,
+      },
+    ])
+  })
+
+  it('fires the ping with isPort true for a port create', async () => {
+    const db = freshDb()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createSubmissionContentService(deps)
+
+    const result = await service.createSubmission(
+      CREATOR_ID,
+      submissionInput({
+        isPort: true,
+        portAuthorizationImage: portImage(PORT_URL),
+        portNotes: 'Permission granted by the original author',
+      }),
+    )
+
+    expect(notified.submissions).toEqual([
+      {
+        submissionId: result.id,
+        submitterUserId: CREATOR_ID,
+        mapName: 'Test map',
+        workshopUrl: 'https://steamcommunity.com/sharedfiles/filedetails/?id=1234567',
+        isPort: true,
+      },
+    ])
   })
 })

@@ -1,3 +1,4 @@
+import type { SubmissionCreatedFacts } from '~/server/services/notifications/types'
 import type { SubmissionStatus } from '~/shared/types/submission'
 
 /** The submission row facts the guarded-write spine and the image lifecycle
@@ -125,4 +126,11 @@ export interface SubmissionContentDeps {
    *  orphan compensation when a write fails; a storage hiccup must never
    *  fail an already-committed save or mask a failed write's error. */
   deleteStorageObjects: (urls: string[]) => Promise<void>
+  /** Post-commit Discord submission ping: fires only when a `createSubmission`
+   *  write commits, carrying the in-hand create facts (`SubmissionCreatedFacts`);
+   *  the notifier resolves the submitter's display name and the course count on
+   *  its own post-commit read. Owner edits, lead deletes, failed creates, and
+   *  rolled-back writes never ping. The notifier swallows its own failures, so
+   *  this never fails the caller. */
+  notifySubmissionCreated: (facts: SubmissionCreatedFacts) => Promise<void>
 }
