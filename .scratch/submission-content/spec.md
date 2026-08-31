@@ -23,7 +23,7 @@ One submission-content module owns the three operations — **insert**, **replac
 - **One content write:** the ~70 duplicated lines become one internal helper shared by insert and replace.
 - **Image lifecycle in full:** post-commit stale-image cleanup on replace; post-commit full sweep on delete (course images, port-authorization image, vote/decision attachment objects — unchanged); **and orphan compensation on failed writes** — when insert or replace fails mid-transaction after uploads, best-effort delete of the body's upload URLs that no persisted row references. Fresh UUID keys make the diff safe; carried-over edit URLs are still referenced and excluded. Best-effort, like post-commit cleanup.
 - **Workshop-URL rule on the wire shape:** the client's stricter rule (a `steamcommunity.com` workshop/sharedfiles filedetails URL with a numeric `id`) becomes a refine on `SubmissionInputSchema` → invalid URLs die at 400 at endpoint parse; `assertWorkshopId` becomes an internal happy-path derivation mapped to 400 (not a raw-Error 500); `extractWorkshopId` stays tolerant for legacy rows.
-- **Endpoints stay thin:** parse-and-delegate adapters; the inline `lead_approver` check becomes a named predicate (`hasLeadApproverRole`) mirroring `hasApproverRole`.
+- **Endpoints stay thin:** parse-and-delegate adapters; the inline `lead_approver` check becomes the named predicate `hasLeadApproverRole`.
 
 ## User Stories
 
