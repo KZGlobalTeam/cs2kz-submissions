@@ -108,7 +108,7 @@ function openVote(id: string) {
   return navigateTo(`/submissions/${id}?mode=vote`)
 }
 
-function openApprove(id: string) {
+function openDecide(id: string) {
   return navigateTo(`/submissions/${id}?mode=approve`)
 }
 
@@ -242,20 +242,18 @@ async function confirmDeleteSubmission() {
               @click="openSubmission(row.original.id)"
             />
             <UButton
-              v-if="hasApproverRole"
+              v-if="row.original.status === 'pending' && hasApproverRole"
               variant="outline"
               color="neutral"
               label="Vote"
-              :disabled="row.original.status !== 'pending'"
               @click="openVote(row.original.id)"
             />
             <UButton
-              v-if="isLeadApprover"
+              v-if="row.original.status === 'pending' && isLeadApprover"
               variant="outline"
               color="neutral"
-              label="Approve"
-              :disabled="row.original.status !== 'pending'"
-              @click="openApprove(row.original.id)"
+              label="Decide"
+              @click="openDecide(row.original.id)"
             />
             <UButton
               v-if="isLeadApprover"

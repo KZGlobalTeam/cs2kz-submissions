@@ -39,7 +39,7 @@ const isPending = computed(() => details.value?.submission.status === 'pending')
  *  must never apply to the submission's creator: an approver who made a
  *  submission lands here from "My Submissions" → Details expecting the
  *  details view, not their own review panel. An explicit `?mode=vote` /
- *  `?mode=approve` (the review table's Vote/Approve buttons) still wins in
+ *  `?mode=approve` (the review table's Vote/Decide buttons) still wins in
  *  the `mode` computed, so reviewing your own row deliberately stays
  *  possible. */
 const isOwner = computed(
