@@ -43,7 +43,12 @@ export const submissionVotes = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     approvalDecision: approvalDecisionEnum('approval_decision').notNull(),
     rejectionReason: text('rejection_reason'),
-    rejectionExplanation: text('rejection_explanation'),
+    // Optional yes-side free text; normalized to null by the write path on
+    // a no vote and on any whitespace-only "note" (mirroring how a yes vote
+    // always stores a null Rejection reason). One text field per decision
+    // side: the required Rejection reason on No, the optional Approval note
+    // on Yes.
+    approvalNote: text('approval_note'),
     ...timestamps,
   },
   (table) => [

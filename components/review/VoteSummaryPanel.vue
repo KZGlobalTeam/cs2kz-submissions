@@ -23,8 +23,10 @@ const rejectedVotes = computed(() =>
   displayed.value.filter((vote) => vote.approvalDecision === 'no'),
 )
 
-function noteLabel(vote: SubmissionDetailVote) {
-  return vote.rejectionExplanation || vote.rejectionReason || null
+function sideNote(vote: SubmissionDetailVote) {
+  // One text field per decision side: the Approval note on a yes vote, the
+  // Rejection reason on a no vote. The removed explanation no longer exists.
+  return vote.approvalDecision === 'yes' ? vote.approvalNote : vote.rejectionReason
 }
 
 /** Lightbox state for a single reason card's attachment set. */
@@ -45,7 +47,7 @@ function openAttachments(vote: SubmissionDetailVote, index: number) {
       >
         <span class="font-medium">{{ vote.approverName }}</span>
         <UIcon name="i-lucide-check" class="text-success" />
-        <span v-if="noteLabel(vote)" class="text-muted">{{ noteLabel(vote) }}</span>
+        <span v-if="sideNote(vote)" class="text-muted">{{ sideNote(vote) }}</span>
       </div>
     </div>
 
@@ -58,7 +60,7 @@ function openAttachments(vote: SubmissionDetailVote, index: number) {
         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span class="font-medium">{{ vote.approverName }}</span>
           <UIcon name="i-lucide-x" class="text-error" />
-          <span v-if="noteLabel(vote)" class="text-muted">{{ noteLabel(vote) }}</span>
+          <span v-if="sideNote(vote)" class="text-muted">{{ sideNote(vote) }}</span>
         </div>
 
         <div v-if="vote.attachments.length" class="mt-2 flex flex-wrap gap-2">

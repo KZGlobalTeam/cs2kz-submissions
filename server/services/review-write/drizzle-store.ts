@@ -40,14 +40,14 @@ export function transactionStore(tx: TransactionClient): ReviewWriteStore {
           approverUserId: input.approverUserId,
           approvalDecision: input.approvalDecision,
           rejectionReason: input.rejectionReason,
-          rejectionExplanation: input.rejectionExplanation,
+          approvalNote: input.approvalNote,
         })
         .onConflictDoUpdate({
           target: [submissionVotes.submissionId, submissionVotes.approverUserId],
           set: {
             approvalDecision: input.approvalDecision,
             rejectionReason: input.rejectionReason,
-            rejectionExplanation: input.rejectionExplanation,
+            approvalNote: input.approvalNote,
             updatedAt: new Date(),
           },
         })

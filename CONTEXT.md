@@ -38,20 +38,20 @@ A pending submission that has received at least one approver vote; from this poi
 _Avoid_: Under review, approval in process
 
 **Vote**:
-An approver's recorded yes/no judgment on a submission. A no vote carries a Rejection reason (required), an optional Rejection explanation, and any internal Rejection attachments; a vote of either kind may propose Course filters. The first vote on a submission is what moves it from Unreviewed to In review. Votes are visible to reviewers but hidden from the submitter while the submission is pending.
+An approver's recorded yes/no judgment on a submission. Each decision side carries exactly one text field: the required Rejection reason on No, the optional Approval note on Yes. A no vote may also carry internal Rejection attachments, and a vote of either kind may propose Course filters. The first vote on a submission is what moves it from Unreviewed to In review. Votes are visible to reviewers but hidden from the submitter while the submission is pending.
 _Avoid_: Approval decision, verdict, "Status of Approval"
+
+**Approval note**:
+The optional free text an approver writes on a yes Vote, so the other approvers and the lead understand their approval. Reviewers-only and never a Decision; a no Vote never carries one. Contrast the private per-approver Approver note/checklist, which no other reviewer ever sees.
+_Avoid_: Approver note, comment, reason
 
 **Decision**:
 The lead approver's terminal approved/rejected ruling that ends review. Written exactly once while the submission is still pending and never edited afterwards; records who decided, a Decision note, the Finalized filters (on approval), and the Rejection attachments revealed to the submitter (on rejection). A submission that has received a Decision can never re-enter review.
 _Avoid_: Finalize, finalization, "Submit Approval", status of approval
 
 **Rejection reason**:
-The short, required statement an approver gives when voting no — or the lead when rejecting. Distinct from the optional, longer Rejection explanation.
+The short, required statement an approver gives when voting no — or the lead when rejecting. No carries this and nothing else — the longer Rejection explanation no longer exists, and each decision side of a Vote carries exactly one text field.
 _Avoid_: Reason (bare)
-
-**Rejection explanation**:
-The optional longer free-text an approver may attach to a no Vote, beyond the short required Rejection reason.
-_Avoid_: Rejection reason
 
 **Rejection attachment**:
 An image attached to a rejection: on an approver's no Vote (visible only to reviewers) or on the lead's final Decision (revealed to the submitter once the decision lands). Stored in the public image bucket under a dedicated prefix, which the API validates every attachment URL against.

@@ -22,6 +22,9 @@ export interface VoteRecordedFacts {
   approverUserId: string
   approvalDecision: ApprovalDecision
   rejectionReason: string | null
+  /** The optional yes-side note, carried like the Rejection reason (null on
+   *  a no vote) so the embed can render its guarded field. */
+  approvalNote: string | null
 }
 
 /** Facts the review-write service hands after a successful finalize — the

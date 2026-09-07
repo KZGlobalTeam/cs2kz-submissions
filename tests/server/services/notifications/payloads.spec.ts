@@ -43,6 +43,7 @@ function voteFacts(overrides: Partial<VoteRecordedFacts> = {}): VoteRecordedFact
     approverUserId: '33333333-3333-4333-8333-333333333333',
     approvalDecision: 'yes',
     rejectionReason: null,
+    approvalNote: null,
     ...overrides,
   }
 }
@@ -182,6 +183,53 @@ describe('voteRecordedPayload', () => {
     expect(payload.embeds[0]!.fields.map((f) => f.name)).toEqual([
       'Approver',
       'Decision',
+    ])
+  })
+
+  it('adds an "Approval note" field on a yes-vote that carries a written note', () => {
+    const payload = voteRecordedPayload(
+      voteFacts({ approvalDecision: 'yes', approvalNote: 'Great tech' }),
+      { mapName: 'The Spike Rush', approverDisplayName: 'Bob Approver' },
+      SUBMISSION_URL,
+    )
+
+    expect(payload.embeds[0]!.fields).toContainEqual({
+      name: 'Approval note',
+      value: 'Great tech',
+      inline: false,
+    })
+  })
+
+  it('omits the "Approval note" field on a yes-vote without a note', () => {
+    // A null (or empty) note renders nothing — the field is guarded the same
+    // way the Rejection reason is on the no side.
+    for (const approvalNote of [null, '']) {
+      const payload = voteRecordedPayload(
+        voteFacts({ approvalDecision: 'yes', approvalNote }),
+        { mapName: 'The Spike Rush', approverDisplayName: 'Bob Approver' },
+        SUBMISSION_URL,
+      )
+      expect(payload.embeds[0]!.fields.map((f) => f.name)).toEqual([
+        'Approver',
+        'Decision',
+      ])
+    }
+  })
+
+  it('never renders an "Approval note" field on a no-vote, even with a leftover note', () => {
+    const payload = voteRecordedPayload(
+      voteFacts({
+        approvalDecision: 'no',
+        rejectionReason: 'The blocker is broken',
+        approvalNote: 'leftover',
+      }),
+      { mapName: 'The Spike Rush', approverDisplayName: 'Bob Approver' },
+      SUBMISSION_URL,
+    )
+    expect(payload.embeds[0]!.fields.map((f) => f.name)).toEqual([
+      'Approver',
+      'Decision',
+      'Rejection reason',
     ])
   })
 })

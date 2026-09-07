@@ -38,7 +38,12 @@ export const SubmissionVoteSchema = z
   .object({
     approvalDecision: z.enum(['yes', 'no']),
     rejectionReason: z.string().nullable(),
-    rejectionExplanation: z.string().nullable().optional().default(null),
+    // Optional free text on a yes vote (the mirror of the required Rejection
+    // reason on No, minus the requiredness). No cross-side rule: a note is
+    // valid on either decision — the write path normalizes it to null on a
+    // No vote (and on any "note" that is only whitespace), matching how a
+    // yes vote always stores a null Rejection reason today.
+    approvalNote: z.string().nullable().optional().default(null),
     attachments: z.array(RejectionAttachmentSchema).default([]),
     filters: z.array(VoteFilterSchema),
   })

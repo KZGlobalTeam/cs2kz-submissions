@@ -40,7 +40,7 @@ export async function getSubmissionDetails(submissionId: string) {
         approverUserId: submissionVotes.approverUserId,
         approvalDecision: submissionVotes.approvalDecision,
         rejectionReason: submissionVotes.rejectionReason,
-        rejectionExplanation: submissionVotes.rejectionExplanation,
+        approvalNote: submissionVotes.approvalNote,
         createdAt: submissionVotes.createdAt,
         updatedAt: submissionVotes.updatedAt,
         approverName: users.displayName,

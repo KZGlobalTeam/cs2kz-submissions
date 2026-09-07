@@ -97,7 +97,7 @@ export function createFakeStore(
           ...existing,
           approvalDecision: input.approvalDecision,
           rejectionReason: input.rejectionReason,
-          rejectionExplanation: input.rejectionExplanation,
+          approvalNote: input.approvalNote,
           updatedAt: new Date(),
         }
         db.votes.set(existing.id, updated)

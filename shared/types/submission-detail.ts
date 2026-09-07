@@ -46,7 +46,7 @@ export interface SubmissionDetailVote {
   approverUserId: string
   approvalDecision: ApprovalDecision
   rejectionReason: string | null
-  rejectionExplanation: string | null
+  approvalNote: string | null
   createdAt: string
   updatedAt: string
   approverName: string

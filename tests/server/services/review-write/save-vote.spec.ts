@@ -31,7 +31,7 @@ function voteBody(overrides: Partial<SubmissionVoteInput> = {}): SubmissionVoteI
   return {
     approvalDecision: 'yes',
     rejectionReason: null,
-    rejectionExplanation: null,
+    approvalNote: null,
     attachments: [],
     filters: [filter('c1', 'classic')],
     ...overrides,
@@ -75,8 +75,7 @@ describe('saveVote', () => {
     expect(db.votes.get(created.id)?.rejectionReason).toBe('The blocker is broken')
   })
 
-  it('replaces the proposed Course filters wholesale on re-save', async () => {
-    const db = pendingSubmission()
+  it('replaces the proposed Course filters wholesale on re-save', async () => {    const db = pendingSubmission()
     const { deps } = createFakeDeps(db)
     const service = createReviewWriteService(deps)
 
@@ -139,6 +138,102 @@ describe('saveVote', () => {
         }),
       ])
     }
+  })
+
+  it('persists the approval note on a yes vote, and a re-save updates it', async () => {
+    const db = pendingSubmission()
+    const { deps } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    const created = await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      approvalNote: 'Clean routes, great tech',
+    }))
+    expect(db.votes.get(created.id)?.approvalNote).toBe('Clean routes, great tech')
+
+    // Re-save edits the note in place — same row, new text.
+    const resaved = await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      approvalNote: 'Updated after the second pass',
+    }))
+    expect(resaved.id).toBe(created.id)
+    expect(db.votes.get(resaved.id)?.approvalNote).toBe('Updated after the second pass')
+  })
+
+  it('stores a null approval note on a no vote even when the body carries one, with its Rejection reason intact', async () => {
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    // The null-on-the-other-side invariant: never stores text for the wrong
+    // decision side, whatever the body says (the schema applies no
+    // cross-side rule — normalization is the write path's job).
+    const vote = await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      approvalDecision: 'no',
+      rejectionReason: 'The blocker is broken',
+      approvalNote: 'leftover',
+    }))
+
+    expect(db.votes.get(vote.id)?.approvalNote).toBeNull()
+    expect(db.votes.get(vote.id)?.rejectionReason).toBe('The blocker is broken')
+    // The ping facts never carry the leftover note either.
+    expect(notified.votes).toEqual([
+      {
+        submissionId: SUBMISSION_ID,
+        approverUserId: APPROVER_ID,
+        approvalDecision: 'no',
+        rejectionReason: 'The blocker is broken',
+        approvalNote: null,
+      },
+    ])
+  })
+
+  it('normalizes a whitespace-only approval note to null on a yes vote', async () => {
+    // A "note" with no written content is not a note: story 11 (no field on
+    // the embed) and story 6 (whitespace never blocks a save) hold because
+    // the write path stores null for it.
+    const db = pendingSubmission()
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    const vote = await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      approvalNote: '   ',
+    }))
+
+    expect(db.votes.get(vote.id)?.approvalNote).toBeNull()
+    expect(notified.votes[0]?.approvalNote).toBeNull()
+  })
+
+  it('switching decision sides swaps the meaningful text field', async () => {
+    const db = pendingSubmission()
+    const { deps } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    // No → Yes: the Rejection reason no longer applies, the note takes its place.
+    const noVote = await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      approvalDecision: 'no',
+      rejectionReason: 'The blocker is broken',
+    }))
+
+    const yesVote = await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      approvalNote: 'Fixed the blocker',
+    }))
+    expect(yesVote.id).toBe(noVote.id)
+    expect(db.votes.get(yesVote.id)).toMatchObject({
+      approvalDecision: 'yes',
+      rejectionReason: null,
+      approvalNote: 'Fixed the blocker',
+    })
+
+    // Yes → No: the note is discarded, a Rejection reason becomes required.
+    const noAgain = await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      approvalDecision: 'no',
+      rejectionReason: 'Regression found',
+    }))
+    expect(noAgain.id).toBe(yesVote.id)
+    expect(db.votes.get(noAgain.id)).toMatchObject({
+      approvalDecision: 'no',
+      rejectionReason: 'Regression found',
+      approvalNote: null,
+    })
   })
 
   it('rejects attachments on an approval and writes nothing', async () => {
@@ -258,6 +353,7 @@ describe('saveVote', () => {
     await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
       approvalDecision: 'no',
       rejectionReason: 'The blocker is broken',
+      approvalNote: null,
     }))
 
     expect(notified.votes).toEqual([
@@ -266,6 +362,7 @@ describe('saveVote', () => {
         approverUserId: APPROVER_ID,
         approvalDecision: 'no',
         rejectionReason: 'The blocker is broken',
+        approvalNote: null,
       },
     ])
     expect(notified.decisions).toEqual([])
@@ -276,7 +373,10 @@ describe('saveVote', () => {
     const { deps, notified } = createFakeDeps(db)
     const service = createReviewWriteService(deps)
 
-    await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody())
+    // The note rides both pings: one text field per decision side.
+    await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      approvalNote: 'Great tech',
+    }))
     await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
       approvalDecision: 'no',
       rejectionReason: 'The blocker is broken',
@@ -290,12 +390,14 @@ describe('saveVote', () => {
         approverUserId: APPROVER_ID,
         approvalDecision: 'yes',
         rejectionReason: null,
+        approvalNote: 'Great tech',
       },
       {
         submissionId: SUBMISSION_ID,
         approverUserId: APPROVER_ID,
         approvalDecision: 'no',
         rejectionReason: 'The blocker is broken',
+        approvalNote: null,
       },
     ])
   })

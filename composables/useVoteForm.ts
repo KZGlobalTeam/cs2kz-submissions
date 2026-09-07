@@ -21,7 +21,7 @@ export interface VoteFormFilter {
 export interface ExistingVote {
   approvalDecision: ApprovalDecision
   rejectionReason: string | null
-  rejectionExplanation: string | null
+  approvalNote: string | null
   attachments: RejectionAttachment[]
   filters: Array<{
     courseId: string
@@ -65,7 +65,7 @@ export function useVoteForm(
   const form = reactive({
     approvalDecision: existing?.approvalDecision ?? ('yes' as ApprovalDecision),
     rejectionReason: existing?.rejectionReason ?? '',
-    rejectionExplanation: existing?.rejectionExplanation ?? '',
+    approvalNote: existing?.approvalNote ?? '',
     attachments: existing?.attachments ?? [],
     filters: seedFilters(courses, existing),
   })

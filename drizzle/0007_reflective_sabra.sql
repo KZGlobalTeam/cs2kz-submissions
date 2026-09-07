@@ -1,0 +1,1 @@
+ALTER TABLE "submission_votes" ADD COLUMN "approval_note" text;

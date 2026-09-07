@@ -33,6 +33,7 @@ function voteFacts(): VoteRecordedFacts {
     approverUserId: APPROVER_ID,
     approvalDecision: 'yes',
     rejectionReason: null,
+    approvalNote: null,
   }
 }
 

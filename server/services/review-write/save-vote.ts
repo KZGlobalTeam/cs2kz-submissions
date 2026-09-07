@@ -108,6 +108,18 @@ export function createReviewWriteService(deps: ReviewWriteDeps): ReviewWriteServ
         })
       }
 
+      // The null-on-the-other-side invariant (spec §Persistence): a vote
+      // never stores text for the wrong decision side. Only a Yes carries
+      // the optional note — and it must be a *written* note, so a no vote
+      // (whatever the body says — the schema deliberately applies no
+      // cross-side rule) and any absent/whitespace-only note both normalize
+      // to null, exactly as a yes vote always stores a null Rejection
+      // reason. The normalized value feeds both the row and the ping.
+      const approvalNote =
+        input.approvalDecision === 'yes' && input.approvalNote?.trim()
+          ? input.approvalNote
+          : null
+
       return runGuardedWrite(
         deps,
         submissionId,
@@ -121,7 +133,7 @@ export function createReviewWriteService(deps: ReviewWriteDeps): ReviewWriteServ
             approverUserId,
             approvalDecision: input.approvalDecision,
             rejectionReason: input.rejectionReason,
-            rejectionExplanation: input.rejectionExplanation,
+            approvalNote,
           })
 
           // The proposed Course filters are replaced wholesale.
@@ -152,6 +164,7 @@ export function createReviewWriteService(deps: ReviewWriteDeps): ReviewWriteServ
             approverUserId,
             approvalDecision: input.approvalDecision,
             rejectionReason: input.rejectionReason,
+            approvalNote,
           }),
       )
     },

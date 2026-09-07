@@ -90,6 +90,7 @@ async function submitVote() {
       body: {
         approvalDecision: form.approvalDecision,
         rejectionReason: form.approvalDecision === 'no' ? (form.rejectionReason || null) : null,
+        approvalNote: form.approvalDecision === 'yes' ? (form.approvalNote || null) : null,
         attachments: form.approvalDecision === 'no' ? form.attachments : [],
         filters: form.filters
           .filter((filter) => filter.enabled)
@@ -155,6 +156,16 @@ async function submitVote() {
             :stored="storedAttachments"
             :active="form.approvalDecision === 'no'"
           />
+        </UFormField>
+      </div>
+
+      <!-- The Approval note: the optional yes-side mirror of the no-side
+           Rejection reason — rendered only when Yes is selected, prefilled
+           from the approver's previous vote on re-save, and submitted as
+           null on a No vote. -->
+      <div v-show="form.approvalDecision === 'yes'" class="mt-4">
+        <UFormField label="Approval Note:" hint="Optional">
+          <UInput v-model="form.approvalNote" placeholder="Note for other approvers (optional)" class="w-full" />
         </UFormField>
       </div>
     </UCard>

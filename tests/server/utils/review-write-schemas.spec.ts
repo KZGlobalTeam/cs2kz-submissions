@@ -32,7 +32,7 @@ function voteBody(overrides: Partial<SubmissionVoteInput> = {}): SubmissionVoteI
   return {
     approvalDecision: 'yes',
     rejectionReason: null,
-    rejectionExplanation: null,
+    approvalNote: null,
     attachments: [],
     filters: [voteFilter],
     ...overrides,
@@ -157,14 +157,44 @@ describe('SubmissionVoteSchema', () => {
     }
   })
 
-  it('fills omission of rejectionExplanation and attachments with defaults', () => {
+  it('accepts a yes vote carrying a written approval note', () => {
     const result = SubmissionVoteSchema.safeParse(
-      rawVoteBody({ rejectionExplanation: undefined, attachments: undefined }),
+      voteBody({ approvalDecision: 'yes', approvalNote: 'Clean routes, great tech' }),
     )
     expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.rejectionExplanation).toBeNull()
+      expect(result.data.approvalNote).toBe('Clean routes, great tech')
+    }
+  })
+
+  it('approval note is optional and unconstrained: null, empty, and whitespace-only all parse', () => {
+    for (const note of [null, '', '   ']) {
+      const result = SubmissionVoteSchema.safeParse(voteBody({ approvalNote: note }))
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.approvalNote).toBe(note)
+      }
+    }
+  })
+
+  it('fills omission of approvalNote and attachments with defaults', () => {
+    const result = SubmissionVoteSchema.safeParse(
+      rawVoteBody({ approvalNote: undefined, attachments: undefined }),
+    )
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.approvalNote).toBeNull()
       expect(result.data.attachments).toEqual([])
+    }
+  })
+
+  it('strips the removed rejectionExplanation field (non-strict parse) so a stale client is silently ignored', () => {
+    const result = SubmissionVoteSchema.safeParse(
+      rawVoteBody({ rejectionExplanation: 'stale' }),
+    )
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).not.toHaveProperty('rejectionExplanation')
     }
   })
 })

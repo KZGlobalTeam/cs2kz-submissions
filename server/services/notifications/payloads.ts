@@ -64,8 +64,9 @@ export function submissionCreatedPayload(
 
 /** The vote-recorded embed: green on a yes-vote, red on a no-vote,
  *  `Vote: <mapName>`, the approver's display name, the Decision (YES/NO),
- *  and the Rejection reason on a no-vote. The title's map name and the
- *  approver display name come from the context read. */
+ *  the Rejection reason on a no-vote, and the Approval note on a yes-vote
+ *  that carries one. The title's map name and the approver display name come
+ *  from the context read. */
 export function voteRecordedPayload(
   facts: VoteRecordedFacts,
   context: { mapName: string; approverDisplayName: string },
@@ -80,6 +81,12 @@ export function voteRecordedPayload(
   // caller ever slipped a null through.
   if (facts.approvalDecision === 'no' && facts.rejectionReason) {
     fields.push(field('Rejection reason', facts.rejectionReason))
+  }
+  // The note is optional free text on the yes side; the truthy guard — the
+  // same pattern as the Rejection reason — renders the field only on a yes
+  // vote that carries a written note, and never on a no vote.
+  if (facts.approvalDecision === 'yes' && facts.approvalNote) {
+    fields.push(field('Approval note', facts.approvalNote))
   }
   return {
     username: SENDER_NAME,

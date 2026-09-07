@@ -20,7 +20,7 @@ export interface VoteWrite {
   approverUserId: string
   approvalDecision: ApprovalDecision
   rejectionReason: string | null
-  rejectionExplanation: string | null
+  approvalNote: string | null
 }
 
 export interface VoteRecord extends VoteWrite {

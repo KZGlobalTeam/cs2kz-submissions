@@ -1,0 +1,1 @@
+ALTER TABLE "submission_votes" DROP COLUMN "rejection_explanation";
