@@ -33,7 +33,7 @@ export interface ExistingVote {
   }>
 }
 
-const DEFAULT_TIER: CourseFilterTier = 'medium'
+const DEFAULT_TIER: CourseFilterTier = 'very-easy'
 const FILTER_MODES: Mode[] = ['classic', 'vanilla']
 
 function seedFilters(
@@ -50,7 +50,7 @@ function seedFilters(
         mode,
         nubTier: match?.nubTier ?? DEFAULT_TIER,
         proTier: match?.proTier ?? DEFAULT_TIER,
-        isRanked: match?.isRanked ?? false,
+        isRanked: match?.isRanked ?? true,
         notes: match?.notes ?? '',
         enabled: match ? true : existing ? false : true,
       }

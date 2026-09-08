@@ -43,8 +43,8 @@ function seedLeadFilters(courses: CourseInput[]): LeadFilter[] {
     FILTER_MODES.map((mode) => ({
       courseId: course.id,
       mode,
-      nubTier: 'medium' as CourseFilterTier,
-      proTier: 'medium' as CourseFilterTier,
+      nubTier: 'very-easy' as CourseFilterTier,
+      proTier: 'very-easy' as CourseFilterTier,
       state: 'ranked' as CourseFilterState,
     })),
   )
