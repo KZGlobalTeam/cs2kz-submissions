@@ -164,8 +164,8 @@ async function submitVote() {
            from the approver's previous vote on re-save, and submitted as
            null on a No vote. -->
       <div v-show="form.approvalDecision === 'yes'" class="mt-4">
-        <UFormField label="Approval Note:" hint="Optional">
-          <UInput v-model="form.approvalNote" placeholder="Note for other approvers (optional)" class="w-full" />
+        <UFormField label="Approval Note:">
+          <UInput v-model="form.approvalNote" placeholder="Optional" class="w-full" />
         </UFormField>
       </div>
     </UCard>
