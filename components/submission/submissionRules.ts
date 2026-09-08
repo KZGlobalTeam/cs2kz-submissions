@@ -36,7 +36,6 @@ export const submissionRulesSteps: SubmissionRulesStep[] = [
       {
         text: 'Map name must **not exceed 27 characters** in length (including the `kz_` prefix).',
       },
-      { text: 'Map name must be **easily distinguishable** from other maps.' },
       {
         text: 'Map name must be identical with the workshop map name and vpk file name.',
       },
@@ -49,7 +48,6 @@ export const submissionRulesSteps: SubmissionRulesStep[] = [
     key: 'courses',
     title: 'Rules for Courses',
     rules: [
-      { text: 'At least one course must be present on the map.' },
       { text: 'Each course must have a working timer.' },
       {
         text: 'Doing `!r <course number or course name>` where the number is the order of current course should teleport you to the start of the course.',
@@ -107,7 +105,7 @@ export const submissionRulesSteps: SubmissionRulesStep[] = [
     title: 'Other',
     rules: [
       {
-        text: 'Map has been tested in the kreedz mapping discord and received sufficient feedback prior to submission.',
+        text: 'Map has been tested thoroughly in the KZ forum and received sufficient feedback prior to submission.',
       },
       { text: 'Map must not have discriminatory, obscene, or sexually explicit content.' },
       {
