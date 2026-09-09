@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { Mode } from '~/shared/schemas/cs2kz'
 import type { SubmissionDetailCourse, SubmissionDetailVote } from '~/shared/types/submission-detail'
-import type { ReasoningDisplay } from '~/shared/utils/approver-votes-view'
 
 import { buildApproverVotesView } from '~/shared/utils/approver-votes-view'
 
@@ -14,9 +13,19 @@ import { buildApproverVotesView } from '~/shared/utils/approver-votes-view'
  * then per Course mode the four fields as static labels — but every input
  * control is replaced by a badge per approver (`Name: value`) plus one
  * "Final" reference badge per field derived from the Course's Finalized
- * filter. There are no headings (course names and mode labels render as
- * styled paragraphs, not heading elements) and no input controls of any
- * kind: no checkbox, radio group, select, or textarea.
+ * filter. Every badge carries an explicit color — none inherits the theme
+ * default: the NUB tier, PRO tier, and Reasoning entry badges are `neutral`
+ * (the same quiet color the vote form's other-approver votes show for those
+ * fields), the Ranked Status entries keep `success` for Ranked and
+ * `neutral` for Unranked, and each Final reference badge is marked by the
+ * word `Final:` in the site's accent blue — `neutral` (or the settled
+ * value's rank color on Ranked Status), not by a loud badge color. The
+ * Reasoning row renders no Final badge at all: proposals only, since the
+ * display model never derives a reasoning settlement (issue 01).
+ *
+ * There are no headings (course names and mode labels render as styled
+ * paragraphs, not heading elements) and no input controls of any kind: no
+ * checkbox, radio group, select, or textarea.
  *
  * The displayed structure is the pure view-model derived by
  * `buildApproverVotesView` — this component only renders it. Mappers never
@@ -34,12 +43,6 @@ const view = computed(() => buildApproverVotesView(props.courses, props.votes))
 
 function modeLabel(mode: Mode): string {
   return mode === 'classic' ? 'CKZ' : 'VNL'
-}
-
-/** A missing reasoning value (the lead finalized the filter without written
- *  notes) renders as an em dash, like OtherApproverVotes' placeholder. */
-function reasoningText(value: ReasoningDisplay): string {
-  return value === null ? '—' : value
 }
 </script>
 
@@ -84,11 +87,11 @@ function reasoningText(value: ReasoningDisplay): string {
                 </UBadge>
                 <UBadge
                   v-if="mode.rankedStatus.final"
-                  color="primary"
+                  :color="mode.rankedStatus.final.displayValue === 'Ranked' ? 'success' : 'neutral'"
                   variant="subtle"
                   class="gap-1"
                 >
-                  <span class="text-muted">{{ mode.rankedStatus.final.approverName }}:</span>
+                  <span class="text-accent">{{ mode.rankedStatus.final.approverName }}:</span>
                   <span class="font-medium">{{ mode.rankedStatus.final.displayValue }}</span>
                 </UBadge>
               </div>
@@ -101,6 +104,7 @@ function reasoningText(value: ReasoningDisplay): string {
                 <UBadge
                   v-for="(entry, index) in mode.nubTier.entries"
                   :key="`${entry.approverName}-${index}`"
+                  color="neutral"
                   variant="subtle"
                   class="gap-1"
                 >
@@ -109,11 +113,11 @@ function reasoningText(value: ReasoningDisplay): string {
                 </UBadge>
                 <UBadge
                   v-if="mode.nubTier.final"
-                  color="primary"
+                  color="neutral"
                   variant="subtle"
                   class="gap-1"
                 >
-                  <span class="text-muted">{{ mode.nubTier.final.approverName }}:</span>
+                  <span class="text-accent">{{ mode.nubTier.final.approverName }}:</span>
                   <span class="font-medium">{{ mode.nubTier.final.displayValue }}</span>
                 </UBadge>
               </div>
@@ -126,6 +130,7 @@ function reasoningText(value: ReasoningDisplay): string {
                 <UBadge
                   v-for="(entry, index) in mode.proTier.entries"
                   :key="`${entry.approverName}-${index}`"
+                  color="neutral"
                   variant="subtle"
                   class="gap-1"
                 >
@@ -134,11 +139,11 @@ function reasoningText(value: ReasoningDisplay): string {
                 </UBadge>
                 <UBadge
                   v-if="mode.proTier.final"
-                  color="primary"
+                  color="neutral"
                   variant="subtle"
                   class="gap-1"
                 >
-                  <span class="text-muted">{{ mode.proTier.final.approverName }}:</span>
+                  <span class="text-accent">{{ mode.proTier.final.approverName }}:</span>
                   <span class="font-medium">{{ mode.proTier.final.displayValue }}</span>
                 </UBadge>
               </div>
@@ -151,20 +156,12 @@ function reasoningText(value: ReasoningDisplay): string {
                 <UBadge
                   v-for="(entry, index) in mode.reasoning.entries"
                   :key="`${entry.approverName}-${index}`"
+                  color="neutral"
                   variant="subtle"
                   class="gap-1"
                 >
                   <span class="text-muted">{{ entry.approverName }}:</span>
                   <span class="font-medium">{{ entry.displayValue }}</span>
-                </UBadge>
-                <UBadge
-                  v-if="mode.reasoning.final"
-                  color="primary"
-                  variant="subtle"
-                  class="gap-1"
-                >
-                  <span class="text-muted">{{ mode.reasoning.final.approverName }}:</span>
-                  <span class="font-medium">{{ reasoningText(mode.reasoning.final.displayValue) }}</span>
                 </UBadge>
               </div>
             </div>

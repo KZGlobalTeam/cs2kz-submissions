@@ -26,14 +26,14 @@ import type {
  * - Tier values render as the numeric scale 1–10 (`tierToNumber`).
  * - Ranked state renders as `'Ranked'` / `'Unranked'`.
  * - Reasoning renders as its text; empty reasoning — null, empty, or
- *   whitespace-only — is omitted from a Vote's proposal badges, and a
- *   Finalized filter's empty reasoning renders as a placeholder (`null`),
- *   keeping the Final reference badge present and honest.
+ *   whitespace-only — is omitted from a Vote's proposal badges. The
+ *   Reasoning row never carries a Final entry: the lead has no way to
+ *   finalize reasoning, so no settlement is derived (issue 01).
  * - A Vote that recorded no proposed Course filter on a Course contributes
  *   no badges there — missing cells render honestly as absent.
- * - Each field's badge group carries one `Final` reference badge derived
- *   from the Course's Finalized filter for that Course mode. Only approvals
- *   carry Finalized filters (a rejection finalizes none — see the
+ * - Every field except Reasoning carries one `Final` reference badge
+ *   derived from the Course's Finalized filter for that Course mode. Only
+ *   approvals carry Finalized filters (a rejection finalizes none — see the
  *   review-write spine), so a Course mode settled by votes alone renders
  *   proposal badges with no Final badge.
  * - A Course mode appears only when a Vote proposed a filter for it or the
@@ -53,11 +53,10 @@ export type RankedStatusDisplay = 'Ranked' | 'Unranked'
  *  numeric 1–10 label. */
 export type TierDisplay = number
 
-/** Reasoning as rendered. An approver's proposed reasoning is always a
- *  written, non-empty string (the omission rule below); the Final entry
- *  carries `null` when the lead finalized the filter without written notes,
- *  which the UI renders as a placeholder. */
-export type ReasoningDisplay = string | null
+/** Reasoning as rendered: only the written text an approver actually
+ *  proposed. The Reasoning row never carries a Final entry (issue 01), so a
+ *  missing value can never surface here — the written-only rule below. */
+export type ReasoningDisplay = string
 
 /** One rendered badge: the approver's name and the field's display value. */
 export interface ApproverBadge<T> {
@@ -75,12 +74,19 @@ export interface FinalBadge<T> {
 
 /** One field's badge group: one entry per approver who proposed a value on
  *  this Course mode — a Vote with no filter row for the Course mode
- *  contributes nothing, and empty reasoning is omitted — plus the single
- *  Final reference badge when the Course carries a Finalized filter for the
- *  Course mode. */
+ *  contributes nothing — plus the single Final reference badge when the
+ *  Course carries a Finalized filter for the Course mode. */
 export interface FieldBadges<T> {
   entries: ApproverBadge<T>[]
   final: FinalBadge<T> | null
+}
+
+/** The Reasoning row's badge group: one entry per approver who wrote
+ *  reasoning on this Course mode. No Final reference badge exists here —
+ *  the display model never derives a reasoning settlement (issue 01), so
+ *  the row renders proposals only and never a `Final:` placeholder. */
+export interface ReasoningBadges {
+  entries: ApproverBadge<ReasoningDisplay>[]
 }
 
 /** The four fields of one Course-mode block, mirroring the vote form's
@@ -90,7 +96,7 @@ export interface ModeBadges {
   rankedStatus: FieldBadges<RankedStatusDisplay>
   nubTier: FieldBadges<TierDisplay>
   proTier: FieldBadges<TierDisplay>
-  reasoning: FieldBadges<ReasoningDisplay>
+  reasoning: ReasoningBadges
 }
 
 /** One Course block of the section: the Course identity the block renders
@@ -158,24 +164,36 @@ function finalBadgeFor<T>(
 
 /** Builds one field's badge group from the proposed rows and the Course's
  *  Finalized filter (when one exists). `entryValue` projects each proposal's
- *  display value, `finalValue` the Final reference badge's; `include`
- *  filters which proposals render (the empty-reasoning omission). */
+ *  display value, `finalValue` the Final reference badge's. */
 function buildFieldBadges<T>(
   proposed: ProposedFilter[],
   finalFilter: SubmissionDetailFinalFilter | undefined,
   entryValue: (filter: SubmissionDetailVoteFilter) => T,
   finalValue: (filter: SubmissionDetailFinalFilter) => T,
-  include?: (filter: SubmissionDetailVoteFilter) => boolean,
 ): FieldBadges<T> {
   return {
-    entries: proposed
-      .filter(({ filter }) => include?.(filter) ?? true)
-      .map(({ approverName, filter }) => ({
-        approverName,
-        displayValue: entryValue(filter),
-      })),
+    entries: proposed.map(({ approverName, filter }) => ({
+      approverName,
+      displayValue: entryValue(filter),
+    })),
     final: finalBadgeFor(finalFilter, finalValue),
   }
+}
+
+/** Builds the Reasoning row's badge group — proposals only, the written
+ *  text each approver actually proposed (the written-only omission rule),
+ *  with no Final entry and therefore no settlement and no placeholder. The
+ *  Finalized filter plays no part: its notes, whatever they are, are not
+ *  finalized reasoning. */
+function buildReasoningBadges(proposed: ProposedFilter[]): ReasoningBadges {
+  const entries: ApproverBadge<ReasoningDisplay>[] = []
+  for (const { approverName, filter } of proposed) {
+    if (!isWrittenReason(filter.notes)) {
+      continue
+    }
+    entries.push({ approverName, displayValue: filter.notes })
+  }
+  return { entries }
 }
 
 function buildModeBadges(
@@ -203,13 +221,7 @@ function buildModeBadges(
       (filter) => tierToNumber(filter.proTier),
       (filter) => tierToNumber(filter.proTier),
     ),
-    reasoning: buildFieldBadges(
-      proposed,
-      finalFilter,
-      (filter) => filter.notes,
-      (filter) => (isWrittenReason(filter.notes) ? filter.notes : null),
-      (filter) => isWrittenReason(filter.notes),
-    ),
+    reasoning: buildReasoningBadges(proposed),
   }
 }
 

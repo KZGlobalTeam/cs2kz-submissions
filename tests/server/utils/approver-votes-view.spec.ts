@@ -163,7 +163,6 @@ describe('buildApproverVotesView', () => {
           entries: [
             { approverName: 'Alice', displayValue: 'Too easy for nubs' },
           ],
-          final: { approverName: 'Final', displayValue: 'Lead alignment' },
         },
       },
     ])
@@ -252,7 +251,6 @@ describe('buildApproverVotesView', () => {
         },
         reasoning: {
           entries: [],
-          final: null,
         },
       },
     ])
@@ -277,10 +275,13 @@ describe('buildApproverVotesView', () => {
       ],
     )
 
-    // Null, empty, and whitespace-only notes are not reasoning.
-    expect(view.courses[0]!.modes[0]!.reasoning.entries).toEqual([
-      { approverName: 'Written', displayValue: '  jumpstat is brutal  ' },
-    ])
+    // Null, empty, and whitespace-only notes are not reasoning; the row
+    // carries proposals only — no Final entry, however empty.
+    expect(view.courses[0]!.modes[0]!.reasoning).toEqual({
+      entries: [
+        { approverName: 'Written', displayValue: '  jumpstat is brutal  ' },
+      ],
+    })
   })
 
   it('carries no Final badge when the Course has no Finalized filter for the mode', () => {
@@ -302,7 +303,9 @@ describe('buildApproverVotesView', () => {
     expect(classic.rankedStatus.final).toBeNull()
     expect(classic.nubTier.final).toBeNull()
     expect(classic.proTier.final).toBeNull()
-    expect(classic.reasoning.final).toBeNull()
+    // Reasoning never carries a Final entry — with no proposals either, the
+    // row is empty.
+    expect(classic.reasoning).toEqual({ entries: [] })
   })
 
   it('mixes Final badges per mode: finalized modes carry them, vote-only modes do not', () => {
@@ -326,10 +329,9 @@ describe('buildApproverVotesView', () => {
       approverName: 'Final',
       displayValue: 'Ranked',
     })
-    expect(classic?.reasoning.final).toEqual({
-      approverName: 'Final',
-      displayValue: 'Settled',
-    })
+    // The Reasoning row never derives a settlement: the Finalized filter's
+    // reason text is not a final reference badge, however settled the filter.
+    expect(classic?.reasoning).toEqual({ entries: [] })
 
     expect(vanilla?.mode).toBe('vanilla')
     expect(vanilla?.rankedStatus.entries).toEqual([
@@ -338,19 +340,28 @@ describe('buildApproverVotesView', () => {
     expect(vanilla?.rankedStatus.final).toBeNull()
   })
 
-  it('renders a Final reasoning value of null when the lead finalized without written notes', () => {
-    // Null and whitespace-only notes are the same: the Final badge stays
-    // present (one per field), its value a placeholder the UI renders — the
-    // omission rule omits proposals, it does not delete the reference row.
-    for (const notes of [null, '', '   ']) {
+  it('never derives a reasoning settlement entry, whatever the Finalized filter carries', () => {
+    // The Reasoning row renders proposals only. The lead cannot write
+    // finalized reasoning (the decision form has no such input), so no
+    // settlement is derived — null, blank, whitespace, or written
+    // Finalized-filter notes are all ignored, and the Final reference badge
+    // is absent from the row entirely.
+    for (const notes of [null, '', '   ', 'Lead alignment']) {
       const view = buildApproverVotesView(
-        [course('course-1', 'Aerodrome', [finalFilter('course-1', 'classic', { notes })])],
-        [],
+        [
+          course('course-1', 'Aerodrome', [
+            finalFilter('course-1', 'classic', { notes }),
+          ]),
+        ],
+        [
+          vote('Alice', [
+            filterRow('course-1', 'classic', { notes: 'Proposed' }),
+          ]),
+        ],
       )
 
-      expect(view.courses[0]!.modes[0]!.reasoning.final).toEqual({
-        approverName: 'Final',
-        displayValue: null,
+      expect(view.courses[0]!.modes[0]!.reasoning).toEqual({
+        entries: [{ approverName: 'Alice', displayValue: 'Proposed' }],
       })
     }
   })
@@ -390,7 +401,6 @@ describe('buildApproverVotesView', () => {
         },
         reasoning: {
           entries: [],
-          final: { approverName: 'Final', displayValue: null },
         },
       },
       {
@@ -409,7 +419,6 @@ describe('buildApproverVotesView', () => {
         },
         reasoning: {
           entries: [],
-          final: { approverName: 'Final', displayValue: null },
         },
       },
     ])
@@ -494,7 +503,6 @@ describe('buildApproverVotesView', () => {
           },
           reasoning: {
             entries: [],
-            final: null,
           },
         },
       ],
