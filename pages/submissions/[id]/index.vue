@@ -9,6 +9,7 @@ import CoursesReadonly from '~/components/review/CoursesReadonly.vue'
 import DecisionPanel from '~/components/review/DecisionPanel.vue'
 import LeadDecisionPanel from '~/components/review/LeadDecisionPanel.vue'
 import MapInfoPanel from '~/components/review/MapInfoPanel.vue'
+import StatusOfApprovalPanel from '~/components/review/StatusOfApprovalPanel.vue'
 
 type PanelMode = 'vote' | 'approve'
 
@@ -214,6 +215,16 @@ watch(details, () => {
           @loaded="readonlyChecklistVisible = $event"
         />
       </div>
+
+      <!-- The Status of Approval section, at the bottom of the reviewer
+           view: the vote form's own card in read only — every approver's
+           Vote, the viewer's own included, with the Approval note or
+           Rejection reason and Rejection attachments. Spans both columns
+           below the votes section and the checklist column. -->
+      <StatusOfApprovalPanel
+        :votes="details.votes"
+        class="lg:col-span-full"
+      />
     </div>
   </section>
 </template>

@@ -4,11 +4,11 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Below the approver-votes section, approvers and the lead see every Vote on the submission: approver name, yes/no, the Approval note on yes, the Rejection reason on no, and any Rejection attachments with the existing lightbox.
-- [ ] The viewer's own Vote is included — there is no self-exclusion in this section.
-- [ ] A decided submission with no Votes shows a terminal-appropriate empty state; the pending-review wording ("no other approver votes yet") never appears on a decided page.
-- [ ] Mappers never see this section.
-- [ ] The existing vote summary component's other usages (the pending review panels) are unchanged.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass.
+- [x] Below the approver-votes section, approvers and the lead see every Vote on the submission: approver name, yes/no, the Approval note on yes, the Rejection reason on no, and any Rejection attachments with the existing lightbox.
+- [x] The viewer's own Vote is included — there is no self-exclusion in this section.
+- [x] A decided submission with no Votes shows a terminal-appropriate empty state; the pending-review wording ("no other approver votes yet") never appears on a decided page.
+- [x] Mappers never see this section.
+- [x] The existing vote summary component's other usages (the pending review panels) are unchanged.
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass.

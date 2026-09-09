@@ -5,15 +5,28 @@ import AttachmentLightbox from '../common/AttachmentLightbox.vue'
 
 const props = defineProps<{
   votes: SubmissionDetailVote[]
-  /** When set, omit this user's own vote. */
+  /** When set, omit this user's own vote. Ignored in the decided context:
+   *  the Status of Approval record always shows every Vote. */
   excludeUserId?: string
+  /** Render in the decided-submission context used by the Status of Approval
+   *  section: no self-exclusion, and an empty state written for a terminal
+   *  page — a decided submission can legally carry zero Votes (ADR-0007
+   *  lead-only finalization), so the pending-review copy ("no other approver
+   *  votes yet") never appears. The pending review panels never set this. */
+  terminal?: boolean
 }>()
 
-const displayed = computed<SubmissionDetailVote[]>(() =>
-  props.excludeUserId
+/** The votes this panel renders. The decided context (`terminal`) shows every
+ *  Vote — the viewer's own included — while the pending review panels hide
+ *  the viewer's own Vote behind `excludeUserId`. */
+const displayed = computed<SubmissionDetailVote[]>(() => {
+  if (props.terminal) {
+    return props.votes
+  }
+  return props.excludeUserId
     ? props.votes.filter((vote) => vote.approverUserId !== props.excludeUserId)
-    : props.votes,
-)
+    : props.votes
+})
 
 const approvedVotes = computed(() =>
   displayed.value.filter((vote) => vote.approvalDecision === 'yes'),
@@ -76,6 +89,7 @@ function openAttachments(vote: SubmissionDetailVote, index: number) {
       </div>
     </div>
   </div>
+  <p v-else-if="terminal" class="text-xs text-muted">No approver votes were recorded</p>
   <p v-else class="text-xs text-muted">No other approver votes yet</p>
 
   <AttachmentLightbox
