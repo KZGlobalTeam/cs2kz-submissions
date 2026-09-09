@@ -4,12 +4,12 @@
 
 **Blocked by:** 01, 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] On approved/rejected submissions, approvers and the lead see one block per Course in the vote form's layout: course name and image, then per Course mode the four fields (Ranked Status, NUB tier, PRO tier, Reasoning) as static labels with a badge per approver showing name and display value, plus a "Final" badge per field from the Finalized filters.
-- [ ] The section has no headings and no input controls — no checkbox, radio groups, selects, or textareas anywhere in it.
-- [ ] For approvers and the lead on decided submissions, the votes section replaces the read-only courses section; mappers continue to see the read-only courses section with map facts and Finalized filters and never see the votes section.
-- [ ] A viewer who is also the submitter of the decided submission sees the section like any other approver.
-- [ ] An approver who proposed no Course filter on a given Course shows no badges for it — the missing-cell case renders honestly.
-- [ ] Pending submissions render exactly as today; the existing review surfaces are untouched.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass.
+- [x] On approved/rejected submissions, approvers and the lead see one block per Course in the vote form's layout: course name and image, then per Course mode the four fields (Ranked Status, NUB tier, PRO tier, Reasoning) as static labels with a badge per approver showing name and display value, plus a "Final" badge per field from the Finalized filters.
+- [x] The section has no headings and no input controls — no checkbox, radio groups, selects, or textareas anywhere in it.
+- [x] For approvers and the lead on decided submissions, the votes section replaces the read-only courses section; mappers continue to see the read-only courses section with map facts and Finalized filters and never see the votes section.
+- [x] A viewer who is also the submitter of the decided submission sees the section like any other approver.
+- [x] An approver who proposed no Course filter on a given Course shows no badges for it — the missing-cell case renders honestly.
+- [x] Pending submissions render exactly as today; the existing review surfaces are untouched.
+- [x] `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass.

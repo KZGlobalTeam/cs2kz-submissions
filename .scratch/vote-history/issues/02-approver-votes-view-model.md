@@ -4,12 +4,12 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] The module takes the payload's courses, Votes, and Finalized filters and returns, per Course and per Course mode, badge groups for Ranked Status / NUB tier / PRO tier / Reasoning: each badge carries the approver's name and a display value (tier as a number 1–10, ranked as Ranked/Unranked, reasoning as text).
-- [ ] Each field's badge group also carries one "Final" entry derived from the Course's Finalized filter for that mode.
-- [ ] A Vote that recorded no proposed Course filter on a Course contributes no badges there; empty reasoning entries are omitted.
-- [ ] A decided submission with zero Votes produces a well-defined empty shape suitable for the Status of Approval empty state.
-- [ ] The types line up exactly with the existing details-payload types — no drift copies introduced.
-- [ ] Unit tests in the repository's pure node-env style cover every case above, including multi-approver attribution and the missing-cell cases.
-- [ ] `pnpm lint && pnpm typecheck && pnpm test` all pass.
+- [x] The module takes the payload's courses, Votes, and Finalized filters and returns, per Course and per Course mode, badge groups for Ranked Status / NUB tier / PRO tier / Reasoning: each badge carries the approver's name and a display value (tier as a number 1–10, ranked as Ranked/Unranked, reasoning as text).
+- [x] Each field's badge group also carries one "Final" entry derived from the Course's Finalized filter for that mode.
+- [x] A Vote that recorded no proposed Course filter on a Course contributes no badges there; empty reasoning entries are omitted.
+- [x] A decided submission with zero Votes produces a well-defined empty shape suitable for the Status of Approval empty state.
+- [x] The types line up exactly with the existing details-payload types — no drift copies introduced.
+- [x] Unit tests in the repository's pure node-env style cover every case above, including multi-approver attribution and the missing-cell cases.
+- [x] `pnpm lint && pnpm typecheck && pnpm test` all pass.

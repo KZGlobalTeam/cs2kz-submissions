@@ -4,6 +4,7 @@ import type { SubmissionDetailResponse } from '~/shared/types/submission-detail'
 import ApproverChecklistReadonly from '~/components/review/ApproverChecklistReadonly.vue'
 import ApproverChecklistSection from '~/components/review/ApproverChecklistSection.vue'
 import ApproverVoteForm from '~/components/review/ApproverVoteForm.vue'
+import ApproverVotesSection from '~/components/review/ApproverVotesSection.vue'
 import CoursesReadonly from '~/components/review/CoursesReadonly.vue'
 import DecisionPanel from '~/components/review/DecisionPanel.vue'
 import LeadDecisionPanel from '~/components/review/LeadDecisionPanel.vue'
@@ -17,7 +18,7 @@ definePageMeta({
 
 const route = useRoute()
 const router = useRouter()
-const { session, hasApproverRole, isLeadApprover, refreshSession } = useSession()
+const { session, hasApproverRole, isApprover, isLeadApprover, refreshSession } = useSession()
 
 const submissionId = computed(() => String(route.params.id))
 
@@ -179,27 +180,32 @@ watch(details, () => {
     />
 
     <CoursesReadonly
-      v-if="showReadonlyCourses && !(!isPending && hasApproverRole)"
+      v-if="showReadonlyCourses && !(!isPending && isApprover)"
       :courses="details.courses"
     />
 
-    <!-- Once the submission has left review, an approver sees their saved
-         checklist and note read-only, in the same side-column spot the
-         editable card occupied during review: two columns on desktop,
-         stacked on mobile. The second column is collapsible and the grid
-         falls back to one column when the approver never saved anything —
-         never an empty box. Same porting rule as the editable section: the
-         porting group renders only when the submission is a port. A user who
-         holds `approver` (lead or not) reaches this branch with their own
-         private checklist; lead-only users and mappers never do. -->
+    <!-- On decided submissions, the approver-votes section replaces the
+         read-only courses section for every reviewer — approvers and the
+         lead alike, including a viewer who is also the submitter (reviewer
+         admission is role-based, never ownership-based). The read-only
+         checklist card keeps its old side-column spot, collapsible and
+         approver-only: a user who holds `approver` (lead or not) reaches
+         the column with their own private checklist; lead-only users and
+         mappers never do. Mappers keep the read-only courses section with
+         map facts and Finalized filters above (the `v-if` branch) — they
+         never see individual Votes, and the API's role-based strip is what
+         enforces it, not an empty votes array in the client. -->
     <div
-      v-else-if="!isPending && hasApproverRole"
+      v-else-if="!isPending && isApprover"
       class="grid gap-6"
       :class="{ 'lg:grid-cols-2': readonlyChecklistVisible }"
     >
-      <CoursesReadonly :courses="details.courses" />
+      <ApproverVotesSection
+        :courses="details.courses"
+        :votes="details.votes"
+      />
 
-      <div v-show="readonlyChecklistVisible">
+      <div v-if="hasApproverRole" v-show="readonlyChecklistVisible">
         <ApproverChecklistReadonly
           :user-id="userId"
           :submission-id="details.submission.id"
