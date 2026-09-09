@@ -53,7 +53,7 @@ describe('seedChecklistGroups', () => {
   it('preserves saved ticks per rule index', () => {
     const saved = { naming: [true, false, true], other: [true] }
     const state = seedChecklistGroups(portGroups, saved)
-    expect(state.naming).toEqual([true, false, true, false, false, false])
+    expect(state.naming).toEqual([true, false, true, false, false])
     expect(state.other).toEqual([true, false, false])
     expect(state.courses?.every((tick) => tick === false)).toBe(true)
   })
@@ -131,7 +131,7 @@ describe('buildChecklistPayload', () => {
       { naming: [true, false, true], other: [false, true, false] },
       '  jumpstat area is solid  ',
     )
-    expect(payload.checklist.naming).toEqual([true, false, true, false, false, false])
+    expect(payload.checklist.naming).toEqual([true, false, true, false, false])
     expect(payload.checklist.other).toEqual([false, true, false])
     expect(payload.note).toBe('jumpstat area is solid')
   })
@@ -139,11 +139,11 @@ describe('buildChecklistPayload', () => {
   it('normalizes a cleared note to null (explicit reset)', () => {
     const payload = buildChecklistPayload(
       nonPortGroups,
-      { naming: [false, false, false, false, false, false] },
+      { naming: [false, false, false, false, false] },
       '',
     )
     expect(payload.note).toBeNull()
-    expect(payload.checklist.naming).toEqual([false, false, false, false, false, false])
+    expect(payload.checklist.naming).toEqual([false, false, false, false, false])
   })
 
   it('round-trips a saved state unchanged: seeding then building reproduces it', () => {
