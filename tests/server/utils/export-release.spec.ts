@@ -170,14 +170,12 @@ describe('toReleaseExportPayload', () => {
                 nubTier: 'very-easy' as const,
                 proTier: 'medium' as const,
                 state: 'ranked' as const,
-                notes: null,
               },
               vanilla: {
                 mode: 'vanilla' as const,
                 nubTier: 'very-easy' as const,
                 proTier: 'medium' as const,
                 state: 'ranked' as const,
-                notes: 'Generous curve',
               },
             },
           },
@@ -193,14 +191,12 @@ describe('toReleaseExportPayload', () => {
                 nubTier: 'very-easy' as const,
                 proTier: 'medium' as const,
                 state: 'ranked' as const,
-                notes: null,
               },
               vanilla: {
                 mode: 'vanilla' as const,
                 nubTier: 'very-easy' as const,
                 proTier: 'medium' as const,
                 state: 'ranked' as const,
-                notes: null,
               },
             },
           },
@@ -212,6 +208,10 @@ describe('toReleaseExportPayload', () => {
   it('renders the ordered manifest into the validated NewMap payload', () => {
     const payload = toReleaseExportPayload(contents())
 
+    // The final-filter notes were purged from the manifest, and the export
+    // shaping re-synthesizes the contract's notes key per finalized filter
+    // as '' — the same placeholder the documented null→'' coercion emitted
+    // before the purge, so the dashboard-facing JSON is byte-identical.
     expect(payload).toMatchObject([
       {
         name: 'mute',
@@ -233,7 +233,7 @@ describe('toReleaseExportPayload', () => {
                 nub_tier: 'very-easy',
                 pro_tier: 'medium',
                 state: 'ranked',
-                notes: 'Generous curve',
+                notes: '',
               },
             },
           },
@@ -241,6 +241,27 @@ describe('toReleaseExportPayload', () => {
         ],
       },
     ])
+  })
+
+  it('keeps the per-finalized-filter notes key with the placeholder on every course and mode', () => {
+    const payload = toReleaseExportPayload(contents())
+
+    // ADR-0008's externally-versioned contract passes exactly as before: the
+    // notes key exists on each finalized filter and holds the placeholder.
+    // Filter key order follows the shared snake_case export schema.
+    for (const map of payload) {
+      for (const course of map.courses) {
+        for (const mode of ['classic', 'vanilla'] as const) {
+          expect(Object.keys(course.filters[mode])).toEqual([
+            'nub_tier',
+            'pro_tier',
+            'state',
+            'notes',
+          ])
+          expect(course.filters[mode].notes).toBe('')
+        }
+      }
+    }
   })
 
   it('keeps manifest course order and keeps plumbing out of the wire', () => {

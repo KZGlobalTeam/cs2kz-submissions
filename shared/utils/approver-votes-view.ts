@@ -183,8 +183,9 @@ function buildFieldBadges<T>(
 /** Builds the Reasoning row's badge group — proposals only, the written
  *  text each approver actually proposed (the written-only omission rule),
  *  with no Final entry and therefore no settlement and no placeholder. The
- *  Finalized filter plays no part: its notes, whatever they are, are not
- *  finalized reasoning. */
+ *  Finalized filter plays no part: a Finalized filter carries no reason text
+ *  at all after the finalized-reasoning purge (proposal-only Filter notes),
+ *  so there is nothing a settlement could even display. */
 function buildReasoningBadges(proposed: ProposedFilter[]): ReasoningBadges {
   const entries: ApproverBadge<ReasoningDisplay>[] = []
   for (const { approverName, filter } of proposed) {

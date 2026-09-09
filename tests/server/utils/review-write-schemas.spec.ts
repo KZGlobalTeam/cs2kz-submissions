@@ -52,7 +52,6 @@ function finalFilter(overrides: Partial<FinalFilterInput> = {}): FinalFilterInpu
     nubTier: 'medium',
     proTier: 'hard',
     state: 'ranked',
-    notes: null,
     ...overrides,
   }
 }
@@ -188,6 +187,18 @@ describe('SubmissionVoteSchema', () => {
     }
   })
 
+  it('accepts a proposed filter carrying written reasoning (notes are vote-proposal-only)', () => {
+    const result = SubmissionVoteSchema.safeParse(
+      rawVoteBody({
+        filters: [{ ...voteFilter, notes: 'Curve is generous' }],
+      }),
+    )
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.filters[0]!.notes).toBe('Curve is generous')
+    }
+  })
+
   it('strips the removed rejectionExplanation field (non-strict parse) so a stale client is silently ignored', () => {
     const result = SubmissionVoteSchema.safeParse(
       rawVoteBody({ rejectionExplanation: 'stale' }),
@@ -270,6 +281,26 @@ describe('LeadDecisionSchema', () => {
           path: ['decisionNotes'],
         }),
       ])
+    }
+  })
+
+  it('rejects notes on a Finalized filter — a Decision body carrying reasoning is refused', () => {
+    // A Finalized filter carries no reason text (the finalized-reasoning
+    // purge): the two decision sides encode different truth — a Vote keeps
+    // proposing notes, a Decision sending them (e.g. the old hardcoded null)
+    // is a caller mistake, surfaced as a 400, never stored.
+    for (const notes of [null, 'Lead alignment']) {
+      const result = LeadDecisionSchema.safeParse(
+        decisionBody({
+          filters: [{ ...finalFilter(), notes }],
+        }),
+      )
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues).toEqual([
+          expect.objectContaining({ path: ['filters', 0, 'notes'] }),
+        ])
+      }
     }
   })
 

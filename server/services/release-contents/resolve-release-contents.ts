@@ -40,7 +40,6 @@ function stripCourseId(
     nubTier: filter.nubTier,
     proTier: filter.proTier,
     state: filter.state,
-    notes: filter.notes,
   }
 }
 

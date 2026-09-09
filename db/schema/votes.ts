@@ -143,7 +143,6 @@ export const submissionFinalFilters = pgTable(
     proTier: courseFilterTierEnum('pro_tier').notNull(),
     state: courseFilterStateEnum('state').notNull(),
     isRanked: boolean('is_ranked').notNull().default(false),
-    notes: text('notes'),
     resolvedByUserId: uuid('resolved_by_user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),

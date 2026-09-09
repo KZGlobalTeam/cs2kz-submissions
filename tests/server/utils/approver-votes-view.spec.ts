@@ -58,7 +58,9 @@ function filterRow(
 }
 
 /** A Finalized filter for one Course/mode, defaults at the top of the ten
- *  tier scale so the tier-number mapping asserts real boundaries. */
+ *  tier scale so the tier-number mapping asserts real boundaries. Carries no
+ *  notes: a Finalized filter never holds reason text (the finalized-reasoning
+ *  purge). */
 function finalFilter(
   courseId: string,
   mode: Mode,
@@ -73,7 +75,6 @@ function finalFilter(
     proTier: 'easy',
     state: 'ranked',
     isRanked: true,
-    notes: null,
     resolvedByUserId: 'user-lead',
     resolvedAt: '2026-09-01T00:00:00.000Z',
     ...overrides,
@@ -110,7 +111,6 @@ describe('buildApproverVotesView', () => {
           finalFilter('course-1', 'classic', {
             nubTier: 'advanced',
             proTier: 'impossible',
-            notes: 'Lead alignment',
           }),
         ]),
       ],
@@ -313,7 +313,7 @@ describe('buildApproverVotesView', () => {
     const view = buildApproverVotesView(
       [
         course('course-1', 'Aerodrome', [
-          finalFilter('course-1', 'classic', { notes: 'Settled' }),
+          finalFilter('course-1', 'classic'),
         ]),
       ],
       [
@@ -340,30 +340,27 @@ describe('buildApproverVotesView', () => {
     expect(vanilla?.rankedStatus.final).toBeNull()
   })
 
-  it('never derives a reasoning settlement entry, whatever the Finalized filter carries', () => {
-    // The Reasoning row renders proposals only. The lead cannot write
-    // finalized reasoning (the decision form has no such input), so no
-    // settlement is derived — null, blank, whitespace, or written
-    // Finalized-filter notes are all ignored, and the Final reference badge
-    // is absent from the row entirely.
-    for (const notes of [null, '', '   ', 'Lead alignment']) {
-      const view = buildApproverVotesView(
-        [
-          course('course-1', 'Aerodrome', [
-            finalFilter('course-1', 'classic', { notes }),
-          ]),
-        ],
-        [
-          vote('Alice', [
-            filterRow('course-1', 'classic', { notes: 'Proposed' }),
-          ]),
-        ],
-      )
+  it('never derives a reasoning settlement entry — a Finalized filter carries no reason text at all', () => {
+    // The Reasoning row renders proposals only, whatever the settlement. The
+    // lead has no way to finalize reasoning — the field was purged from the
+    // Finalized filter together with the decision form's dead hardcoded null
+    // — so there is no settlement to derive and no Final reference badge.
+    const view = buildApproverVotesView(
+      [
+        course('course-1', 'Aerodrome', [
+          finalFilter('course-1', 'classic'),
+        ]),
+      ],
+      [
+        vote('Alice', [
+          filterRow('course-1', 'classic', { notes: 'Proposed' }),
+        ]),
+      ],
+    )
 
-      expect(view.courses[0]!.modes[0]!.reasoning).toEqual({
-        entries: [{ approverName: 'Alice', displayValue: 'Proposed' }],
-      })
-    }
+    expect(view.courses[0]!.modes[0]!.reasoning).toEqual({
+      entries: [{ approverName: 'Alice', displayValue: 'Proposed' }],
+    })
   })
 
   it('yields a well-defined empty shape for a decided submission with zero Votes', () => {

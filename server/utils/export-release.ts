@@ -71,17 +71,21 @@ export function toReleaseExportPayload(contents: ReleaseContents): NewMap[] {
           name: course.name,
           mappers: course.mappers,
           filters: {
+            // The finalized-reasoning purge dropped `notes` from the manifest;
+            // the export contract (ADR-0008) still carries the key, emitted
+            // with the same placeholder the documented null→'' coercion
+            // produced today — byte-identical for the external dashboard.
             classic: {
               nub_tier: classic.nubTier,
               pro_tier: classic.proTier,
               state: classic.state,
-              notes: classic.notes,
+              notes: '',
             },
             vanilla: {
               nub_tier: vanilla.nubTier,
               pro_tier: vanilla.proTier,
               state: vanilla.state,
-              notes: vanilla.notes,
+              notes: '',
             },
           },
         }

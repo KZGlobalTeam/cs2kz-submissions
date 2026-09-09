@@ -114,7 +114,6 @@ export function transactionStore(tx: TransactionClient): ReviewWriteStore {
             proTier: filter.proTier,
             state: filter.state,
             isRanked: filter.isRanked,
-            notes: filter.notes,
             resolvedByUserId,
           })),
         )

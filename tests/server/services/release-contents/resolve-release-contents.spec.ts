@@ -140,7 +140,7 @@ describe('createReleaseContentsService.resolve', () => {
     })
   })
 
-  it('attaches finalised filters per course and mode, null when absent', async () => {
+  it('attaches finalised filters per course and mode, null when absent, with no reason text', async () => {
     const db = seededRelease()
     seedFinalFilter(db, {
       submissionId: MAP_A,
@@ -149,7 +149,6 @@ describe('createReleaseContentsService.resolve', () => {
       nubTier: 'very-easy',
       proTier: 'medium',
       state: 'ranked',
-      notes: 'Curve is generous',
     })
 
     const { maps } = await service(db).resolve(RELEASE_ID)
@@ -160,8 +159,10 @@ describe('createReleaseContentsService.resolve', () => {
       nubTier: 'very-easy',
       proTier: 'medium',
       state: 'ranked',
-      notes: 'Curve is generous',
     })
+    // A Finalized filter carries no reason text after the purge — the seed
+    // cannot even carry one, and the manifest never reads the column.
+    expect(filters.classic).not.toHaveProperty('notes')
     expect(filters.vanilla).toBeNull()
   })
 })

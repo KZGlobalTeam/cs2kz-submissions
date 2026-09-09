@@ -106,7 +106,6 @@ export function drizzleStore(db: Database): ReleaseContentsStore {
           nubTier: submissionFinalFilters.nubTier,
           proTier: submissionFinalFilters.proTier,
           state: submissionFinalFilters.state,
-          notes: submissionFinalFilters.notes,
         })
         .from(submissionFinalFilters)
         .where(inArray(submissionFinalFilters.submissionId, submissionIds))

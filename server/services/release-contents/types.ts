@@ -7,13 +7,14 @@ import type { SubmissionStatus } from '~/shared/types/submission'
 
 /** One Finalized course filter as the resolution reads it. The manifest does
  *  not judge presence — a course may carry one mode's filter and not the
- *  other's (that refusal is an export concern). */
+ *  other's (that refusal is an export concern). No notes: a Finalized filter
+ *  carries no reason text after the finalized-reasoning purge; the export
+ *  shaping re-synthesizes the placeholder at the edge (ADR-0008). */
 export interface ReleaseFinalFilter {
   mode: Mode
   nubTier: CourseFilterTier
   proTier: CourseFilterTier
   state: CourseFilterState
-  notes: string | null
 }
 
 /** A finalized-filter row attached to its course (the export renders it; the

@@ -21,7 +21,6 @@ function finalFilter(overrides: Record<string, unknown> = {}) {
     nubTier: 'medium' as const,
     proTier: 'hard' as const,
     state: 'ranked' as const,
-    notes: null,
     ...overrides,
   }
 }
@@ -83,6 +82,11 @@ describe('finalizeSubmission', () => {
       derivedFilter({ state: 'unranked' }),
       derivedFilter({ state: 'pending' }),
     ].map((f) => ({ ...f, resolvedByUserId: LEAD_ID })))
+    // The store contract records no reason text on Finalized filters (the
+    // finalized-reasoning purge): whatever the wire sent, nothing persisted.
+    for (const record of db.finalFilters.get(SUBMISSION_ID) ?? []) {
+      expect(record).not.toHaveProperty('notes')
+    }
     // An approval leaks no Rejection attachments and no decision rows.
     expect(db.decisionAttachments.size).toBe(0)
   })

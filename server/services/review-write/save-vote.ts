@@ -197,7 +197,9 @@ export function createReviewWriteService(deps: ReviewWriteDeps): ReviewWriteServ
         async (store) => {
           // `isRanked` is derived from `state` at write time: the decision
           // wire carries no `isRanked`, so the stored column always reflects
-          // the invariant (`isRanked ⇔ state = 'ranked'`).
+          // the invariant (`isRanked ⇔ state = 'ranked'`). The Finalized
+          // filters carry no reason text — the wire schema rejects `notes`,
+          // so nothing is persisted here (the finalized-reasoning purge).
           const finalFilters: FinalFilterRecord[] = input.filters.map(
             (filter) => ({
               courseId: filter.courseId,
@@ -206,7 +208,6 @@ export function createReviewWriteService(deps: ReviewWriteDeps): ReviewWriteServ
               proTier: filter.proTier,
               state: filter.state,
               isRanked: filter.state === 'ranked',
-              notes: filter.notes,
             }),
           )
 

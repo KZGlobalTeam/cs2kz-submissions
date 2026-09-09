@@ -24,7 +24,6 @@ export interface SubmissionDetailFinalFilter {
   proTier: CourseFilterTier
   state: CourseFilterState
   isRanked: boolean
-  notes: string | null
   resolvedByUserId: string
   resolvedAt: string
 }

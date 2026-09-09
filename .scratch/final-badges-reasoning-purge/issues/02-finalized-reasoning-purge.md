@@ -15,3 +15,44 @@
 - [ ] The release export JSON keeps its per-finalized-filter notes key with the same placeholder value it emits today, byte-identical for the external dashboard; the shared export schema's nullable notes key is untouched (ADR-0008).
 - [ ] Unit tests are updated and green across the review-write wire schemas, the decision write spine, the release-contents resolution, and the export shaping — each asserting the absence on the review side and the preserved placeholder on the export side. Vote/save-vote behavior is unaffected.
 - [ ] `pnpm lint && pnpm typecheck && pnpm test && pnpm build` all pass, and the migration applies cleanly against a local database.
+---
+
+## Shipped
+
+Committed as `#02 final-badges-reasoning-purge`: the Finalized-filter `notes`
+field is purged from the review side end to end — the database column dropped
+by migration `0009_rapid_red_shift.sql` (with its documented pre-flight
+check), the Decision request schema now rejects `notes` on Finalized filters
+while the Vote schema keeps accepting it on proposed filters (the two decision
+sides encode different truth), the decision write spine and its Drizzle store
+persist final-filter records with no notes, the details payload type and the
+release-content resolution carry no final-filter notes, and the lead decision
+form's payload no longer sends its hardcoded `notes: null`. The release export
+still emits the per-finalized-filter `notes: ""` placeholder via the shaping
+adapter, byte-identical for the external dashboard (ADR-0008); the shared
+snake_case export schema's nullable `notes` key is untouched.
+
+- [x] All checklist bullets above met.
+- [x] Pre-flight check run on the configured database before applying:
+  `SELECT COUNT(*) FROM submission_final_filters WHERE notes IS NOT NULL` →
+  **0 non-null rows** (32 rows total). Pre-flight query is documented in the
+  migration header for the operator contract.
+- [x] Migration `db:generate` → `0009_rapid_red_shift.sql` (single
+  `DROP COLUMN`), applied cleanly via `pnpm db:migrate`; verified the column
+  is gone and all 32 final-filter rows remain.
+- [x] `pnpm lint` (0 errors) && `pnpm typecheck` && `pnpm test` (306 passed)
+  && `pnpm build` all pass.
+- [x] Live API verification as Reeed (lead approver, saved session):
+  release export for "Global Map Release 2026-09-09" (9 maps) carries
+  `notes: ""` on every finalized filter; the decided-submission details
+  payload returns final-filters with no `notes` key while Vote proposal
+  filters keep theirs; the decision endpoint accepts the new notes-free body
+  (409 on the already-decided submission — the write gate, not a parse
+  failure) and rejects a stale body carrying `notes: null` with a 400 and the
+  zod issue at `filters[0].notes`.
+- [x] Unit tests updated and green at the four pure seams: wire schemas
+  (Decision rejects notes, Vote accepts written notes), the decision write
+  spine's fake-store contract (`not.toHaveProperty('notes')` per stored
+  record), release-contents resolution (`not.toHaveProperty('notes')`), and
+  export shaping (notes key present with the `''` placeholder on every
+  course × mode). Vote/save-vote fixtures and behavior untouched.

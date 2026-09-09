@@ -15,22 +15,27 @@ function hasWrittenReason(value: string | null): boolean {
 }
 
 /** The Course-filter fields shared by a Vote proposal and a Finalized filter:
- *  the Course, the mode, the two tier ratings, and optional notes. Composes
- *  the shared tier and mode schemas so the wire shape cannot drift from the
- *  DB enums or the UI tier scale. */
+ *  the Course, the mode, and the two tier ratings. Composes the shared tier
+ *  and mode schemas so the wire shape cannot drift from the DB enums or the
+ *  UI tier scale. `notes` deliberately does NOT live here: a Finalized filter
+ *  never carries reasoning (the finalized-reasoning purge), so the two
+ *  decision sides now encode different truth — a Vote proposal keeps its
+ *  notes, a Decision's Finalized filter rejects them. */
 const FilterFieldsSchema = z.object({
   courseId: z.string().uuid(),
   mode: ModeSchema,
   nubTier: CourseFilterTierSchema,
   proTier: CourseFilterTierSchema,
-  notes: z.string().nullable(),
 })
 
 /** One proposed rating of a single Course in a single Course mode, carried on
  *  an approver's Vote. Proposals carry their own `isRanked` — a proposal has
- *  no `state` to derive it from. */
+ *  no `state` to derive it from — and the approver's reasoning `notes`, the
+ *  one place the shared filter fields carry a note (proposal-only; see the
+ *  Filter note entry in CONTEXT.md). */
 export const VoteFilterSchema = FilterFieldsSchema.extend({
   isRanked: z.boolean(),
+  notes: z.string().nullable(),
 })
 
 /** The Vote request body (`PUT /api/submissions/[id]/vote`). */
@@ -60,9 +65,13 @@ export const SubmissionVoteSchema = z
 /** The lead approver's settled version of a Vote's proposed filter: the shared
  *  filter fields plus the Finalized filter state. The wire carries no
  *  `isRanked` — the write derives it from `state` (`isRanked ⇔
- *  state = 'ranked'`), an invariant nothing on the wire would enforce. */
+ *  state = 'ranked'`), an invariant nothing on the wire would enforce — and
+ *  never a `notes`: a Finalized filter carries no reasoning, so a Decision
+ *  body that sends one is rejected (a leftover lead-decision form posting its
+ *  old hardcoded null gets a 400, not silent storage). */
 export const FinalFilterSchema = FilterFieldsSchema.extend({
   state: CourseFilterStateSchema,
+  notes: z.never().optional(),
 })
 
 /** The Decision request body (`PUT /api/submissions/[id]/decision`). Enforces
