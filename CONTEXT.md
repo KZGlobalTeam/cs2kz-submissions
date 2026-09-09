@@ -95,7 +95,7 @@ An approver's proposed rating of a single Course in a single Course mode — nub
 _Avoid_: Filter (bare), filters
 
 **Finalized filter**:
-The lead approver's settled rating of a single Course in a single Course mode, written at Decision time and never edited. The values that ship in a Release export; a course needs both Course modes finalized to be exported.
+The lead approver's settled rating of a single Course in a single Course mode, written at Decision time and never edited. Carries no reasoning: a Finalized filter is the settled rating alone, never a reason text (see Filter note). The values that ship in a Release export; a course needs both Course modes finalized to be exported.
 _Avoid_: Final filters
 
 **Filter tier**:
@@ -107,8 +107,12 @@ Whether a Finalized filter is ranked, awaiting ranking, or unranked.
 _Avoid_: Ranked status
 
 **Filter note**:
-Free-text reasoning attached to a Course filter, proposed or finalized, explaining the tier.
+Free-text reasoning an approver writes on a proposed Course filter attached to their Vote, explaining the tier. Proposal-only: a Finalized filter never carries one, so on a decided submission the Reasoning row shows only the reasoning each approver proposed — never a settled reasoning.
 _Avoid_: Notes (bare)
+
+**Final reference badge**:
+The decided view's per-field `Final:` marker showing a Finalized filter's settled value: present beside the `Ranked Status`, `NUB tier`, and `PRO tier` row labels, and never on the Reasoning row — a Finalized filter carries no reasoning, so no settlement is marked there.
+_Avoid_: Final (bare)
 
 **Port**:
 A submission whose map adapts an existing map from another game or source. The submitter must flag it and attach Proof of permission from the original author, skippable only when that author has been inactive for roughly two years.
