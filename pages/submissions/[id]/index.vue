@@ -5,6 +5,7 @@ import ApproverChecklistReadonly from '~/components/review/ApproverChecklistRead
 import ApproverChecklistSection from '~/components/review/ApproverChecklistSection.vue'
 import ApproverVoteForm from '~/components/review/ApproverVoteForm.vue'
 import CoursesReadonly from '~/components/review/CoursesReadonly.vue'
+import DecisionPanel from '~/components/review/DecisionPanel.vue'
 import LeadDecisionPanel from '~/components/review/LeadDecisionPanel.vue'
 import MapInfoPanel from '~/components/review/MapInfoPanel.vue'
 
@@ -132,6 +133,13 @@ watch(details, () => {
     <MapInfoPanel
       :submission="details.submission"
       :mappers="details.mappers"
+    />
+
+    <!-- The lead's final Decision, standalone: decided submissions only,
+         every role, between the map info card and the courses content. -->
+    <DecisionPanel
+      v-if="!isPending"
+      :submission="details.submission"
       :decision-attachments="details.decisionAttachments"
     />
 

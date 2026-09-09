@@ -1,37 +1,17 @@
 <script setup lang="ts">
-import type { RejectionAttachment } from '~/shared/types/attachment'
 import type {
   SubmissionDetailMapper,
   SubmissionDetailSubmission,
 } from '~/shared/types/submission-detail'
 
-import AttachmentLightbox from '../common/AttachmentLightbox.vue'
-
 const props = defineProps<{
   submission: SubmissionDetailSubmission
   mappers: SubmissionDetailMapper[]
-  decisionAttachments?: RejectionAttachment[]
 }>()
 
 const mapperNames = computed(() =>
   props.mappers.map((mapper) => mapper.displayNameSnapshot).join(', '),
 )
-
-const approvedAtLabel = computed(() =>
-  props.submission.approvedAt
-    ? new Date(props.submission.approvedAt).toLocaleString()
-    : null,
-)
-
-const rejectedAtLabel = computed(() =>
-  props.submission.rejectedAt
-    ? new Date(props.submission.rejectedAt).toLocaleString()
-    : null,
-)
-
-const isDecided = computed(() => props.submission.status !== 'pending')
-
-const revealedAttachments = computed(() => props.decisionAttachments ?? [])
 
 const statusColor = computed(() =>
   props.submission.status === 'approved'
@@ -40,8 +20,6 @@ const statusColor = computed(() =>
       ? 'error'
       : 'neutral',
 )
-
-const lightboxIndex = ref<number | null>(null)
 </script>
 
 <template>
@@ -89,37 +67,5 @@ const lightboxIndex = ref<number | null>(null)
         <p class="text-zinc-300">{{ submission.portNotes }}</p>
       </div>
     </div>
-
-    <div v-if="isDecided" class="mt-4 border-t border-white/5 pt-4 text-sm">
-      <p class="font-semibold">Decision</p>
-      <p class="mt-1 text-muted">Status: {{ submission.status }}</p>
-      <p v-if="submission.decisionByName" class="mt-1 text-muted">
-        By: {{ submission.decisionByName }}
-      </p>
-      <p v-if="approvedAtLabel" class="mt-1 text-muted">Approved: {{ approvedAtLabel }}</p>
-      <p v-if="rejectedAtLabel" class="mt-1 text-muted">Rejected: {{ rejectedAtLabel }}</p>
-      <p v-if="submission.decisionNotes" class="mt-2 text-danger">
-        {{ submission.decisionNotes }}
-      </p>
-      <!-- The lead approver's rejection attachments, revealed to the mapper
-           once the decision is finalized (only populated for rejections). -->
-      <div v-if="revealedAttachments.length" class="mt-3 flex flex-wrap gap-2">
-        <img
-          v-for="(attachment, index) in revealedAttachments"
-          :key="attachment.url"
-          :src="attachment.url"
-          :alt="`Lead rejection attachment ${index + 1}`"
-          class="h-20 w-32 cursor-zoom-in rounded-md border border-white/10 object-cover"
-          @click="lightboxIndex = index"
-        >
-      </div>
-    </div>
   </UCard>
-
-  <AttachmentLightbox
-    :open="lightboxIndex !== null"
-    :items="revealedAttachments"
-    :start="lightboxIndex ?? 0"
-    @update:open="lightboxIndex = $event ? lightboxIndex : null"
-  />
 </template>

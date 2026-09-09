@@ -38,7 +38,7 @@ A pending submission that has received at least one approver vote; from this poi
 _Avoid_: Under review, approval in process
 
 **Vote**:
-An approver's recorded yes/no judgment on a submission. Each decision side carries exactly one text field: the required Rejection reason on No, the optional Approval note on Yes. A no vote may also carry internal Rejection attachments, and a vote of either kind may propose Course filters. The first vote on a submission is what moves it from Unreviewed to In review. Votes are visible to reviewers but hidden from the submitter while the submission is pending.
+An approver's recorded yes/no judgment on a submission. Each decision side carries exactly one text field: the required Rejection reason on No, the optional Approval note on Yes. A no vote may also carry internal Rejection attachments, and a vote of either kind may propose Course filters. The first vote on a submission is what moves it from Unreviewed to In review. Votes are visible to reviewers only, at every stage of the submission's life — never to the submitter, pending or decided. The details API enforces this by stripping the votes payload from every non-approver response.
 _Avoid_: Approval decision, verdict, "Status of Approval"
 
 **Approval note**:
