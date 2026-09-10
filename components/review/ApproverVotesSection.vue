@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { Mode } from '~/shared/schemas/cs2kz'
 import type { SubmissionDetailCourse, SubmissionDetailVote } from '~/shared/types/submission-detail'
+import { modeLabel } from '~/shared/schemas/course-mode'
 
 import { buildApproverVotesView } from '~/shared/utils/approver-votes-view'
 
@@ -40,10 +40,6 @@ const props = defineProps<{
 }>()
 
 const view = computed(() => buildApproverVotesView(props.courses, props.votes))
-
-function modeLabel(mode: Mode): string {
-  return mode === 'classic' ? 'CKZ' : 'VNL'
-}
 </script>
 
 <template>

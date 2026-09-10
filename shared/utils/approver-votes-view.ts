@@ -1,5 +1,6 @@
 import { tierToNumber } from '~/shared/schemas/cs2kz'
 import type { Mode } from '~/shared/schemas/cs2kz'
+import { modesForGame } from '~/shared/schemas/course-mode'
 import type {
   SubmissionDetailCourse,
   SubmissionDetailFinalFilter,
@@ -116,7 +117,7 @@ export interface ApproverVotesView {
   courses: CourseBadges[]
 }
 
-const MODE_ORDER: readonly Mode[] = ['classic', 'vanilla']
+const MODE_ORDER = modesForGame('cs2')
 const FINAL_APPROVER_NAME = 'Final'
 
 /** The omission rule for reasoning: only written reasoning renders — a

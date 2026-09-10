@@ -3,6 +3,7 @@ import { reactive } from 'vue'
 import type { RejectionAttachment } from '~/shared/types/attachment'
 import type { CourseFilterTier, Mode } from '~/shared/schemas/cs2kz'
 import type { ApprovalDecision } from '~/shared/types/submission'
+import { modesForGame } from '~/shared/schemas/course-mode'
 
 export interface VoteFormFilter {
   courseId: string
@@ -34,7 +35,12 @@ export interface ExistingVote {
 }
 
 const DEFAULT_TIER: CourseFilterTier = 'very-easy'
-const FILTER_MODES: Mode[] = ['classic', 'vanilla']
+
+/** The vote form seeds one filter row per Course per mode of the
+ *  submission's game — CS2 today, from the shared vocabulary so the CS:GO
+ *  KZT/SKZ/VNL set lands in one place when the game context threads here
+ *  (ticket 04). */
+const FILTER_MODES = modesForGame('cs2')
 
 function seedFilters(
   courses: Array<{ id: string }>,

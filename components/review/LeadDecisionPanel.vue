@@ -5,6 +5,7 @@ import {
   tierToNumber,
 } from '~/shared/schemas/cs2kz'
 import type { CourseFilterState, CourseFilterTier, Mode } from '~/shared/schemas/cs2kz'
+import { modeLabel, modesForGame } from '~/shared/schemas/course-mode'
 import type { RejectionAttachment } from '~/shared/types/attachment'
 import type { SubmissionStatus } from '~/shared/types/submission'
 import type { SubmissionDetailVote } from '~/shared/types/submission-detail'
@@ -36,7 +37,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ saved: [] }>()
 
-const FILTER_MODES: Mode[] = ['classic', 'vanilla']
+const FILTER_MODES = modesForGame('cs2')
 
 function seedLeadFilters(courses: CourseInput[]): LeadFilter[] {
   return courses.flatMap((course) =>
@@ -144,7 +145,7 @@ async function submitDecision() {
           class="border-t border-white/5 pt-6 first:border-t-0 first:pt-0"
         >
           <p class="mb-4 text-base font-semibold">
-            {{ filter.mode === 'classic' ? 'CKZ' : 'VNL' }} Filter
+            {{ modeLabel(filter.mode) }} Filter
           </p>
 
           <div class="space-y-3">

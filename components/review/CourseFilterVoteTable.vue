@@ -5,6 +5,7 @@ import {
   tierToNumber,
 } from '~/shared/schemas/cs2kz'
 import type { CourseFilterTier, Mode } from '~/shared/schemas/cs2kz'
+import { modeLabel } from '~/shared/schemas/course-mode'
 import type { SubmissionDetailVote } from '~/shared/types/submission-detail'
 
 import OtherApproverVotes from './OtherApproverVotes.vue'
@@ -76,7 +77,7 @@ function setEnabled(index: number, value: boolean) {
     >
       <div class="mb-4 flex items-center gap-3">
         <p class="text-base font-semibold">
-          {{ row.mode === 'classic' ? 'CKZ' : 'VNL' }} Filter
+          {{ modeLabel(row.mode) }} Filter
         </p>
         <UCheckbox
           :model-value="row.enabled"

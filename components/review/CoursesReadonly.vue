@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { tierToNumber } from '~/shared/schemas/cs2kz'
+import { modeLabel } from '~/shared/schemas/course-mode'
 import type { SubmissionDetailCourse } from '~/shared/types/submission-detail'
 
 defineProps<{
@@ -31,7 +32,7 @@ defineProps<{
           :key="`${course.id}-${filter.mode}`"
           class="rounded-md border border-white/5 bg-black/20 px-3 py-2"
         >
-          {{ filter.mode === 'classic' ? 'CKZ' : 'VNL' }} | {{ filter.isRanked ? 'Ranked' : 'Unranked' }} | NUB - {{ tierToNumber(filter.nubTier) }} | PRO - {{ tierToNumber(filter.proTier) }}
+          {{ modeLabel(filter.mode) }} | {{ filter.isRanked ? 'Ranked' : 'Unranked' }} | NUB - {{ tierToNumber(filter.nubTier) }} | PRO - {{ tierToNumber(filter.proTier) }}
         </div>
       </div>
     </div>
