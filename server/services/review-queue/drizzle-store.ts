@@ -25,9 +25,11 @@ export function createDrizzleReviewReadStore(database = db()): ReviewReadStore {
     )
 
   /** Maps the resolved filters to `and(...)` conditions for list and count,
-   *  so the two can never disagree about which rows match. */
+   *  so the two can never disagree about which rows match. The game is
+   *  always present (the endpoint's validated route segment), so a read is
+   *  always scoped to exactly the requested game. */
   const conditions = (filters: ResolvedFilters): SQL | undefined => {
-    const parts: SQL[] = []
+    const parts: SQL[] = [eq(submissions.game, filters.game)]
     if (filters.status) {
       parts.push(eq(submissions.status, filters.status))
     }

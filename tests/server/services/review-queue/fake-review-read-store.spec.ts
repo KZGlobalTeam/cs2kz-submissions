@@ -30,6 +30,7 @@ function submission(
     workshopId: 42,
     workshopUrl: `https://steamcommunity.com/sharedfiles/filedetails/?id=${id}`,
     status: 'pending',
+    game: 'cs2',
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
     approvedAt: null,
     createdByUserId: OWNER,
@@ -63,7 +64,7 @@ describe('fake review read store', () => {
     const store = createFakeReadStore(seededDb())
 
     const rows = await store.listSubmissionsPage(
-      resolveFilters({ ownerId: OWNER }),
+      resolveFilters({ game: 'cs2', ownerId: OWNER }),
       { limit: 10, offset: 0, orderBy: 'createdAt' },
     )
 
@@ -74,7 +75,7 @@ describe('fake review read store', () => {
     const store = createFakeReadStore(seededDb())
 
     const rows = await store.listSubmissionsPage(
-      resolveFilters({ status: 'approved', ownerId: OWNER }),
+      resolveFilters({ status: 'approved', game: 'cs2', ownerId: OWNER }),
       { limit: 10, offset: 0, orderBy: 'createdAt' },
     )
 
@@ -89,7 +90,7 @@ describe('fake review read store', () => {
     const store = createFakeReadStore(db)
 
     const rows = await store.listSubmissionsPage(
-      resolveFilters({ unvoted: { userId: VIEWER } }),
+      resolveFilters({ game: 'cs2', unvoted: { userId: VIEWER } }),
       { limit: 10, offset: 0, orderBy: 'createdAt' },
     )
 
@@ -103,7 +104,7 @@ describe('fake review read store', () => {
     const store = createFakeReadStore(db)
 
     const rows = await store.listSubmissionsPage(
-      resolveFilters({ status: 'approved', unvoted: { userId: VIEWER } }),
+      resolveFilters({ status: 'approved', game: 'cs2', unvoted: { userId: VIEWER } }),
       { limit: 10, offset: 0, orderBy: 'createdAt' },
     )
 
@@ -114,7 +115,7 @@ describe('fake review read store', () => {
     const db = seededDb()
     seedVote(db, vote('s1', VIEWER, 'yes'))
     const store = createFakeReadStore(db)
-    const filters = resolveFilters({ status: 'pending', unvoted: { userId: VIEWER } })
+    const filters = resolveFilters({ status: 'pending', game: 'cs2', unvoted: { userId: VIEWER } })
 
     const rows = await store.listSubmissionsPage(filters, { limit: 10, offset: 0, orderBy: 'createdAt' })
     const total = await store.countSubmissions(filters)
@@ -134,7 +135,7 @@ describe('fake review read store', () => {
     seedSubmission(db, submission('s5', { createdAt: new Date('2025-05-01T00:00:00.000Z') }))
     const store = createFakeReadStore(db)
 
-    const page = await store.listSubmissionsPage({}, { limit: 2, offset: 1, orderBy: 'createdAt' })
+    const page = await store.listSubmissionsPage({ game: 'cs2' }, { limit: 2, offset: 1, orderBy: 'createdAt' })
 
     // Ordered desc by createdAt: s5, s4, s3, s2, s1 — offset 1, limit 2 → s4, s3.
     expect(page.map((row) => row.id)).toEqual(['s4', 's3'])
@@ -147,7 +148,7 @@ describe('fake review read store', () => {
     seedSubmission(db, submission('middle', { createdAt: new Date('2025-02-01T00:00:00.000Z') }))
     const store = createFakeReadStore(db)
 
-    const rows = await store.listSubmissionsPage({}, { limit: 10, offset: 0, orderBy: 'createdAt' })
+    const rows = await store.listSubmissionsPage({ game: 'cs2' }, { limit: 10, offset: 0, orderBy: 'createdAt' })
 
     expect(rows.map((row) => row.id)).toEqual(['newer', 'middle', 'older'])
   })
@@ -165,7 +166,7 @@ describe('fake review read store', () => {
     }))
     const store = createFakeReadStore(db)
 
-    const rows = await store.listSubmissionsPage({}, { limit: 10, offset: 0, orderBy: 'approvedAt' })
+    const rows = await store.listSubmissionsPage({ game: 'cs2' }, { limit: 10, offset: 0, orderBy: 'approvedAt' })
 
     expect(rows.map((row) => row.id)).toEqual(['approved-2', 'approved-1', 'pending'])
   })
@@ -174,7 +175,7 @@ describe('fake review read store', () => {
     const store = createFakeReadStore(seededDb())
 
     const [row] = await store.listSubmissionsPage(
-      resolveFilters({ ownerId: OWNER }),
+      resolveFilters({ game: 'cs2', ownerId: OWNER }),
       { limit: 1, offset: 0, orderBy: 'createdAt' },
     )
 

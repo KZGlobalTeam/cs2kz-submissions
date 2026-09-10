@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { attachSubmissionToRelease } from '~/server/services/releases/attach-submission'
 import { requireLeadApprover } from '~/server/utils/permissions'
+import { requireRouteGame } from '~/server/utils/route-game'
 
 const bodySchema = z.object({
   submissionId: z.string().uuid(),
@@ -10,6 +11,10 @@ const bodySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   await requireLeadApprover(event)
+  // The release's own game is truth; the attach service validates that the
+  // submission's game matches it (a 400 on mismatch, even on a direct API
+  // call) — the segment here validates the route context up front.
+  requireRouteGame(event)
 
   const releaseId = getRouterParam(event, 'id')
   if (!releaseId) {

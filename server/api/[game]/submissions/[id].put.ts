@@ -4,16 +4,21 @@ import { ZodError } from 'zod'
 import { updateSubmission } from '~/server/services/submission-content'
 import { SubmissionInputSchema } from '~/shared/schemas/submission'
 import { requireAuth } from '~/server/utils/permissions'
+import { requireRouteGame } from '~/server/utils/route-game'
 
 /**
  * Owner edit endpoint. Accepts exactly the same validated shape as creation
  * (the shared `SubmissionInputSchema` from ticket 01), so the two write
  * paths cannot drift — including the port-evidence cross-field rules. The
- * service answers with an opaque 404 for non-creators and a 409 once review
- * has started, re-checked inside the write transaction.
+ * game segment is validated up front; the row's own game is fixed at
+ * creation and this write never changes it — a submission belongs to the
+ * game it was created in. The service answers with an opaque 404 for
+ * non-creators and a 409 once review has started, re-checked inside the
+ * write transaction.
  */
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  requireRouteGame(event)
 
   const submissionId = getRouterParam(event, 'id')
   if (!submissionId) {

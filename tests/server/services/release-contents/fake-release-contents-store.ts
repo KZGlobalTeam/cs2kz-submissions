@@ -1,3 +1,4 @@
+import type { Game } from '~/shared/schemas/game'
 import type {
   ReleaseContentsStore,
   ReleaseCourseMapperRow,
@@ -44,8 +45,9 @@ export function seedRelease(
   db: FakeReleaseContentsDb,
   releaseId: string,
   name: string,
+  game: Game = 'cs2',
 ): void {
-  db.releases.set(releaseId, { name })
+  db.releases.set(releaseId, { name, game })
 }
 
 export function seedLink(
@@ -80,8 +82,9 @@ export function seedFinalFilter(
 /** Per-test store over a seeded fake db. */
 export function createFakeStore(db: FakeReleaseContentsDb): ReleaseContentsStore {
   return {
-    async getRelease(releaseId) {
-      return db.releases.get(releaseId) ?? null
+    async getRelease(releaseId, game: Game) {
+      const release = db.releases.get(releaseId)
+      return release && release.game === game ? release : null
     },
     async listLinkedSubmissionIds(releaseId) {
       return db.links.get(releaseId) ?? []

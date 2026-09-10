@@ -58,7 +58,9 @@ function service(db: FakeReleaseContentsDb) {
 
 describe('createReleaseContentsService.resolve', () => {
   it('404s an unknown release', async () => {
-    await expect(service(createFakeDb()).resolve(RELEASE_ID)).rejects.toMatchObject(
+    await expect(
+      service(createFakeDb()).resolve(RELEASE_ID, 'cs2'),
+    ).rejects.toMatchObject(
       {
         statusCode: 404,
         statusMessage: 'Release not found',
@@ -66,11 +68,44 @@ describe('createReleaseContentsService.resolve', () => {
     )
   })
 
+  it('404s a release of another game than the request’s', async () => {
+    const db = createFakeDb()
+    seedRelease(db, RELEASE_ID, 'Release One')
+
+    // The same release id under the other game's context reads as an unknown
+    // release — a release detail/export can never render another game's
+    // release, and an other-game id can never be marked exported.
+    await expect(service(db).resolve(RELEASE_ID, 'csgo')).rejects.toMatchObject(
+      {
+        statusCode: 404,
+        statusMessage: 'Release not found',
+      },
+    )
+    expect(db.exported).toEqual([])
+  })
+
+  it('resolves a release of its own game in either context', async () => {
+    const db = createFakeDb()
+    seedRelease(db, RELEASE_ID, 'Release One')
+    seedRelease(db, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'CS:GO Drop', 'csgo')
+
+    await expect(service(db).resolve(RELEASE_ID, 'cs2')).resolves.toEqual({
+      releaseName: 'Release One',
+      maps: [],
+    })
+    await expect(
+      service(db).resolve('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'csgo'),
+    ).resolves.toEqual({
+      releaseName: 'CS:GO Drop',
+      maps: [],
+    })
+  })
+
   it('resolves an empty release to a named manifest with no maps', async () => {
     const db = createFakeDb()
     seedRelease(db, RELEASE_ID, 'Release One')
 
-    await expect(service(db).resolve(RELEASE_ID)).resolves.toEqual({
+    await expect(service(db).resolve(RELEASE_ID, 'cs2')).resolves.toEqual({
       releaseName: 'Release One',
       maps: [],
     })
@@ -85,7 +120,7 @@ describe('createReleaseContentsService.resolve', () => {
     // Same createdAt as `alpha` — the name tie-break decides.
     seedMap(db, approvedMap({ id: MAP_C, mapName: 'beta', createdAt: new Date('2026-01-01T00:00:00Z') }))
 
-    const { maps } = await service(db).resolve(RELEASE_ID)
+    const { maps } = await service(db).resolve(RELEASE_ID, 'cs2')
 
     expect(maps.map((map) => map.mapName)).toEqual(['alpha', 'beta', 'zeta'])
   })
@@ -96,7 +131,7 @@ describe('createReleaseContentsService.resolve', () => {
     seedLink(db, RELEASE_ID, [MAP_A])
     seedMap(db, approvedMap({ status: 'pending' }))
 
-    await expect(service(db).resolve(RELEASE_ID)).rejects.toMatchObject({
+    await expect(service(db).resolve(RELEASE_ID, 'cs2')).rejects.toMatchObject({
       statusCode: 400,
       statusMessage: 'Release contains non-approved submission',
     })
@@ -111,7 +146,7 @@ describe('createReleaseContentsService.resolve', () => {
     seedCourse(db, course({ id: COURSE_3, orderIndex: 3, name: 'Swap' }))
     seedCourse(db, course({ id: COURSE_1, orderIndex: 1, name: 'Main' }))
 
-    const { maps } = await service(db).resolve(RELEASE_ID)
+    const { maps } = await service(db).resolve(RELEASE_ID, 'cs2')
 
     expect(maps[0]!.courses.map((c) => c.name)).toEqual([
       'Main',
@@ -128,7 +163,7 @@ describe('createReleaseContentsService.resolve', () => {
     )
     db.courseMappers.push({ courseId: COURSE_1, steamId64: '76561197960265730' })
 
-    const { maps } = await service(db).resolve(RELEASE_ID)
+    const { maps } = await service(db).resolve(RELEASE_ID, 'cs2')
 
     expect(maps[0]!.mappers).toEqual(['76561197960265728', '76561197960265729'])
     expect(maps[0]!.courses[0]).toMatchObject({
@@ -151,7 +186,7 @@ describe('createReleaseContentsService.resolve', () => {
       state: 'ranked',
     })
 
-    const { maps } = await service(db).resolve(RELEASE_ID)
+    const { maps } = await service(db).resolve(RELEASE_ID, 'cs2')
     const filters = maps[0]!.courses[0]!.filters
 
     expect(filters.classic).toEqual({

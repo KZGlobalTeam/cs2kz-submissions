@@ -1,5 +1,7 @@
 import { db } from '~/server/utils/db'
 
+import type { Game } from '~/shared/schemas/game'
+
 import { drizzleStore } from './drizzle-store'
 import { createReleaseContentsService } from './resolve-release-contents'
 
@@ -11,9 +13,10 @@ const releaseContentsService = createReleaseContentsService({
 })
 
 /** Bound entry point: resolves the ordered manifest backing every artifact
- *  that renders a release (the JSON export and the image pack). */
-export function resolveReleaseContents(releaseId: string) {
-  return releaseContentsService.resolve(releaseId)
+ *  that renders a release (the JSON export and the image pack), scoped to
+ *  the requested game — a release of another game reads as a 404. */
+export function resolveReleaseContents(releaseId: string, game: Game) {
+  return releaseContentsService.resolve(releaseId, game)
 }
 
 /** Bound entry point: records the release as exported. Called only by the

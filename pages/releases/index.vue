@@ -90,7 +90,7 @@ const { downloadingId, downloadImages } = useReleaseImagePack()
 const { items, total, page, pageSize, status, refresh } = usePaginatedTable<ReleaseRow>(
   'releases',
   ({ page, pageSize }) =>
-    $fetch<PaginatedResult<ReleaseRow>>('/api/releases', {
+    $fetch<PaginatedResult<ReleaseRow>>('/api/cs2/releases', {
       params: { page, pageSize },
     }),
 )
@@ -122,7 +122,7 @@ async function confirmDeleteRelease() {
 
   removing.value = row.id
   try {
-    await $fetch(`/api/releases/${row.id}`, { method: 'DELETE' })
+    await $fetch(`/api/cs2/releases/${row.id}`, { method: 'DELETE' })
     toast.add({ color: 'success', title: 'Release deleted' })
     await refresh()
     // If we emptied the current page (e.g. deleted the last row), step back.

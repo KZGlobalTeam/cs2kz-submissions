@@ -29,7 +29,7 @@ void callOnce(async () => {
 
 const { data: details } = useAsyncData<SubmissionDetailResponse>(
   `submission-${submissionId.value}`,
-  () => $fetch<SubmissionDetailResponse>(`/api/submissions/${submissionId.value}`),
+  () => $fetch<SubmissionDetailResponse>(`/api/cs2/submissions/${submissionId.value}`),
   { server: false },
 )
 

@@ -3,9 +3,11 @@ import { createError, getRouterParam } from 'h3'
 import { deleteSubmission } from '~/server/services/submission-content'
 import { hasLeadApproverRole } from '~/server/utils/approver-gate'
 import { requireAuth } from '~/server/utils/permissions'
+import { requireRouteGame } from '~/server/utils/route-game'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  requireRouteGame(event)
 
   const submissionId = getRouterParam(event, 'id')
   if (!submissionId) {

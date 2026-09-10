@@ -17,6 +17,7 @@ import {
 import type { PageBounds } from '~/server/services/review-queue/types'
 import { parsePagination } from '~/server/utils/pagination'
 import { requireApprover, requireAuth } from '~/server/utils/permissions'
+import { requireRouteGame } from '~/server/utils/route-game'
 import type { PaginatedResult } from '~/shared/types/pagination'
 import type { SessionUser } from '~/shared/types/submission'
 
@@ -33,15 +34,17 @@ export interface SubmissionsIndexDeps {
   requireApprover: (event: H3Event) => Promise<SessionUser>
 }
 
-/** The submissions list endpoint as a thin adapter: `status`/`scope` are
- *  zod-validated (400 on invalid, `undefined` when absent — a typoed filter
- *  can never silently degrade to "show everything" as it did before),
- *  `unvoted` stays the coarse `=== 'true'` flag, `parsePagination` is
- *  untouched, and each scope delegates to exactly one method of the read
- *  module with the composed filters and bounds. No SQL or aggregation lives
- *  here. */
+/** The submissions list endpoint as a thin adapter: the game segment is
+ *  validated up front (400 on an unknown/malformed game, before auth or
+ *  reads), `status`/`scope` are zod-validated (400 on invalid, `undefined`
+ *  when absent — a typoed filter can never silently degrade to "show
+ *  everything" as it did before), `unvoted` stays the coarse `=== 'true'`
+ *  flag, `parsePagination` is untouched, and each scope delegates to exactly
+ *  one method of the read module with the composed filters (always carrying
+ *  the game) and bounds. No SQL or aggregation lives here. */
 export function createSubmissionsIndexHandler(deps: SubmissionsIndexDeps) {
   return defineEventHandler(async (event) => {
+    const game = requireRouteGame(event)
     const query = getQuery(event)
 
     const statusParsed =
@@ -81,6 +84,7 @@ export function createSubmissionsIndexHandler(deps: SubmissionsIndexDeps) {
       const { items, total } = await deps.read.getQueuePage(
         {
           status,
+          game,
           viewerId: user.id,
           ...(unvoted ? { unvoted: { userId: user.id } } : {}),
         },
@@ -91,7 +95,7 @@ export function createSubmissionsIndexHandler(deps: SubmissionsIndexDeps) {
 
     const user = await deps.requireAuth(event)
     const { items, total } = await deps.read.getMinePage(
-      { status, ownerId: user.id },
+      { status, game, ownerId: user.id },
       bounds,
     )
     return { items, total, page, pageSize } satisfies PaginatedResult<OwnSubmissionRow>

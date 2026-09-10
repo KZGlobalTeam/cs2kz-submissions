@@ -21,7 +21,7 @@ const route = useRoute()
 
 const { data: release, status, refresh } = useAsyncData<ReleaseDetail>(
   'release-detail',
-  () => $fetch<ReleaseDetail>(`/api/releases/${route.params.id}`),
+  () => $fetch<ReleaseDetail>(`/api/cs2/releases/${route.params.id}`),
   { server: false },
 )
 </script>

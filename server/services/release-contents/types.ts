@@ -3,6 +3,7 @@ import type {
   CourseFilterTier,
   Mode,
 } from '~/shared/schemas/cs2kz'
+import type { Game } from '~/shared/schemas/game'
 import type { SubmissionStatus } from '~/shared/types/submission'
 
 /** One Finalized course filter as the resolution reads it. The manifest does
@@ -63,9 +64,12 @@ export interface ReleaseContents {
 }
 
 /** The row facts the resolution reads. The store stays a dumb data accessor;
- *  the resolution owns ordering, the approved-only guard and the assembly. */
+ *  the resolution owns ordering, the approved-only guard and the assembly.
+ *  The game is read so the resolution can refuse a release of any other
+ *  game than the request's. */
 export interface ReleaseRow {
   name: string
+  game: Game
 }
 
 export interface ReleaseMapRow {
@@ -99,7 +103,9 @@ export interface ReleaseCourseMapperRow {
  *  an in-memory fake. `markExported` is the one write — owned by the module
  *  for locality, but invoked only by the JSON export handler (ADR-0008). */
 export interface ReleaseContentsStore {
-  getRelease(releaseId: string): Promise<ReleaseRow | null>
+  /** The release row of the requested game — a missing release *or* one of
+   *  another game returns null, so the resolution answers a 404 either way. */
+  getRelease(releaseId: string, game: Game): Promise<ReleaseRow | null>
   /** Submission ids linked to the release, in link order. */
   listLinkedSubmissionIds(releaseId: string): Promise<string[]>
   listMaps(submissionIds: string[]): Promise<ReleaseMapRow[]>
@@ -117,6 +123,6 @@ export interface ReleaseContentsDeps {
 }
 
 export interface ReleaseContentsService {
-  resolve(releaseId: string): Promise<ReleaseContents>
+  resolve(releaseId: string, game: Game): Promise<ReleaseContents>
   markExported(releaseId: string): Promise<void>
 }

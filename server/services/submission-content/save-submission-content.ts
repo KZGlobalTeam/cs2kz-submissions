@@ -2,6 +2,7 @@ import { createError } from 'h3'
 
 import { canMutateSubmission } from '~/server/utils/submission-mutability'
 import type { SubmissionInput } from '~/shared/schemas/submission'
+import type { Game } from '~/shared/schemas/game'
 import { assertWorkshopId } from '~/shared/utils/workshop'
 
 import type {
@@ -191,6 +192,7 @@ async function compensateOrphanedUploads(
 export interface SubmissionContentService {
   createSubmission(
     createdByUserId: string,
+    game: Game,
     input: SubmissionInput,
   ): Promise<SubmissionRow>
   updateSubmission(
@@ -211,7 +213,7 @@ export function createSubmissionContentService(
   deps: SubmissionContentDeps,
 ): SubmissionContentService {
   return {
-    async createSubmission(createdByUserId, input) {
+    async createSubmission(createdByUserId, game, input) {
       const content = toContentWrite(input)
       const bodyUrls = contentImageUrls(input)
 
@@ -220,6 +222,7 @@ export function createSubmissionContentService(
         submission = await deps.runTransaction(async (store) => {
           const created = await store.createSubmission(
             createdByUserId,
+            game,
             content,
           )
           await writeContent(store, created.id, input)

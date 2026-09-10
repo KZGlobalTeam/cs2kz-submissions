@@ -12,6 +12,7 @@ import {
 } from 'drizzle-orm/pg-core'
 
 import { timestamps, users } from './users'
+import { gameEnum } from './game'
 
 export const submissionStatusEnum = pgEnum('submission_status', [
   'pending',
@@ -23,6 +24,7 @@ export const submissions = pgTable(
   'submissions',
   {
     id: uuid('id').defaultRandom().primaryKey(),
+    game: gameEnum('game').notNull().default('cs2'),
     createdByUserId: uuid('created_by_user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),

@@ -38,7 +38,7 @@ export const VoteFilterSchema = FilterFieldsSchema.extend({
   notes: z.string().nullable(),
 })
 
-/** The Vote request body (`PUT /api/submissions/[id]/vote`). */
+/** The Vote request body (`PUT /api/[game]/submissions/[id]/vote`). */
 export const SubmissionVoteSchema = z
   .object({
     approvalDecision: z.enum(['yes', 'no']),
@@ -74,7 +74,7 @@ export const FinalFilterSchema = FilterFieldsSchema.extend({
   notes: z.never().optional(),
 })
 
-/** The Decision request body (`PUT /api/submissions/[id]/decision`). Enforces
+/** The Decision request body (`PUT /api/[game]/submissions/[id]/decision`). Enforces
  *  the same rejection rules as the Vote body: a rejection requires a trimmed
  *  non-empty Decision note (below), and Rejection attachments are only valid
  *  on a rejection alongside one — that guard lives in the attachment-rules

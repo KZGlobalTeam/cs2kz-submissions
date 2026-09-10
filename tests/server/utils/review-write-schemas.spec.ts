@@ -5,6 +5,7 @@ import {
   courseFilterTierValues,
   modeValues,
 } from '~/shared/schemas/cs2kz'
+import { gameValues } from '~/shared/schemas/game'
 import {
   LeadDecisionSchema,
   SubmissionVoteSchema,
@@ -16,6 +17,7 @@ import {
   courseFilterTierEnum,
   modeEnum,
 } from '~/db/schema/votes'
+import { gameEnum } from '~/db/schema/game'
 
 const COURSE_ID = 'c0ffee00-0000-4000-8000-000000000000'
 
@@ -344,5 +346,9 @@ describe('DB enums derive from the shared value arrays', () => {
     expect(modeEnum.enumValues).toEqual(modeValues)
     expect(courseFilterTierEnum.enumValues).toEqual(courseFilterTierValues)
     expect(courseFilterStateEnum.enumValues).toEqual(courseFilterStateValues)
+  })
+
+  it('the game enum matches the shared wire values the route segments validate against', () => {
+    expect(gameEnum.enumValues).toEqual(gameValues)
   })
 })

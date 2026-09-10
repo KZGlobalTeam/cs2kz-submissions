@@ -16,7 +16,7 @@ const creating = shallowRef(false)
 const { items, total, page, pageSize, status } = usePaginatedTable<ReviewSubmissionRow>(
   'approved-submissions-new',
   ({ page, pageSize }) =>
-    $fetch<PaginatedResult<ReviewSubmissionRow>>('/api/submissions', {
+    $fetch<PaginatedResult<ReviewSubmissionRow>>('/api/cs2/submissions', {
       params: { scope: 'all', status: 'approved', page, pageSize },
     }),
 )
@@ -47,7 +47,7 @@ async function createRelease() {
   }
   creating.value = true
   try {
-    await $fetch('/api/releases', {
+    await $fetch('/api/cs2/releases', {
       method: 'POST',
       body: {
         name: name.value,

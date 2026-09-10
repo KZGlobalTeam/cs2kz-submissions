@@ -1,5 +1,6 @@
 import type { SubmissionCreatedFacts } from '~/server/services/notifications/types'
 import type { SubmissionStatus } from '~/shared/types/submission'
+import type { Game } from '~/shared/schemas/game'
 
 /** The submission row facts the guarded-write spine and the image lifecycle
  *  read: the ADR-0002 gate reads `status` and `createdByUserId`, and the
@@ -12,8 +13,10 @@ export interface SubmissionRecord {
 }
 
 /** The submission row as created: the full persisted picture the create
- *  endpoint returns, mirroring the DB row the insert yields. */
+ *  endpoint returns, mirroring the DB row the insert yields — including the
+ *  game the row was stamped with from its route. */
 export interface SubmissionRow extends SubmissionRecord {
+  game: Game
   workshopUrl: string
   workshopId: number
   mapName: string
@@ -79,9 +82,11 @@ export interface SubmissionContentStore {
   getSubmission(submissionId: string): Promise<SubmissionRecord | null>
   /** The submission's vote count — the ADR-0002 gate's second input. */
   countVotes(submissionId: string): Promise<number>
-  /** Inserts the submission row at `pending` and returns it. */
+  /** Inserts the submission row at `pending`, stamped with the route's
+   *  game, and returns it. */
   createSubmission(
     createdByUserId: string,
+    game: Game,
     content: SubmissionContentWrite,
   ): Promise<SubmissionRow>
   /** Rewrites the content columns of the existing row, guarded on the row

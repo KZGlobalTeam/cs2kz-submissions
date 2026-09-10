@@ -30,6 +30,7 @@ function submission(
     workshopId: 42,
     workshopUrl: `https://steamcommunity.com/sharedfiles/filedetails/?id=${id}`,
     status: 'pending',
+    game: 'cs2',
     createdAt: new Date('2025-01-01T00:00:00.000Z'),
     approvedAt: null,
     createdByUserId: OWNER,
@@ -67,7 +68,7 @@ describe('review-queue read module', () => {
       const module = createReviewQueueRead(createFakeReadStore(db))
 
       const { items, total } = await module.getMinePage(
-        { ownerId: OWNER },
+        { game: 'cs2', ownerId: OWNER },
         { limit: 10, offset: 0 },
       )
 
@@ -77,13 +78,36 @@ describe('review-queue read module', () => {
       expect(total).toBe(5)
     })
 
+    it('lists only the requested game’s submissions', async () => {
+      const db = seededDb()
+      seedSubmission(db, submission('csgo-1', { game: 'csgo' }))
+      seedSubmission(db, submission('csgo-2', { game: 'csgo', createdByUserId: OTHER_OWNER }))
+      const module = createReviewQueueRead(createFakeReadStore(db))
+
+      const cs2 = await module.getMinePage(
+        { game: 'cs2', ownerId: OWNER },
+        { limit: 10, offset: 0 },
+      )
+      expect(cs2.items.map((row) => row.id)).toEqual(['s1', 's3', 's4'])
+      expect(cs2.total).toBe(3)
+
+      // The csgo read sees only the other game's rows — the same queue-read
+      // module, one game at a time.
+      const csgo = await module.getMinePage(
+        { game: 'csgo', ownerId: OWNER },
+        { limit: 10, offset: 0 },
+      )
+      expect(csgo.items.map((row) => row.id)).toEqual(['csgo-1'])
+      expect(csgo.total).toBe(1)
+    })
+
     it('runs the count against the same filters as the list (status + owner)', async () => {
       const db = seededDb()
       seedSubmission(db, submission('s5', { status: 'approved' }))
       const module = createReviewQueueRead(createFakeReadStore(db))
 
       const { items, total } = await module.getMinePage(
-        { status: 'approved', ownerId: OWNER },
+        { status: 'approved', game: 'cs2', ownerId: OWNER },
         { limit: 10, offset: 0 },
       )
 
@@ -99,7 +123,7 @@ describe('review-queue read module', () => {
       seedVote(db, vote('s3', 'a4', 'no'))
       const module = createReviewQueueRead(createFakeReadStore(db))
 
-      const { items } = await module.getMinePage({ ownerId: OWNER }, { limit: 10, offset: 0 })
+      const { items } = await module.getMinePage({ game: 'cs2', ownerId: OWNER }, { limit: 10, offset: 0 })
 
       expect(items.find((row) => row.id === 's1')?.voteCount).toBe(3)
       expect(items.find((row) => row.id === 's3')?.voteCount).toBe(1)
@@ -116,7 +140,7 @@ describe('review-queue read module', () => {
       }))
       const module = createReviewQueueRead(createFakeReadStore(db))
 
-      const { items } = await module.getMinePage({ ownerId: OWNER }, { limit: 10, offset: 0 })
+      const { items } = await module.getMinePage({ game: 'cs2', ownerId: OWNER }, { limit: 10, offset: 0 })
 
       const approved = items.find((row) => row.id === 'approved')!
       expect(approved.createdAt).toBe('2025-06-01T10:30:00.000Z')
@@ -136,7 +160,7 @@ describe('review-queue read module', () => {
 
       // Ordered desc by createdAt: s5…s1 — offset 1, limit 2 → s4, s3.
       const { items, total } = await module.getMinePage(
-        { ownerId: OWNER },
+        { game: 'cs2', ownerId: OWNER },
         { limit: 2, offset: 1 },
       )
 
@@ -148,7 +172,7 @@ describe('review-queue read module', () => {
       const module = createReviewQueueRead(createFakeReadStore(seededDb()))
 
       const { items, total } = await module.getMinePage(
-        { status: 'rejected', ownerId: OWNER },
+        { status: 'rejected', game: 'cs2', ownerId: OWNER },
         { limit: 10, offset: 0 },
       )
 
@@ -173,7 +197,7 @@ describe('review-queue read module', () => {
       const module = createReviewQueueRead(createFakeReadStore(db))
 
       const { items } = await module.getQueuePage(
-        { status: 'pending' },
+        { status: 'pending', game: 'cs2' },
         { limit: 10, offset: 0 },
       )
 
@@ -205,6 +229,22 @@ describe('review-queue read module', () => {
       })
     })
 
+    it('lists only the requested game’s submissions, list and total agreeing', async () => {
+      const db = seededDb()
+      seedSubmission(db, submission('csgo-1', { game: 'csgo', status: 'approved' }))
+      const module = createReviewQueueRead(createFakeReadStore(db))
+
+      const { items, total } = await module.getQueuePage(
+        { status: 'approved', game: 'cs2' },
+        { limit: 10, offset: 0 },
+      )
+
+      // The csgo row never leaks into the cs2 queue, even though the status
+      // filter alone would match it.
+      expect(items.map((row) => row.id)).toEqual(['s4'])
+      expect(total).toBe(1)
+    })
+
     it('applies the unvoted exclusion for a planted viewer, list and total agreeing', async () => {
       const db = seededDb()
       seedVote(db, vote('s1', VIEWER, 'yes'))
@@ -212,7 +252,7 @@ describe('review-queue read module', () => {
       const module = createReviewQueueRead(createFakeReadStore(db))
 
       const { items, total } = await module.getQueuePage(
-        { unvoted: { userId: VIEWER } },
+        { game: 'cs2', unvoted: { userId: VIEWER } },
         { limit: 10, offset: 0 },
       )
 
@@ -232,7 +272,7 @@ describe('review-queue read module', () => {
       // that carries viewerId excludes nothing yet still reports myVote,
       // exactly like today's queue read under the authenticated approver.
       const { items } = await module.getQueuePage(
-        { status: 'pending', viewerId: VIEWER },
+        { status: 'pending', game: 'cs2', viewerId: VIEWER },
         { limit: 10, offset: 0 },
       )
 
@@ -248,7 +288,7 @@ describe('review-queue read module', () => {
       const module = createReviewQueueRead(createFakeReadStore(db))
 
       const { items } = await module.getQueuePage(
-        { status: 'pending' },
+        { status: 'pending', game: 'cs2' },
         { limit: 10, offset: 0 },
       )
 
@@ -268,7 +308,7 @@ describe('review-queue read module', () => {
       const module = createReviewQueueRead(createFakeReadStore(db))
 
       const { items } = await module.getQueuePage(
-        { unvoted: { userId: VIEWER } },
+        { game: 'cs2', unvoted: { userId: VIEWER } },
         { limit: 10, offset: 0 },
       )
 
@@ -296,7 +336,7 @@ describe('review-queue read module', () => {
       seedSubmission(db, submission('unapproved', { status: 'approved', approvedAt: null }))
       const module = createReviewQueueRead(createFakeReadStore(db))
 
-      const byCreatedAt = await module.getQueuePage({}, { limit: 10, offset: 0 })
+      const byCreatedAt = await module.getQueuePage({ game: 'cs2' }, { limit: 10, offset: 0 })
       expect(byCreatedAt.items.map((row) => row.id)).toEqual([
         'new-pending', 'new-approved', 'mid-approved', 'old-pending', 'unapproved',
       ])
@@ -304,7 +344,7 @@ describe('review-queue read module', () => {
       // The approved status filter switches the clock column to approvedAt
       // (desc, nulls last), exactly as today's queue read does.
       const byApprovedAt = await module.getQueuePage(
-        { status: 'approved' },
+        { status: 'approved', game: 'cs2' },
         { limit: 10, offset: 0 },
       )
       expect(byApprovedAt.items.map((row) => row.id)).toEqual([
@@ -319,7 +359,7 @@ describe('review-queue read module', () => {
       // Ordered desc by createdAt with equal seed dates: s1…s4 — offset 1,
       // limit 2 → s2, s3.
       const { items, total } = await module.getQueuePage(
-        {},
+        { game: 'cs2' },
         { limit: 2, offset: 1 },
       )
 
@@ -335,7 +375,7 @@ describe('review-queue read module', () => {
       const module = createReviewQueueRead(createFakeReadStore(db))
 
       const { items, total } = await module.getQueuePage(
-        { status: 'approved', unvoted: { userId: VIEWER } },
+        { status: 'approved', game: 'cs2', unvoted: { userId: VIEWER } },
         { limit: 10, offset: 0 },
       )
 

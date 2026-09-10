@@ -4,9 +4,11 @@ import { ZodError } from 'zod'
 import { LeadDecisionSchema } from '~/shared/schemas/review'
 import { finalizeSubmission } from '~/server/services/review-write'
 import { requireLeadApprover } from '~/server/utils/permissions'
+import { requireRouteGame } from '~/server/utils/route-game'
 
 export default defineEventHandler(async (event) => {
   const user = await requireLeadApprover(event)
+  requireRouteGame(event)
   const submissionId = getRouterParam(event, 'id')
 
   if (!submissionId) {

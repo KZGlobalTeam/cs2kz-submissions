@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 import {
   releases,
@@ -12,6 +12,7 @@ import {
 import type { useDb } from '~/db/client'
 
 import type { ReleaseContentsStore } from './types'
+import type { Game } from '~/shared/schemas/game'
 
 type Database = ReturnType<typeof useDb>
 
@@ -20,13 +21,13 @@ type Database = ReturnType<typeof useDb>
  *  owns both, so its tests exercise the real contract against a fake store. */
 export function drizzleStore(db: Database): ReleaseContentsStore {
   return {
-    async getRelease(releaseId) {
+    async getRelease(releaseId, game: Game) {
       const [release] = await db
-        .select({ name: releases.name })
+        .select({ name: releases.name, game: releases.game })
         .from(releases)
-        .where(eq(releases.id, releaseId))
+        .where(and(eq(releases.id, releaseId), eq(releases.game, game)))
         .limit(1)
-      return release ? { name: release.name } : null
+      return release ? { name: release.name, game: release.game } : null
     },
 
     async listLinkedSubmissionIds(releaseId) {

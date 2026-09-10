@@ -1,4 +1,5 @@
 import type { ApprovalDecision } from '~/shared/types/submission'
+import type { Game } from '~/shared/schemas/game'
 import type {
   CourseCountRow,
   PageOrder,
@@ -12,9 +13,10 @@ import type {
 
 /** A submission as the fake stores it: the page row plus the owner column the
  *  owner filter runs on (the projected page row the store returns does not
- *  carry it). */
+ *  carry it) and the game the game filter runs on. */
 export interface FakeSubmissionRow extends SubmissionsPageRow {
   createdByUserId: string
+  game: Game
 }
 
 /** One vote row, mirroring the unique (submission, approver) constraint. */
@@ -87,14 +89,15 @@ function toPageRow(row: FakeSubmissionRow): SubmissionsPageRow {
 
 /** Binds the `ReviewReadStore` contract to an in-memory table set. Rows are
  *  filtered from the same `ResolvedFilters` the Drizzle adapter consumes
- *  (owner match, unvoted = no vote row from that viewer), sorted and clipped
- *  by the same data-driven bounds, so the rule is enforced identically
- *  against the fake and the real database. */
+ *  (game match, owner match, unvoted = no vote row from that viewer), sorted
+ *  and clipped by the same data-driven bounds, so the rule is enforced
+ *  identically against the fake and the real database. */
 export function createFakeReadStore(db: FakeReadDb): ReviewReadStore {
   const matchingRows = (filters: ResolvedFilters): FakeSubmissionRow[] =>
     db.submissions.filter(
       (row) =>
-        (filters.status === undefined || row.status === filters.status)
+        row.game === filters.game
+        && (filters.status === undefined || row.status === filters.status)
         && (filters.ownerId === undefined || row.createdByUserId === filters.ownerId)
         && (filters.unvotedUserId === undefined
           || !db.votes.some(

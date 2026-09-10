@@ -4,9 +4,11 @@ import { ZodError } from 'zod'
 import { SubmissionVoteSchema } from '~/shared/schemas/review'
 import { saveVote } from '~/server/services/review-write'
 import { requireApprover } from '~/server/utils/permissions'
+import { requireRouteGame } from '~/server/utils/route-game'
 
 export default defineEventHandler(async (event) => {
   const user = await requireApprover(event)
+  requireRouteGame(event)
   const submissionId = getRouterParam(event, 'id')
 
   if (!submissionId) {

@@ -2,7 +2,7 @@ import { createEvent, type H3Event } from 'h3'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { describe, expect, it, vi } from 'vitest'
 
-import { createSubmissionsIndexHandler } from '~/server/api/submissions/index.get'
+import { createSubmissionsIndexHandler } from '~/server/api/[game]/submissions/index.get'
 import type { ReviewQueueRead, ReviewSubmissionRow } from '~/server/services/review-queue/review-queue'
 import type { SessionUser } from '~/shared/types/submission'
 
@@ -21,13 +21,18 @@ const APPROVER: SessionUser = {
   roles: ['approver'],
 }
 
-/** Builds a minimal h3 event for a GET request. The handler only reads the
- *  query string (`getQuery` → `event.path`) and talks to the injected auth
- *  spies, so plain request/response stubs suffice — no socket, no network. */
+/** Builds a minimal h3 event for a GET request. The handler reads the game
+ *  segment (`getRouterParam` → `event.context.params`) and the query string
+ *  (`getQuery` → `event.path`), and talks to the injected auth spies, so
+ *  plain request/response stubs suffice — no socket, no network. The game
+ *  segment is parsed out of the path, exactly as the router would populate
+ *  it in production. */
 function createTestEvent(path: string): H3Event {
   const req = { url: path, method: 'GET', headers: {} } as IncomingMessage
   const res = {} as ServerResponse
-  return createEvent(req, res)
+  const event = createEvent(req, res)
+  event.context.params = { game: path.split('/')[2] ?? '' }
+  return event
 }
 
 /** A handler bound to fresh spy deps per test: the read module (route target
@@ -54,12 +59,66 @@ function createHandler() {
 }
 
 describe('the submissions list endpoint adapter', () => {
+  describe('game segment validation', () => {
+    it('400s an unknown game segment before touching auth or the read', async () => {
+      const { handler, read, requireAuth, requireApprover } = createHandler()
+
+      await expect(
+        handler(createTestEvent('/api/kzt/submissions?scope=all')),
+      ).rejects.toMatchObject({
+        statusCode: 400,
+        statusMessage: 'Invalid game segment',
+      })
+
+      expect(requireAuth).not.toHaveBeenCalled()
+      expect(requireApprover).not.toHaveBeenCalled()
+      expect(read.getMinePage).not.toHaveBeenCalled()
+      expect(read.getQueuePage).not.toHaveBeenCalled()
+    })
+
+    it('400s a missing game segment before touching auth or the read', async () => {
+      const { handler, read, requireAuth, requireApprover } = createHandler()
+
+      await expect(handler(createTestEvent('/api//submissions'))).rejects.toMatchObject(
+        {
+          statusCode: 400,
+          statusMessage: 'Invalid game segment',
+        },
+      )
+
+      expect(requireAuth).not.toHaveBeenCalled()
+      expect(requireApprover).not.toHaveBeenCalled()
+      expect(read.getMinePage).not.toHaveBeenCalled()
+      expect(read.getQueuePage).not.toHaveBeenCalled()
+    })
+
+    it('scopes every delegated read to the requested game', async () => {
+      const { handler, read, requireAuth, requireApprover } = createHandler()
+      requireAuth.mockResolvedValue(OWNER)
+      requireApprover.mockResolvedValue(APPROVER)
+
+      await handler(createTestEvent('/api/cs2/submissions'))
+      await handler(createTestEvent('/api/csgo/submissions?scope=all'))
+
+      expect(read.getMinePage).toHaveBeenCalledTimes(1)
+      expect(read.getMinePage).toHaveBeenCalledWith(
+        { status: undefined, game: 'cs2', ownerId: OWNER.id },
+        { limit: 15, offset: 0 },
+      )
+      expect(read.getQueuePage).toHaveBeenCalledTimes(1)
+      expect(read.getQueuePage).toHaveBeenCalledWith(
+        { status: undefined, game: 'csgo', viewerId: APPROVER.id },
+        { limit: 15, offset: 0 },
+      )
+    })
+  })
+
   describe('parameter validation', () => {
     it('400s an invalid status value before touching auth or the read', async () => {
       const { handler, read, requireAuth, requireApprover } = createHandler()
 
       await expect(
-        handler(createTestEvent('/api/submissions?status=bogus')),
+        handler(createTestEvent('/api/cs2/submissions?status=bogus')),
       ).rejects.toMatchObject({ statusCode: 400 })
 
       expect(requireAuth).not.toHaveBeenCalled()
@@ -72,7 +131,7 @@ describe('the submissions list endpoint adapter', () => {
       const { handler, read, requireAuth, requireApprover } = createHandler()
 
       await expect(
-        handler(createTestEvent('/api/submissions?scope=everyone')),
+        handler(createTestEvent('/api/cs2/submissions?scope=everyone')),
       ).rejects.toMatchObject({ statusCode: 400 })
 
       expect(requireAuth).not.toHaveBeenCalled()
@@ -85,13 +144,13 @@ describe('the submissions list endpoint adapter', () => {
       const { handler, read, requireAuth } = createHandler()
       requireAuth.mockResolvedValue(OWNER)
 
-      const result = await handler(createTestEvent('/api/submissions'))
+      const result = await handler(createTestEvent('/api/cs2/submissions'))
 
       // No ?scope= param — the default scope is mine, exactly as today.
       expect(read.getQueuePage).not.toHaveBeenCalled()
       expect(read.getMinePage).toHaveBeenCalledTimes(1)
       const [filters] = read.getMinePage.mock.calls[0]!
-      expect(filters).toMatchObject({ ownerId: OWNER.id })
+      expect(filters).toMatchObject({ ownerId: OWNER.id, game: 'cs2' })
       expect(filters.status).toBeUndefined()
       expect(result).toEqual({ items: [], total: 0, page: 1, pageSize: 15 })
     })
@@ -101,9 +160,10 @@ describe('the submissions list endpoint adapter', () => {
       requireApprover.mockResolvedValue(APPROVER)
 
       // unvoted=true activates the Unvoted branch with the approver as its user.
-      await handler(createTestEvent('/api/submissions?scope=all&unvoted=true'))
+      await handler(createTestEvent('/api/cs2/submissions?scope=all&unvoted=true'))
       const [withFlag] = read.getQueuePage.mock.calls[0]!
       expect(withFlag).toMatchObject({
+        game: 'cs2',
         viewerId: APPROVER.id,
         unvoted: { userId: APPROVER.id },
       })
@@ -111,10 +171,10 @@ describe('the submissions list endpoint adapter', () => {
       // unvoted=false (and any other value) is the coarse flag being off —
       // the key must be absent, not sent as undefined: presence is what
       // activates the Unvoted branch of the filters value.
-      await handler(createTestEvent('/api/submissions?scope=all&unvoted=false'))
+      await handler(createTestEvent('/api/cs2/submissions?scope=all&unvoted=false'))
       const [withoutFlag] = read.getQueuePage.mock.calls[1]!
       expect('unvoted' in withoutFlag).toBe(false)
-      expect(withoutFlag).toMatchObject({ viewerId: APPROVER.id })
+      expect(withoutFlag).toMatchObject({ game: 'cs2', viewerId: APPROVER.id })
     })
   })
 
@@ -123,14 +183,14 @@ describe('the submissions list endpoint adapter', () => {
       const { handler, read, requireAuth, requireApprover } = createHandler()
       requireApprover.mockResolvedValue(APPROVER)
 
-      await handler(createTestEvent('/api/submissions?scope=all'))
+      await handler(createTestEvent('/api/cs2/submissions?scope=all'))
 
       expect(requireApprover).toHaveBeenCalledTimes(1)
       expect(requireAuth).not.toHaveBeenCalled()
       expect(read.getMinePage).not.toHaveBeenCalled()
       expect(read.getQueuePage).toHaveBeenCalledTimes(1)
       expect(read.getQueuePage).toHaveBeenCalledWith(
-        { status: undefined, viewerId: APPROVER.id },
+        { status: undefined, game: 'cs2', viewerId: APPROVER.id },
         { limit: 15, offset: 0 },
       )
     })
@@ -142,13 +202,13 @@ describe('the submissions list endpoint adapter', () => {
       // Even with unvoted=true the mine scope never reads the flag — the mine
       // filters branch has no Unvoted key at all, and getMinePage is called
       // with the plain owner filters.
-      await handler(createTestEvent('/api/submissions?scope=mine&unvoted=true'))
+      await handler(createTestEvent('/api/cs2/submissions?scope=mine&unvoted=true'))
 
       expect(requireAuth).toHaveBeenCalledTimes(1)
       expect(requireApprover).not.toHaveBeenCalled()
       expect(read.getQueuePage).not.toHaveBeenCalled()
       expect(read.getMinePage).toHaveBeenCalledWith(
-        { status: undefined, ownerId: OWNER.id },
+        { status: undefined, game: 'cs2', ownerId: OWNER.id },
         { limit: 15, offset: 0 },
       )
     })
@@ -157,10 +217,10 @@ describe('the submissions list endpoint adapter', () => {
       const { handler, read, requireApprover } = createHandler()
       requireApprover.mockResolvedValue(APPROVER)
 
-      await handler(createTestEvent('/api/submissions?scope=all&status=approved'))
+      await handler(createTestEvent('/api/cs2/submissions?scope=all&status=approved'))
 
       expect(read.getQueuePage).toHaveBeenCalledWith(
-        { status: 'approved', viewerId: APPROVER.id },
+        { status: 'approved', game: 'cs2', viewerId: APPROVER.id },
         { limit: 15, offset: 0 },
       )
     })
@@ -185,12 +245,12 @@ describe('the submissions list endpoint adapter', () => {
       requireApprover.mockResolvedValue(APPROVER)
 
       const result = await handler(
-        createTestEvent('/api/submissions?scope=all&page=2&pageSize=10'),
+        createTestEvent('/api/cs2/submissions?scope=all&page=2&pageSize=10'),
       )
 
       expect(result).toEqual({ items, total: 7, page: 2, pageSize: 10 })
       expect(read.getQueuePage).toHaveBeenCalledWith(
-        { status: undefined, viewerId: APPROVER.id },
+        { status: undefined, game: 'cs2', viewerId: APPROVER.id },
         { limit: 10, offset: 10 },
       )
     })

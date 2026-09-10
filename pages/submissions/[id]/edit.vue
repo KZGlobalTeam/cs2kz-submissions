@@ -68,7 +68,7 @@ function toFormValue(details: SubmissionDetailResponse): SubmissionFormValue {
 onMounted(async () => {
   try {
     const details =
-      await $fetch<SubmissionDetailResponse>(`/api/submissions/${submissionId.value}`)
+      await $fetch<SubmissionDetailResponse>(`/api/cs2/submissions/${submissionId.value}`)
 
     // Anything not owned, pending, and vote-free redirects away. `editable` is
     // derived server-side from the live vote count (the votes payload is

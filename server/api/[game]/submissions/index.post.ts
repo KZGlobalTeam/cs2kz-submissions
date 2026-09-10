@@ -4,9 +4,13 @@ import { ZodError } from 'zod'
 import { createSubmission } from '~/server/services/submission-content'
 import { SubmissionInputSchema } from '~/shared/schemas/submission'
 import { requireAuth } from '~/server/utils/permissions'
+import { requireRouteGame } from '~/server/utils/route-game'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  // The game segment validates the route context; the create form carries no
+  // game picker — the context is the picker, and the row is stamped with it.
+  const game = requireRouteGame(event)
 
   let body: ReturnType<typeof SubmissionInputSchema.parse>
   try {
@@ -26,5 +30,5 @@ export default defineEventHandler(async (event) => {
     throw error
   }
 
-  return createSubmission(user.id, body)
+  return createSubmission(user.id, game, body)
 })

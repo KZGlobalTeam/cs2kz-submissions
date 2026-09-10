@@ -43,11 +43,12 @@ export function transactionStore(tx: TransactionClient): SubmissionContentStore 
       return Number(votes?.value ?? 0)
     },
 
-    async createSubmission(createdByUserId, content: SubmissionContentWrite) {
+    async createSubmission(createdByUserId, game, content: SubmissionContentWrite) {
       const [row] = await tx
         .insert(submissions)
         .values({
           createdByUserId,
+          game,
           ...content,
           status: 'pending',
         })

@@ -4,6 +4,12 @@ Tracks community map submissions for CS2KZ and packages approved maps into relea
 
 ## Language
 
+### Games
+
+**Game**:
+One of the two supported games a Submission or Release belongs to: CS2 or CS:GO. The whole app is scoped to one game at a time via its route context (`/cs2/…`, `/csgo/…`); the shared top-bar switcher is the only place the game changes, and pages never render a game badge. The game scopes the course-mode vocabulary, the course naming convention, the rules, and the port flow. Existing rows were backfilled to CS2.
+_Avoid_: Mode, platform, game mode
+
 ### Roles and people
 
 **Approver**:
@@ -62,7 +68,7 @@ A per-viewer state in the review queue: a pending submission the *current* revie
 _Avoid_: Unreviewed
 
 **Submission rules**:
-The canonical, ordered set of grouped requirements (map and course naming, course rules, ranked-course rules, jumpstat areas, porting, other) a submitter must tick through before submitting; the same groups are mirrored one-to-one in each approver's private checklist.
+The canonical, ordered set of grouped requirements (map and course naming, course rules, ranked-course rules, jumpstat areas, porting, other) a submitter must tick through before submitting; the same groups are mirrored one-to-one in each approver's private checklist. The set is per Game: CS:GO has its own copy (initially the CS2 rules minus porting, pending the community's own draft) and never shares a rule set with CS2.
 _Avoid_: Steps, requirements
 
 **Submission note**:
@@ -80,11 +86,15 @@ An approved submission included in a release. Identified by its map name and wor
 _Avoid_: Submission (once approved), workshop item
 
 **Course**:
-A playable route inside a map. Each course has an order within the map and a dedicated course image.
+A playable route inside a map. Each course has an order within the map and a dedicated course image, and its name follows the game's naming convention (see Course name convention).
+
+**Course name convention**:
+The fixed course naming CS:GO submissions must follow: the first course is `Main`, subsequent courses are `Bonus 1`, `Bonus 2`, … Enforced by construction in the form (names are prefilled and not editable) and validated server-side. CS2 courses keep free ASCII names.
+_Avoid_: Course name (bare), naming
 
 **Course mode**:
-One of the two play styles a course's filters are rated for: classic or vanilla (labelled CKZ and VNL in the UI).
-_Avoid_: Mode (bare), "CKZ/VNL filter"
+One of the play styles a course's filters are rated for. The set of modes is per game: CS2 offers classic and vanilla (labelled CKZ and VNL in the UI); CS:GO offers kztimer, simplekz, and vanilla (labelled KZT, SKZ, and VNL). A mode is scoped to its Game — CS2's vanilla and CS:GO's vanilla are different modes. One shared enum stores all five values; each game's allowed set is validated in code.
+_Avoid_: Mode (bare), "CKZ/VNL filter", filter
 
 **Course image**:
 The canonical 1920×1080 JPG screenshot of a course. Stored per course; named by course order in an image pack.
@@ -115,7 +125,7 @@ The decided view's per-field `Final:` marker showing a Finalized filter's settle
 _Avoid_: Final (bare)
 
 **Port**:
-A submission whose map adapts an existing map from another game or source. The submitter must flag it and attach Proof of permission from the original author, skippable only when that author has been inactive for roughly two years.
+A submission whose map adapts an existing map from another game or source. The submitter must flag it and attach Proof of permission from the original author, skippable only when that author has been inactive for roughly two years. CS2-only: CS:GO submissions have no Port concept — a CS:GO map is an original that later gets ported to CS2, so the port question, proof, and porting rules belong to CS2 only.
 _Avoid_: Ported map, porting
 
 **Proof of permission**:
@@ -125,7 +135,7 @@ _Avoid_: Authorization screenshot, port authorization image, Proof of Authorizat
 ### Releases
 
 **Release**:
-A named collection of approved maps that ship together. A release has a unique name, notes, a creator, and an export timestamp.
+A named collection of approved maps that ship together. A release has a unique name, notes, a creator, and an export timestamp, and belongs to a single Game: it contains only approved submissions of that game, and its JSON export shape is per game.
 _Avoid_: Pack, bundle, drop
 
 **Image pack**:
@@ -133,7 +143,7 @@ The downloadable ZIP of a release's course images: one folder per map, files nam
 _Avoid_: Download Images
 
 **Release export**:
-The JSON describing the maps in a release — workshop IDs, mappers, and per-course finalized filters. Recording it is what marks a release as exported. The payload is shaped for the external CS2KZ dashboard's import dialog and is always rebuilt from the release's live data, never persisted.
+The JSON describing the maps in a release — workshop IDs, mappers, and per-course finalized filters. Recording it is what marks a release as exported. The payload is always rebuilt from the release's live data, never persisted. The shape is per game: for CS2 it targets the external CS2KZ dashboard's import dialog (byte-identical contract); for CS:GO it is a provisional JSON carrying `kzt`/`skz`/`vnl` filter keys, pending the CS:GO KZ dashboard API.
 _Avoid_: Export JSON, ship file
 
 **Ordered manifest**:

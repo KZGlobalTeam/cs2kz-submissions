@@ -3,6 +3,7 @@ import { createError, getRouterParam, setResponseHeaders } from 'h3'
 import { buildImagePackManifest } from '~/server/services/releases/build-image-pack'
 import { toImagePackStream, type ImagePackFetcher } from '~/server/utils/image-pack'
 import { requireLeadApprover } from '~/server/utils/permissions'
+import { requireRouteGame } from '~/server/utils/route-game'
 
 /** Real transport for course images: Supabase Storage public URLs. */
 const httpImageFetcher: ImagePackFetcher = {
@@ -38,6 +39,7 @@ function contentDispositionAttachment(filename: string): string {
 
 export default defineEventHandler(async (event) => {
   await requireLeadApprover(event)
+  const game = requireRouteGame(event)
 
   const releaseId = getRouterParam(event, 'id')
   if (!releaseId) {
@@ -47,7 +49,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { releaseName, maps } = await buildImagePackManifest(releaseId)
+  const { releaseName, maps } = await buildImagePackManifest(releaseId, game)
 
   // `toImagePackStream` runs the whole pre-flight before it resolves, so a
   // missing/unreachable image surfaces as a clean HTTP error naming the map

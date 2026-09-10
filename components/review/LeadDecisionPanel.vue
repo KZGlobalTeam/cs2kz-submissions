@@ -99,7 +99,7 @@ function setProTier(entry: LeadFilter, value: string) {
 async function submitDecision() {
   saving.value = true
   try {
-    await $fetch(`/api/submissions/${props.submissionId}/decision`, {
+    await $fetch(`/api/cs2/submissions/${props.submissionId}/decision`, {
       method: 'PUT',
       body: {
         status: decisionStatus.value,

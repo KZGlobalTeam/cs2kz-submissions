@@ -10,7 +10,7 @@ export function useReleaseExport() {
   async function exportRelease(releaseId: string, name?: string) {
     exportingId.value = releaseId
     try {
-      const payload = await $fetch(`/api/releases/${releaseId}/export`)
+      const payload = await $fetch(`/api/cs2/releases/${releaseId}/export`)
       exportJson.value = JSON.stringify(payload, null, 2)
       exportTitle.value = name ? `Export: ${name}` : 'Export JSON'
       exportOpen.value = true

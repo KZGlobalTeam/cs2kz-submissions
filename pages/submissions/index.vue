@@ -21,7 +21,7 @@ interface SubmissionRow {
 const { items, total, page, pageSize, status, refresh } = usePaginatedTable<SubmissionRow>(
   'submissions',
   ({ page, pageSize }) =>
-    $fetch<PaginatedResult<SubmissionRow>>('/api/submissions', {
+    $fetch<PaginatedResult<SubmissionRow>>('/api/cs2/submissions', {
       params: { scope: 'mine', page, pageSize },
     }),
 )
@@ -74,7 +74,7 @@ async function confirmDeleteSubmission() {
 
   removing.value = row.id
   try {
-    await $fetch(`/api/submissions/${row.id}`, { method: 'DELETE' })
+    await $fetch(`/api/cs2/submissions/${row.id}`, { method: 'DELETE' })
     toast.add({ color: 'success', title: 'Submission deleted' })
     await refresh()
     // If we emptied the current page (e.g. deleted the last row), step back.

@@ -205,13 +205,13 @@ async function confirmSubmit() {
 
   try {
     if (isEditing.value) {
-      await $fetch(`/api/submissions/${props.submissionId}`, {
+      await $fetch(`/api/cs2/submissions/${props.submissionId}`, {
         method: 'PUT',
         body: payload,
       })
     }
     else {
-      await $fetch('/api/submissions', {
+      await $fetch('/api/cs2/submissions', {
         method: 'POST',
         body: payload,
       })

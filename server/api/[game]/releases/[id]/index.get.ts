@@ -5,9 +5,11 @@ import {
   listReleaseSubmissions,
 } from '~/server/queries/list-releases'
 import { requireLeadApprover } from '~/server/utils/permissions'
+import { requireRouteGame } from '~/server/utils/route-game'
 
 export default defineEventHandler(async (event) => {
   await requireLeadApprover(event)
+  const game = requireRouteGame(event)
 
   const releaseId = getRouterParam(event, 'id')
   if (!releaseId) {
@@ -17,7 +19,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const release = await findReleaseById(releaseId)
+  // The detail read is game-scoped: a release of another game reads as an
+  // unknown release, so the page can never render another game's release.
+  const release = await findReleaseById(releaseId, game)
   if (!release) {
     throw createError({
       statusCode: 404,

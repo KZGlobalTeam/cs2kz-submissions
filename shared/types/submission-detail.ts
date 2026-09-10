@@ -3,7 +3,7 @@ import type { RejectionAttachment } from './attachment'
 import type { CourseFilterState, CourseFilterTier, Mode } from '../schemas/cs2kz'
 
 /**
- * Response shape of `GET /api/submissions/[id]` (see `server/queries/submission-details.ts`).
+ * Response shape of `GET /api/cs2/submissions/[id]` (see `server/queries/submission-details.ts`).
  * Timestamps arrive as ISO strings because the payload crosses HTTP/JSON.
  */
 

@@ -3,9 +3,14 @@ import { createError, getRouterParam } from 'h3'
 import { getSubmissionDetails } from '~/server/queries/submission-details'
 import { canMutateSubmission } from '~/server/utils/submission-mutability'
 import { requireAuth } from '~/server/utils/permissions'
+import { requireRouteGame } from '~/server/utils/route-game'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
+  // The game segment is validated up front — this endpoint reads the
+  // submission by id, and the route's game is what every page around it is
+  // scoped to.
+  requireRouteGame(event)
 
   const submissionId = getRouterParam(event, 'id')
   if (!submissionId) {

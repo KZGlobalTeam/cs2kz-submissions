@@ -1,4 +1,5 @@
 import type { SubmissionInput } from '~/shared/schemas/submission'
+import type { Game } from '~/shared/schemas/game'
 
 import { withTransaction } from '~/db/client'
 import { notifySubmissionCreated } from '~/server/services/notifications'
@@ -28,12 +29,14 @@ const submissionContentService = createSubmissionContentService({
 } satisfies SubmissionContentDeps)
 
 /** Bound entry point: the create endpoint stays a thin parse-and-delegate
- *  adapter. */
+ *  adapter. The game comes from the route segment and is stamped onto the
+ *  row — the create form carries no game picker, the context is the picker. */
 export function createSubmission(
   createdByUserId: string,
+  game: Game,
   input: SubmissionInput,
 ) {
-  return submissionContentService.createSubmission(createdByUserId, input)
+  return submissionContentService.createSubmission(createdByUserId, game, input)
 }
 
 /** Bound entry point: the owner-edit endpoint stays a thin

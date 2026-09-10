@@ -20,7 +20,7 @@ export function useReleaseImagePack() {
   async function downloadImages(releaseId: string, releaseName: string) {
     downloadingId.value = releaseId
     try {
-      const response = await fetch(`/api/releases/${releaseId}/images`)
+      const response = await fetch(`/api/cs2/releases/${releaseId}/images`)
 
       if (!response.ok) {
         toast.add({ color: 'error', title: await readErrorMessage(response) })

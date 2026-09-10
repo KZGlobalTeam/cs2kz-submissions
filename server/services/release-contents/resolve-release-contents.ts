@@ -1,5 +1,7 @@
 import { createError } from 'h3'
 
+import type { Game } from '~/shared/schemas/game'
+
 import type {
   ReleaseContentsDeps,
   ReleaseContentsService,
@@ -54,12 +56,13 @@ export function createReleaseContentsService(
      *  artifact renders from. Course mappers are keyed by course id, so that
      *  query runs in its own pass after the courses resolve.
      *
-     *  Guards: an unknown release is a 404; any non-approved submission is a
-     *  400 (a release containing a non-approved map is a data error). An
-     *  empty release resolves to `maps: []` — whether that is an error is
-     *  each artifact's call. */
-    async resolve(releaseId) {
-      const release = await deps.store.getRelease(releaseId)
+     *  Guards: an unknown release — or one of another game than the
+     *  request's — is a 404; any non-approved submission is a 400 (a
+     *  release containing a non-approved map is a data error). An empty
+     *  release resolves to `maps: []` — whether that is an error is each
+     *  artifact's call. */
+    async resolve(releaseId, game: Game) {
+      const release = await deps.store.getRelease(releaseId, game)
       if (!release) {
         throw createError({
           statusCode: 404,

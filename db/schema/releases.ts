@@ -9,11 +9,13 @@ import {
 
 import { submissions } from './submissions'
 import { timestamps, users } from './users'
+import { gameEnum } from './game'
 
 export const releases = pgTable(
   'releases',
   {
     id: uuid('id').defaultRandom().primaryKey(),
+    game: gameEnum('game').notNull().default('cs2'),
     name: text('name').notNull(),
     notes: text('notes'),
     createdByUserId: uuid('created_by_user_id')

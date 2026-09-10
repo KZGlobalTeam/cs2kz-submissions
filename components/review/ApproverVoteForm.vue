@@ -85,7 +85,7 @@ async function submitVote() {
   validationError.value = null
   saving.value = true
   try {
-    await $fetch(`/api/submissions/${props.submissionId}/vote`, {
+    await $fetch(`/api/cs2/submissions/${props.submissionId}/vote`, {
       method: 'PUT',
       body: {
         approvalDecision: form.approvalDecision,

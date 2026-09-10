@@ -29,6 +29,7 @@ describe('createSubmission', () => {
 
     const result = await service.createSubmission(
       CREATOR_ID,
+      'cs2',
       submissionInput({
         mapName: 'The Spike Rush',
         courses: [
@@ -62,6 +63,20 @@ describe('createSubmission', () => {
     ])
   })
 
+  it('stamps the row with the game from the route', async () => {
+    const db = freshDb()
+    const { deps } = createFakeDeps(db)
+    const service = createSubmissionContentService(deps)
+
+    const cs2 = await service.createSubmission(CREATOR_ID, 'cs2', submissionInput())
+    const csgo = await service.createSubmission(CREATOR_ID, 'csgo', submissionInput())
+
+    // The create form carries no game picker — the route context is the
+    // picker, and each row is stamped with the game it was created in.
+    expect(db.submissions.get(cs2.id)?.game).toBe('cs2')
+    expect(db.submissions.get(csgo.id)?.game).toBe('csgo')
+  })
+
   it('writes the port-evidence columns for a port and nulls them for a non-port', async () => {
     const db = freshDb()
     const { deps } = createFakeDeps(db)
@@ -69,6 +84,7 @@ describe('createSubmission', () => {
 
     const port = await service.createSubmission(
       CREATOR_ID,
+      'cs2',
       submissionInput({
         isPort: true,
         portAuthorizationImage: portImage(PORT_URL),
@@ -85,7 +101,7 @@ describe('createSubmission', () => {
       portNotes: 'Permission granted by the original author',
     })
 
-    const plain = await service.createSubmission(CREATOR_ID, submissionInput())
+    const plain = await service.createSubmission(CREATOR_ID, 'cs2', submissionInput())
     expect(db.submissions.get(plain.id)).toMatchObject({
       isPort: false,
       portAuthorizationImageUrl: null,
@@ -107,6 +123,7 @@ describe('createSubmission', () => {
     await expect(
       service.createSubmission(
         CREATOR_ID,
+        'cs2',
         submissionInput({
           workshopUrl:
             'https://steamcommunity.com/sharedfiles/filedetails/?id=99999999999999999999',
@@ -137,6 +154,7 @@ describe('createSubmission', () => {
     await expect(
       service.createSubmission(
         CREATOR_ID,
+        'cs2',
         submissionInput({
           courses: [course('Course A', COURSE_A_URL), course('Course B', COURSE_B_URL)],
         }),
@@ -165,7 +183,7 @@ describe('createSubmission', () => {
     const service = createSubmissionContentService(deps)
 
     await expect(
-      service.createSubmission(CREATOR_ID, submissionInput()),
+      service.createSubmission(CREATOR_ID, 'cs2', submissionInput()),
     ).rejects.toThrow('submission row insert failed')
 
     expect(db.submissions.size).toBe(0)
@@ -181,6 +199,7 @@ describe('createSubmission', () => {
 
     const result = await service.createSubmission(
       CREATOR_ID,
+      'cs2',
       submissionInput({ mapName: 'The Spike Rush' }),
     )
 
@@ -206,6 +225,7 @@ describe('createSubmission', () => {
 
     const result = await service.createSubmission(
       CREATOR_ID,
+      'cs2',
       submissionInput({
         isPort: true,
         portAuthorizationImage: portImage(PORT_URL),

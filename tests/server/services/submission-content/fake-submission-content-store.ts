@@ -1,5 +1,6 @@
 import type { RejectionAttachment } from '~/shared/types/attachment'
 import type { SubmissionCreatedFacts } from '~/server/services/notifications/types'
+import type { Game } from '~/shared/schemas/game'
 import type {
   SubmissionContentDeps,
   SubmissionContentStore,
@@ -67,6 +68,7 @@ export function fakeSubmissionRow(
     id: '11111111-1111-4111-8111-111111111111',
     createdByUserId: '22222222-2222-4222-8222-222222222222',
     status: 'pending',
+    game: 'cs2',
     workshopUrl: 'https://steamcommunity.com/sharedfiles/filedetails/?id=11111',
     workshopId: 11111,
     mapName: 'Test map',
@@ -133,6 +135,7 @@ export interface FakeStoreOptions {
   ) => Promise<SubmissionRecord | null>
   createSubmission?: (
     createdByUserId: string,
+    game: Game,
     content: SubmissionContentWrite,
   ) => Promise<FakeSubmissionRow>
   updateSubmissionContent?: (
@@ -169,9 +172,9 @@ export function createFakeStore(
       return db.voteCounts.get(submissionId) ?? 0
     },
 
-    async createSubmission(createdByUserId, content) {
+    async createSubmission(createdByUserId, game, content) {
       if (options.createSubmission) {
-        return options.createSubmission(createdByUserId, content)
+        return options.createSubmission(createdByUserId, game, content)
       }
       const id = `submission-${db.submissions.size + 1}`
       const row: FakeSubmissionRow = {
@@ -179,6 +182,7 @@ export function createFakeStore(
         createdByUserId,
         status: 'pending',
         ...content,
+        game,
         decisionByUserId: null,
         decisionNotes: null,
         approvedAt: null,
