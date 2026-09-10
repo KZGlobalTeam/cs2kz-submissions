@@ -16,7 +16,7 @@ interface ReleaseRow {
 
 const toast = useToast()
 const {
-  exporting,
+  exportingId,
   exportOpen,
   exportJson,
   exportTitle,
@@ -188,7 +188,7 @@ async function confirmDeleteRelease() {
             <UButton
               variant="outline"
               label="Export JSON"
-              :loading="exporting"
+              :loading="exportingId === row.original.id"
               @click="exportRelease(row.original.id, row.original.name)"
             />
             <UButton
