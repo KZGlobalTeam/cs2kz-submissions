@@ -3,12 +3,15 @@ import type { SubmissionDetailResponse } from '~/shared/types/submission-detail'
 import SubmissionForm from '~/components/submission/SubmissionForm.vue'
 import type { SubmissionFormValue } from '~/composables/useSubmissionForm'
 
+import { apiGamePath, gamePath } from '~/shared/utils/games'
+
 definePageMeta({
   middleware: ['auth'],
 })
 
 const route = useRoute()
 const toast = useToast()
+const { game } = useGameRoute()
 
 const submissionId = computed(() => String(route.params.id))
 
@@ -68,7 +71,9 @@ function toFormValue(details: SubmissionDetailResponse): SubmissionFormValue {
 onMounted(async () => {
   try {
     const details =
-      await $fetch<SubmissionDetailResponse>(`/api/cs2/submissions/${submissionId.value}`)
+      await $fetch<SubmissionDetailResponse>(
+        apiGamePath(game.value, `/submissions/${submissionId.value}`),
+      )
 
     // Anything not owned, pending, and vote-free redirects away. `editable` is
     // derived server-side from the live vote count (the votes payload is
@@ -80,7 +85,7 @@ onMounted(async () => {
         title: 'Not editable',
         description: 'A submission can only be edited while it is pending and no approver has voted yet.',
       })
-      await navigateTo('/submissions')
+      await navigateTo(gamePath(game.value, '/submissions'))
       return
     }
 
@@ -95,7 +100,7 @@ onMounted(async () => {
       title: 'Cannot edit',
       description: message,
     })
-    await navigateTo('/submissions')
+    await navigateTo(gamePath(game.value, '/submissions'))
   }
   finally {
     loading.value = false

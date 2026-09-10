@@ -51,6 +51,7 @@ function defaultContext(): NotificationContext {
     mapName: 'The Spike Rush',
     submitterDisplayName: 'Alice Submitter',
     courseCount: 3,
+    game: 'cs2',
     displayNames: {
       [APPROVER_ID]: 'Bob Approver',
       [LEAD_ID]: 'Cara Lead',
@@ -163,7 +164,7 @@ describe('createNotificationsService', () => {
     expect(errorLines).toEqual([])
   })
 
-  it('resolves the approver display name from the vote facts and links to /submissions/{id}', async () => {
+  it('resolves the approver display name from the vote facts and links to the game-scoped /{game}/submissions/{id}', async () => {
     const { deps, posts, contextReads } = createFakeDeps({
       webhookUrl: WEBHOOK_URL,
       context: defaultContext(),
@@ -181,7 +182,23 @@ describe('createNotificationsService', () => {
       inline: false,
     })
     expect(posts[0]!.payload.embeds[0]!.url).toBe(
-      `https://example.com/submissions/${SUBMISSION_ID}`,
+      `https://example.com/cs2/submissions/${SUBMISSION_ID}`,
+    )
+  })
+
+  it('scopes every embed link to the submission’s own game — the row is truth, not the caller', async () => {
+    const { deps, posts } = createFakeDeps({
+      webhookUrl: WEBHOOK_URL,
+      // The context read says CS:GO even though the create facts carry no
+      // game; the link must follow the stored row.
+      context: { ...defaultContext(), game: 'csgo' },
+    })
+    const service = createNotificationsService(deps)
+
+    await service.notifySubmissionCreated(createdFacts())
+
+    expect(posts[0]!.payload.embeds[0]!.url).toBe(
+      `https://example.com/csgo/submissions/${SUBMISSION_ID}`,
     )
   })
 
@@ -215,7 +232,7 @@ describe('createNotificationsService', () => {
     await service.notifySubmissionCreated(createdFacts())
 
     expect(posts[0]!.payload.embeds[0]!.url).toBe(
-      `https://example.com/submissions/${SUBMISSION_ID}`,
+      `https://example.com/cs2/submissions/${SUBMISSION_ID}`,
     )
   })
 

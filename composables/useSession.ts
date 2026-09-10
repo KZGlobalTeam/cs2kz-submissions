@@ -39,7 +39,7 @@ export function useSession() {
         authenticated: false,
         user: null,
       }
-      await navigateTo('/')
+      await navigateTo('/cs2')
     } finally {
       logoutPending.value = false
     }

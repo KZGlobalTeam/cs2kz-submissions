@@ -3,6 +3,8 @@ import type { TableColumn } from '@nuxt/ui'
 import type { PaginatedResult } from '~/shared/types/pagination'
 import type { SubmissionStatus } from '~/shared/types/submission'
 
+import { apiGamePath, gamePath } from '~/shared/utils/games'
+
 definePageMeta({
   middleware: ['auth'],
 })
@@ -18,10 +20,12 @@ interface SubmissionRow {
   voteCount: number
 }
 
+const { game } = useGameRoute()
+
 const { items, total, page, pageSize, status, refresh } = usePaginatedTable<SubmissionRow>(
-  'submissions',
+  `submissions-${game.value}`,
   ({ page, pageSize }) =>
-    $fetch<PaginatedResult<SubmissionRow>>('/api/cs2/submissions', {
+    $fetch<PaginatedResult<SubmissionRow>>(apiGamePath(game.value, '/submissions'), {
       params: { scope: 'mine', page, pageSize },
     }),
 )
@@ -56,11 +60,11 @@ const statusColor = (status: SubmissionStatus) =>
       : 'neutral'
 
 function openSubmission(id: string) {
-  return navigateTo(`/submissions/${id}`)
+  return navigateTo(gamePath(game.value, `/submissions/${id}`))
 }
 
 function openSubmissionEdit(id: string) {
-  return navigateTo(`/submissions/${id}/edit`)
+  return navigateTo(gamePath(game.value, `/submissions/${id}/edit`))
 }
 
 const removing = shallowRef<string | null>(null)
@@ -74,7 +78,7 @@ async function confirmDeleteSubmission() {
 
   removing.value = row.id
   try {
-    await $fetch(`/api/cs2/submissions/${row.id}`, { method: 'DELETE' })
+    await $fetch(apiGamePath(game.value, `/submissions/${row.id}`), { method: 'DELETE' })
     toast.add({ color: 'success', title: 'Submission deleted' })
     await refresh()
     // If we emptied the current page (e.g. deleted the last row), step back.
@@ -117,7 +121,7 @@ async function confirmDeleteSubmission() {
         />
         <SubmissionRulesDialog
           v-model:open="rulesOpen"
-          @proceed="navigateTo('/submissions/new')"
+          @proceed="navigateTo(gamePath(game, '/submissions/new'))"
         />
       </div>
     </div>
@@ -190,3 +194,4 @@ async function confirmDeleteSubmission() {
     />
   </section>
 </template>
+

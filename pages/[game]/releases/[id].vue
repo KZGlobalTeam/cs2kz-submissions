@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { apiGamePath } from '~/shared/utils/games'
+
 interface ReleaseSubmission {
   id: string
   mapName: string
@@ -18,10 +20,13 @@ definePageMeta({
 })
 
 const route = useRoute()
+const { game } = useGameRoute()
 
 const { data: release, status, refresh } = useAsyncData<ReleaseDetail>(
-  'release-detail',
-  () => $fetch<ReleaseDetail>(`/api/cs2/releases/${route.params.id}`),
+  `release-${game.value}-${String(route.params.id)}`,
+  () => $fetch<ReleaseDetail>(
+    apiGamePath(game.value, `/releases/${String(route.params.id)}`),
+  ),
   { server: false },
 )
 </script>
@@ -66,3 +71,4 @@ const { data: release, status, refresh } = useAsyncData<ReleaseDetail>(
     </UCard>
   </div>
 </template>
+

@@ -4,6 +4,7 @@ import type { FormSubmitEvent } from '@nuxt/ui'
 import CourseEditorList from './CourseEditorList.vue'
 import MapperListField from './MapperListField.vue'
 import { useSubmissionForm, type SubmissionFormValue } from '~/composables/useSubmissionForm'
+import { apiGamePath, gamePath } from '~/shared/utils/games'
 
 const props = withDefaults(
   defineProps<{
@@ -22,6 +23,7 @@ const props = withDefaults(
 )
 
 const isEditing = computed(() => props.mode === 'edit')
+const { game } = useGameRoute()
 
 const { form } = useSubmissionForm(props.initialValue)
 const submitting = shallowRef(false)
@@ -205,13 +207,13 @@ async function confirmSubmit() {
 
   try {
     if (isEditing.value) {
-      await $fetch(`/api/cs2/submissions/${props.submissionId}`, {
+      await $fetch(apiGamePath(game.value, `/submissions/${props.submissionId}`), {
         method: 'PUT',
         body: payload,
       })
     }
     else {
-      await $fetch('/api/cs2/submissions', {
+      await $fetch(apiGamePath(game.value, '/submissions'), {
         method: 'POST',
         body: payload,
       })
@@ -219,8 +221,8 @@ async function confirmSubmit() {
 
     // Drop the cached submissions list so the index page refetches (and shows
     // the table loading state) instead of rendering the stale list.
-    clearNuxtData('submissions')
-    await navigateTo('/submissions')
+    clearNuxtData(`submissions-${game.value}`)
+    await navigateTo(gamePath(game.value, '/submissions'))
   } catch (error: unknown) {
     const message = error && typeof error === 'object' && 'statusMessage' in error
       ? String((error as { statusMessage: unknown }).statusMessage)

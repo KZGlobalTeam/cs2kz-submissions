@@ -4,6 +4,8 @@ import type { ReviewSubmissionRow } from '~/server/services/review-queue/review-
 import type { PaginatedResult } from '~/shared/types/pagination'
 import type { SubmissionStatus } from '~/shared/types/submission'
 
+import { apiGamePath, gamePath } from '~/shared/utils/games'
+
 definePageMeta({
   middleware: ['auth', 'approver'],
 })
@@ -14,6 +16,7 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const { hasApproverRole, isLeadApprover } = useSession()
+const { game } = useGameRoute()
 
 const statusOptions = [
   { label: 'Pending', value: 'pending' },
@@ -40,9 +43,9 @@ function formatDateYearMonthDay(value: string): string {
 }
 
 const { items, total, page, pageSize, status, refresh } = usePaginatedTable<ReviewSubmissionRow>(
-  'review-submissions',
+  `review-submissions-${game.value}`,
   ({ page, pageSize }) =>
-    $fetch<PaginatedResult<ReviewSubmissionRow>>('/api/cs2/submissions', {
+    $fetch<PaginatedResult<ReviewSubmissionRow>>(apiGamePath(game.value, '/submissions'), {
       params: {
         scope: 'all',
         status: statusFilter.value,
@@ -101,15 +104,15 @@ const statusColor = (status: SubmissionStatus) =>
       : 'neutral'
 
 function openSubmission(id: string) {
-  return navigateTo(`/submissions/${id}`)
+  return navigateTo(gamePath(game.value, `/submissions/${id}`))
 }
 
 function openVote(id: string) {
-  return navigateTo(`/submissions/${id}?mode=vote`)
+  return navigateTo(gamePath(game.value, `/submissions/${id}?mode=vote`))
 }
 
 function openDecide(id: string) {
-  return navigateTo(`/submissions/${id}?mode=approve`)
+  return navigateTo(gamePath(game.value, `/submissions/${id}?mode=approve`))
 }
 
 const removing = shallowRef<string | null>(null)
@@ -123,7 +126,7 @@ async function confirmDeleteSubmission() {
 
   removing.value = row.id
   try {
-    await $fetch(`/api/cs2/submissions/${row.id}`, { method: 'DELETE' })
+    await $fetch(apiGamePath(game.value, `/submissions/${row.id}`), { method: 'DELETE' })
     toast.add({ color: 'success', title: 'Submission deleted' })
     await refresh()
     // If we emptied the current page (e.g. deleted the last row), step back.
@@ -289,3 +292,4 @@ async function confirmDeleteSubmission() {
     />
   </section>
 </template>
+

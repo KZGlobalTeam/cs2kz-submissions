@@ -1,20 +1,26 @@
 <script setup lang="ts">
+import GameSwitcher from '~/components/common/GameSwitcher.vue'
+import { gamePath } from '~/shared/utils/games'
+
 const { session, refreshSession, logout, isApprover, isLeadApprover, pending, logoutPending } = useSession()
+const { game } = useGameRoute()
 
 await callOnce(async () => {
   await refreshSession()
 })
 
 const navigation = computed(() => {
-  const items = [{ label: "My Submissions", to: "/submissions" }]
+  const items = [
+    { label: 'My Submissions', to: gamePath(game.value, '/submissions') },
+  ]
 
   if (isApprover.value) {
-    items.push({ label: "Review", to: "/review" })
+    items.push({ label: 'Review', to: gamePath(game.value, '/review') })
   }
 
   if (isLeadApprover.value) {
-    items.push({ label: "Releases", to: "/releases" })
-    items.push({ label: "Approvers", to: "/admin/approvers" })
+    items.push({ label: 'Releases', to: gamePath(game.value, '/releases') })
+    items.push({ label: 'Approvers', to: gamePath(game.value, '/admin/approvers') })
   }
 
   return items
@@ -50,7 +56,7 @@ const navigation = computed(() => {
             @click="logout"
           />
         </template>
-        <UButton v-else to="/" variant="outline" size="sm" label="Sign in" />
+        <UButton v-else to="/cs2" variant="outline" size="sm" label="Sign in" />
       </div>
 
       <UNavigationMenu :items="navigation" orientation="vertical" class="w-full" />
@@ -61,10 +67,22 @@ const navigation = computed(() => {
       </div>
     </aside>
 
-    <div class="min-w-0 flex-1 px-4 py-6 lg:px-6">
-      <main>
-        <slot />
-      </main>
+    <div class="min-w-0 flex-1">
+      <!-- The game spine's only switcher: the single place the game changes.
+           The page below is keyed by the game so flipping context remounts
+           every page — no per-form game state survives the switch, which is
+           what makes leaving the editor discard unsaved edits. -->
+      <header
+        class="flex h-14 items-center justify-end border-b border-white/5 bg-panel/40 px-4 lg:px-6"
+      >
+        <GameSwitcher />
+      </header>
+
+      <div class="px-4 py-6 lg:px-6">
+        <main :key="game">
+          <slot />
+        </main>
+      </div>
     </div>
   </div>
 </template>

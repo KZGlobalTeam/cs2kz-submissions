@@ -1,3 +1,6 @@
+import { useGameRoute } from './useGameRoute'
+import { apiGamePath } from '~/shared/utils/games'
+
 export function useReleaseExport() {
   // Scoped to the single release being exported, so the Releases page can
   // show a spinner on exactly that row's Export JSON button (mirrors
@@ -6,11 +9,12 @@ export function useReleaseExport() {
   const exportOpen = useState<boolean>('release-export-open', () => false)
   const exportJson = useState<string | null>('release-export-json', () => null)
   const exportTitle = useState<string>('release-export-title', () => 'Export JSON')
+  const { game } = useGameRoute()
 
   async function exportRelease(releaseId: string, name?: string) {
     exportingId.value = releaseId
     try {
-      const payload = await $fetch(`/api/cs2/releases/${releaseId}/export`)
+      const payload = await $fetch(apiGamePath(game.value, `/releases/${releaseId}/export`))
       exportJson.value = JSON.stringify(payload, null, 2)
       exportTitle.value = name ? `Export: ${name}` : 'Export JSON'
       exportOpen.value = true

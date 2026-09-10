@@ -1,4 +1,6 @@
-export default defineNuxtRouteMiddleware(async () => {
+import { coerceGame, gamePath } from '~/shared/utils/games'
+
+export default defineNuxtRouteMiddleware(async (to) => {
   const { session, refreshSession } = useSession()
 
   if (!session.value.authenticated) {
@@ -6,6 +8,8 @@ export default defineNuxtRouteMiddleware(async () => {
   }
 
   if (!session.value.authenticated) {
-    return navigateTo('/')
+    // Land on the login page of the game the visitor attempted, not the
+    // default — the game spine survives an expired session.
+    return navigateTo(gamePath(coerceGame(to.params.game), '/'))
   }
 })

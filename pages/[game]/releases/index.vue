@@ -2,6 +2,8 @@
 import type { TableColumn } from '@nuxt/ui'
 import type { PaginatedResult } from '~/shared/types/pagination'
 
+import { apiGamePath, gamePath } from '~/shared/utils/games'
+
 definePageMeta({
   middleware: ['auth', 'lead-approver'],
 })
@@ -13,6 +15,8 @@ interface ReleaseRow {
   mapCount: number
   createdAt: string
 }
+
+const { game } = useGameRoute()
 
 const toast = useToast()
 const {
@@ -88,9 +92,9 @@ async function copyExport() {
 const { downloadingId, downloadImages } = useReleaseImagePack()
 
 const { items, total, page, pageSize, status, refresh } = usePaginatedTable<ReleaseRow>(
-  'releases',
+  `releases-${game.value}`,
   ({ page, pageSize }) =>
-    $fetch<PaginatedResult<ReleaseRow>>('/api/cs2/releases', {
+    $fetch<PaginatedResult<ReleaseRow>>(apiGamePath(game.value, '/releases'), {
       params: { page, pageSize },
     }),
 )
@@ -107,7 +111,7 @@ const removing = shallowRef<string | null>(null)
 const pendingDelete = shallowRef<ReleaseRow | null>(null)
 
 function openRelease(id: string) {
-  return navigateTo(`/releases/${id}`)
+  return navigateTo(gamePath(game.value, `/releases/${id}`))
 }
 
 function formatDate(value: string) {
@@ -122,7 +126,7 @@ async function confirmDeleteRelease() {
 
   removing.value = row.id
   try {
-    await $fetch(`/api/cs2/releases/${row.id}`, { method: 'DELETE' })
+    await $fetch(apiGamePath(game.value, `/releases/${row.id}`), { method: 'DELETE' })
     toast.add({ color: 'success', title: 'Release deleted' })
     await refresh()
     // If we emptied the current page (e.g. deleted the last row), step back.
@@ -150,7 +154,7 @@ async function confirmDeleteRelease() {
         />
         <UButton
           label="New Release"
-          @click="navigateTo('/releases/new')"
+          @click="navigateTo(gamePath(game, '/releases/new'))"
         />
       </div>
     </div>
@@ -257,3 +261,4 @@ async function confirmDeleteRelease() {
     />
   </div>
 </template>
+

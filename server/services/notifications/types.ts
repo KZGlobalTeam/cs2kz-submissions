@@ -1,4 +1,5 @@
 import type { ApprovalDecision } from '~/shared/types/submission'
+import type { Game } from '~/shared/schemas/game'
 
 /** Facts the submission-content service hands the notifier after a
  *  successful create — the event facts it already holds (spec §Context
@@ -41,12 +42,17 @@ export interface DecisionCastFacts {
 /** The context the notifier resolves in its own post-commit read — what the
  *  write services don't hold. `mapName` feeds the vote/decision titles (the
  *  create facts already carry it); `submitterDisplayName` and `courseCount`
- *  feed the submission embed; `displayNames` resolves the extra user ids the
- *  vote/decision facts hand over (the approver / the lead approver). */
+ *  feed the submission embed; `game` scopes the embed link to the game-spine
+ *  segment, so a shared notification link lands in the same game; `displayNames`
+ *  resolves the extra user ids the vote/decision facts hand over (the approver
+ *  / the lead approver). */
 export interface NotificationContext {
   mapName: string
   submitterDisplayName: string
   courseCount: number
+  /** The submission's game — the row is truth, so the link cannot drift
+   *  from the stored context. */
+  game: Game
   /** userId → `users.displayName`. */
   displayNames: Record<string, string>
 }
@@ -68,7 +74,7 @@ export interface NotificationContextStore {
  *  the `resolveFilters` pattern in review-queue/types). */
 export function toNotificationContext(
   submissionRow:
-    | { mapName: string; submitterDisplayName: string }
+    | { mapName: string; submitterDisplayName: string; game: Game }
     | undefined,
   courseCount: number,
   userRows: { id: string; displayName: string }[],
@@ -84,6 +90,7 @@ export function toNotificationContext(
     mapName: submissionRow.mapName,
     submitterDisplayName: submissionRow.submitterDisplayName,
     courseCount,
+    game: submissionRow.game,
     displayNames,
   }
 }

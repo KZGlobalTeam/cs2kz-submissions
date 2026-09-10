@@ -14,7 +14,7 @@ import type {
 } from '~/server/services/notifications/types'
 
 const SUBMISSION_ID = '11111111-1111-4111-8111-111111111111'
-const SUBMISSION_URL = `https://example.com/submissions/${SUBMISSION_ID}`
+const SUBMISSION_URL = `https://example.com/cs2/submissions/${SUBMISSION_ID}`
 
 function createdFacts(
   overrides: Partial<SubmissionCreatedFacts> = {},

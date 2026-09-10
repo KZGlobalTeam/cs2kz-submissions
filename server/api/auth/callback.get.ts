@@ -68,8 +68,14 @@ export default defineEventHandler(async (event) => {
     // holds the session cookie — instead of a configured site URL that may
     // point at a different host (e.g. a stale deployment domain). Redirecting
     // to a host without the cookie would immediately log the user out again.
+    // The landing is the game spine's default context (CS2), so it carries
+    // the game segment.
     const origin = getRequestURL(event).origin
-    return sendRedirect(event, `${origin}${isReviewer ? '/review' : '/submissions'}`, 302)
+    return sendRedirect(
+      event,
+      `${origin}/cs2/${isReviewer ? 'review' : 'submissions'}`,
+      302,
+    )
   }
   catch (error) {
     console.error('Steam auth callback failed:', error)

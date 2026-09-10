@@ -10,9 +10,13 @@ describe('toNotificationContext', () => {
     expect(toNotificationContext(undefined, 3, [])).toBeNull()
   })
 
-  it('maps the map name, the submitting account display name, and the course count', () => {
+  it('maps the map name, the submitting account display name, the course count, and the game', () => {
     const context = toNotificationContext(
-      { mapName: 'The Spike Rush', submitterDisplayName: 'Alice Submitter' },
+      {
+        mapName: 'The Spike Rush',
+        submitterDisplayName: 'Alice Submitter',
+        game: 'csgo',
+      },
       4,
       [],
     )
@@ -21,13 +25,18 @@ describe('toNotificationContext', () => {
       mapName: 'The Spike Rush',
       submitterDisplayName: 'Alice Submitter',
       courseCount: 4,
+      game: 'csgo',
       displayNames: {},
     })
   })
 
   it('maps every requested user id to its stored display name', () => {
     const context = toNotificationContext(
-      { mapName: 'The Spike Rush', submitterDisplayName: 'Alice Submitter' },
+      {
+        mapName: 'The Spike Rush',
+        submitterDisplayName: 'Alice Submitter',
+        game: 'cs2',
+      },
       0,
       [
         { id: APPROVER_ID, displayName: 'Bob Approver' },
@@ -35,6 +44,7 @@ describe('toNotificationContext', () => {
       ],
     )
 
+    expect(context?.game).toBe('cs2')
     expect(context?.displayNames).toEqual({
       [APPROVER_ID]: 'Bob Approver',
       [LEAD_ID]: 'Cara Lead',

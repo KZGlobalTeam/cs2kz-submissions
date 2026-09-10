@@ -10,17 +10,21 @@
  * a toast without leaving the page; the server still sends
  * `Content-Disposition: attachment` for any non-JS client.
  */
+import { useGameRoute } from './useGameRoute'
+import { apiGamePath } from '~/shared/utils/games'
+
 export function useReleaseImagePack() {
   const downloadingId = useState<string | null>(
     'release-image-pack-downloading',
     () => null,
   )
   const toast = useToast()
+  const { game } = useGameRoute()
 
   async function downloadImages(releaseId: string, releaseName: string) {
     downloadingId.value = releaseId
     try {
-      const response = await fetch(`/api/cs2/releases/${releaseId}/images`)
+      const response = await fetch(apiGamePath(game.value, `/releases/${releaseId}/images`))
 
       if (!response.ok) {
         toast.add({ color: 'error', title: await readErrorMessage(response) })

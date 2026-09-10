@@ -13,6 +13,7 @@ import type { SubmissionDetailVote } from '~/shared/types/submission-detail'
 import OtherApproverVotes from './OtherApproverVotes.vue'
 import VoteSummaryPanel from './VoteSummaryPanel.vue'
 import RejectionAttachmentStage from '../common/RejectionAttachmentStage.vue'
+import { apiGamePath } from '~/shared/utils/games'
 
 interface CourseInput {
   id: string
@@ -56,6 +57,7 @@ const decisionStatus = shallowRef<SubmissionStatus>('approved')
 const decisionNotes = shallowRef('')
 const stagedAttachments = ref<RejectionAttachment[]>([])
 const saving = shallowRef(false)
+const { game } = useGameRoute()
 
 const tierOptions = Array.from({ length: tierCount }, (_, i) => ({
   label: String(i + 1),
@@ -100,7 +102,7 @@ function setProTier(entry: LeadFilter, value: string) {
 async function submitDecision() {
   saving.value = true
   try {
-    await $fetch(`/api/cs2/submissions/${props.submissionId}/decision`, {
+    await $fetch(apiGamePath(game.value, `/submissions/${props.submissionId}/decision`), {
       method: 'PUT',
       body: {
         status: decisionStatus.value,

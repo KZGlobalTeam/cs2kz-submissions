@@ -21,6 +21,7 @@ export function createDrizzleNotificationStore(
           .select({
             mapName: submissions.mapName,
             submitterDisplayName: users.displayName,
+            game: submissions.game,
           })
           .from(submissions)
           .innerJoin(users, eq(submissions.createdByUserId, users.id))

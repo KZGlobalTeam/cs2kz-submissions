@@ -3,20 +3,23 @@ import type { TableColumn } from '@nuxt/ui'
 import type { ReviewSubmissionRow } from '~/server/services/review-queue/review-queue'
 import type { PaginatedResult } from '~/shared/types/pagination'
 
+import { apiGamePath, gamePath } from '~/shared/utils/games'
+
 definePageMeta({
   middleware: ['auth', 'lead-approver'],
 })
 
 const toast = useToast()
+const { game } = useGameRoute()
 
 const name = shallowRef('')
 const notes = shallowRef('')
 const creating = shallowRef(false)
 
 const { items, total, page, pageSize, status } = usePaginatedTable<ReviewSubmissionRow>(
-  'approved-submissions-new',
+  `approved-submissions-new-${game.value}`,
   ({ page, pageSize }) =>
-    $fetch<PaginatedResult<ReviewSubmissionRow>>('/api/cs2/submissions', {
+    $fetch<PaginatedResult<ReviewSubmissionRow>>(apiGamePath(game.value, '/submissions'), {
       params: { scope: 'all', status: 'approved', page, pageSize },
     }),
 )
@@ -47,7 +50,7 @@ async function createRelease() {
   }
   creating.value = true
   try {
-    await $fetch('/api/cs2/releases', {
+    await $fetch(apiGamePath(game.value, '/releases'), {
       method: 'POST',
       body: {
         name: name.value,
@@ -56,7 +59,7 @@ async function createRelease() {
       },
     })
     toast.add({ color: 'success', title: 'Release created' })
-    await navigateTo('/releases')
+    await navigateTo(gamePath(game.value, '/releases'))
   } finally {
     creating.value = false
   }
@@ -155,7 +158,7 @@ async function createRelease() {
           label="Cancel"
           variant="outline"
           color="neutral"
-          @click="navigateTo('/releases')"
+          @click="navigateTo(gamePath(game, '/releases'))"
         />
         <UButton
           label="Create Release"
@@ -166,3 +169,4 @@ async function createRelease() {
     </UCard>
   </div>
 </template>
+

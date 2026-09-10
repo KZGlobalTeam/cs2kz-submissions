@@ -11,6 +11,8 @@ import LeadDecisionPanel from '~/components/review/LeadDecisionPanel.vue'
 import MapInfoPanel from '~/components/review/MapInfoPanel.vue'
 import StatusOfApprovalPanel from '~/components/review/StatusOfApprovalPanel.vue'
 
+import { apiGamePath, gamePath } from '~/shared/utils/games'
+
 type PanelMode = 'vote' | 'approve'
 
 definePageMeta({
@@ -20,6 +22,7 @@ definePageMeta({
 const route = useRoute()
 const router = useRouter()
 const { session, hasApproverRole, isApprover, isLeadApprover, refreshSession } = useSession()
+const { game } = useGameRoute()
 
 const submissionId = computed(() => String(route.params.id))
 
@@ -28,8 +31,10 @@ void callOnce(async () => {
 })
 
 const { data: details } = useAsyncData<SubmissionDetailResponse>(
-  `submission-${submissionId.value}`,
-  () => $fetch<SubmissionDetailResponse>(`/api/cs2/submissions/${submissionId.value}`),
+  `submission-${game.value}-${submissionId.value}`,
+  () => $fetch<SubmissionDetailResponse>(
+    apiGamePath(game.value, `/submissions/${submissionId.value}`),
+  ),
   { server: false },
 )
 
@@ -97,7 +102,7 @@ const decisionFormKey = computed(
 )
 
 async function onSaved() {
-  await navigateTo('/review')
+  await navigateTo(gamePath(game.value, '/review'))
 }
 
 // Persist the resolved review mode in the URL (a refresh re-enters the same
@@ -228,3 +233,4 @@ watch(details, () => {
     </div>
   </section>
 </template>
+

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { reactive } from 'vue'
 
 import { useReleaseExport } from '~/composables/useReleaseExport'
 
@@ -9,7 +10,16 @@ import { useReleaseExport } from '~/composables/useReleaseExport'
  * button at once (the bug this spec locks down — the page binds the flag
  * per-row, `exportingId === row.original.id`, mirroring the Download
  * Images / Delete buttons).
+ *
+ * Since the game spine landed, the composable resolves the game from the
+ * current route (via `useGameRoute`) and prefixes the export URL with it —
+ * the specs stub `useRoute` and assert the requested URL, so the caller's
+ * context is what reaches the API.
  */
+
+interface RouteContext {
+  params: { game?: string }
+}
 
 interface PendingFetch {
   resolve: (value: unknown) => void
@@ -19,10 +29,14 @@ interface PendingFetch {
 describe('useReleaseExport', () => {
   const stateStore = new Map<string, { value: unknown }>()
   let pendingFetches: PendingFetch[]
+  let fetchedUrls: string[]
+  let routeContext: RouteContext
 
   beforeEach(() => {
     stateStore.clear()
     pendingFetches = []
+    fetchedUrls = []
+    routeContext = reactive<RouteContext>({ params: { game: 'cs2' } })
     // Stand in for Nuxt's auto-imported `useState`: keyed, shared state with
     // a plain `{ value }` ref-like shape — enough reactivity for assertions.
     vi.stubGlobal('useState', (key: string, init: () => unknown) => {
@@ -31,16 +45,19 @@ describe('useReleaseExport', () => {
       }
       return stateStore.get(key)!
     })
+    // Stand in for Nuxt's auto-imported `useRoute` — a reactive route whose
+    // `params.game` is the game segment `useGameRoute` resolves.
+    vi.stubGlobal('useRoute', () => routeContext)
     // Stand in for Nuxt's auto-imported `$fetch`: hold the export request
-    // open so the "in flight" window is observable.
+    // open so the "in flight" window is observable, and record the URL.
     vi.stubGlobal(
       '$fetch',
-      vi.fn(
-        () =>
-          new Promise((resolve, reject) => {
-            pendingFetches.push({ resolve, reject })
-          }),
-      ),
+      vi.fn((url: string) => {
+        fetchedUrls.push(url)
+        return new Promise((resolve, reject) => {
+          pendingFetches.push({ resolve, reject })
+        })
+      }),
     )
   })
 
@@ -87,5 +104,18 @@ describe('useReleaseExport', () => {
     await expect(pending).rejects.toThrow('boom')
 
     expect(exportingId.value).toBeNull()
+  })
+
+  it('requests the export from the current route’s game segment, reacting to a game switch', async () => {
+    const { exportRelease } = useReleaseExport()
+
+    // The context can still be re-scoped after the composable is bound, like
+    // flipping the game switcher before this session's first export.
+    routeContext.params.game = 'csgo'
+    const pending = exportRelease('release-a', 'Release A')
+    pendingFetches[0]!.resolve({ maps: [] })
+    await pending
+
+    expect(fetchedUrls).toEqual(['/api/csgo/releases/release-a/export'])
   })
 })

@@ -6,6 +6,7 @@ import type { SubmissionDetailVote } from '~/shared/types/submission-detail'
 import CourseFilterVoteTable from './CourseFilterVoteTable.vue'
 import VoteSummaryPanel from './VoteSummaryPanel.vue'
 import RejectionAttachmentStage from '../common/RejectionAttachmentStage.vue'
+import { apiGamePath } from '~/shared/utils/games'
 
 interface CourseInput {
   id: string
@@ -25,6 +26,7 @@ const emit = defineEmits<{ saved: [] }>()
 const selfVote = props.votes.find(
   (vote) => vote.approverUserId === props.currentUserId,
 )
+const { game } = useGameRoute()
 const { form } = useVoteForm(props.courses, selfVote)
 const saving = shallowRef(false)
 const toast = useToast()
@@ -85,7 +87,7 @@ async function submitVote() {
   validationError.value = null
   saving.value = true
   try {
-    await $fetch(`/api/cs2/submissions/${props.submissionId}/vote`, {
+    await $fetch(apiGamePath(game.value, `/submissions/${props.submissionId}/vote`), {
       method: 'PUT',
       body: {
         approvalDecision: form.approvalDecision,

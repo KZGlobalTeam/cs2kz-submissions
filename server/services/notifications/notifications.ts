@@ -11,6 +11,7 @@ import type {
   SubmissionCreatedFacts,
   VoteRecordedFacts,
 } from './types'
+import type { Game } from '~/shared/schemas/game'
 
 /** How long a 429 retry may wait at most. Discord webhook rate-limits reset
  *  in well under a minute — and `retry_after` has a long-standing
@@ -73,12 +74,17 @@ async function sendBestEffort(
 export function createNotificationsService(
   deps: NotificationsDeps,
 ): NotificationsService {
-  /** The absolute submission link every embed carries; omitted when the
-   *  site origin is unset, because Discord validates `embed.url` and a
-   *  relative path would risk the whole message being rejected. */
-  const submissionUrl = (submissionId: string): string | undefined => {
+  /** The absolute submission link every embed carries, scoped to the
+   *  submission's own game segment (the row is truth) so a shared link lands
+   *  in the same game; omitted when the site origin is unset, because Discord
+   *  validates `embed.url` and a relative path would risk the whole message
+   *  being rejected. */
+  const submissionUrl = (
+    game: Game,
+    submissionId: string,
+  ): string | undefined => {
     const origin = deps.getSiteUrl().replace(/\/+$/, '')
-    return origin ? `${origin}/submissions/${submissionId}` : undefined
+    return origin ? `${origin}/${game}/submissions/${submissionId}` : undefined
   }
 
   /** The shared emit spine for all three events: resolve the webhook URL
@@ -135,7 +141,7 @@ export function createNotificationsService(
         return submissionCreatedPayload(
           facts,
           context,
-          submissionUrl(facts.submissionId),
+          submissionUrl(context.game, facts.submissionId),
         )
       })
     },
@@ -152,7 +158,7 @@ export function createNotificationsService(
             approverDisplayName:
               context.displayNames[facts.approverUserId] ?? 'Unknown',
           },
-          submissionUrl(facts.submissionId),
+          submissionUrl(context.game, facts.submissionId),
         )
       })
     },
@@ -169,7 +175,7 @@ export function createNotificationsService(
             leadDisplayName:
               context.displayNames[facts.leadUserId] ?? 'Unknown',
           },
-          submissionUrl(facts.submissionId),
+          submissionUrl(context.game, facts.submissionId),
         )
       })
     },
