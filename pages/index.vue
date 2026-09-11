@@ -63,8 +63,7 @@ void (async () => {
     <section class="w-full max-w-3xl rounded-lg border border-white/5 bg-panel/60 p-8 lg:p-10">
       <p class="text-2xl font-semibold uppercase tracking-[0.2rem] text-gray-300">KZ Global Submission Portal</p>
 
-      <div class="mt-8 border-t border-white/5 pt-8">
-        <h1 class="text-xl font-semibold">Steam Login</h1>
+      <div class="mt-4 border-t border-white/5">
 
         <div v-if="checking" class="mt-6 flex items-center gap-3 text-muted">
           <UIcon name="i-lucide-loader-circle" class="animate-spin" />
@@ -74,11 +73,12 @@ void (async () => {
         <div v-else-if="!session.authenticated" class="mt-6">
           <!-- The only pre-auth game choice: the preferred-game picker above
                the Steam button. It chooses the landing, nothing more. -->
-          <p class="mb-3 text-sm text-muted">Land in</p>
+          <p class="mb-3 text-sm text-muted">Game</p>
           <GamePicker v-model="selected" />
 
           <UButton
             class="mt-6"
+            icon="i-simple-icons-steam"
             label="Sign In With Steam"
             :loading="loginPending"
             :disabled="loginPending"
