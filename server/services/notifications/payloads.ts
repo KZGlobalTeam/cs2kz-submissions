@@ -6,6 +6,8 @@ import type {
   SubmissionCreatedFacts,
   VoteRecordedFacts,
 } from './types'
+import type { Game } from '~/shared/schemas/game'
+import { gameLabels } from '~/shared/utils/games'
 
 /** The settled Discord embed colors (spec §Presentation): blue for a new
  *  submission, green for a yes-vote / approval, red for a no-vote /
@@ -17,8 +19,10 @@ export const EMBED_COLOR = {
   red: 0xE74C3C,
 } as const
 
-/** The fixed sender name every payload carries (spec §Presentation). */
-export const SENDER_NAME = 'CS2KZ Submissions'
+/** The fixed sender name every payload carries — the portal's game-neutral
+ *  brand, since the portal serves both games (spec §Presentation, #07
+ *  branding). The Game field below names the event's game, not the sender. */
+export const SENDER_NAME = 'KZ Submissions'
 
 /** Discord rejects an embed field with an empty value (400), so a null
  *  Decision note renders as this "none" marker — never an empty string. */
@@ -34,14 +38,17 @@ function field(name: string, value: string): DiscordEmbedField {
 /** The submission-created embed: blue, `Submission: <mapName>`, the
  *  submitting *account's* display name (Mapper and Submitter are different
  *  concepts — CONTEXT.md), the workshop URL, the course count, and a Port
- *  flag on a port. The submitter display name and the course count come from
- *  the context read; everything else is in the create facts. */
+ *  flag on a port. The leading Game field names the submission's game so a
+ *  notification reader knows which game the event belongs to; the submitter
+ *  display name and the course count come from the context read; everything
+ *  else is in the create facts. */
 export function submissionCreatedPayload(
   facts: SubmissionCreatedFacts,
-  context: Pick<NotificationContext, 'submitterDisplayName' | 'courseCount'>,
+  context: Pick<NotificationContext, 'submitterDisplayName' | 'courseCount' | 'game'>,
   submissionUrl: string | undefined,
 ): DiscordWebhookPayload {
   const fields = [
+    field('Game', gameLabels[context.game]),
     field('Submitter', context.submitterDisplayName),
     field('Workshop', facts.workshopUrl),
     field('Courses', String(context.courseCount)),
@@ -63,16 +70,17 @@ export function submissionCreatedPayload(
 }
 
 /** The vote-recorded embed: green on a yes-vote, red on a no-vote,
- *  `Vote: <mapName>`, the approver's display name, the Decision (YES/NO),
- *  the Rejection reason on a no-vote, and the Approval note on a yes-vote
- *  that carries one. The title's map name and the approver display name come
- *  from the context read. */
+ *  `Vote: <mapName>`, the leading Game field, the approver's display name,
+ *  the Decision (YES/NO), the Rejection reason on a no-vote, and the
+ *  Approval note on a yes-vote that carries one. The title's map name, the
+ *  game, and the approver display name come from the context read. */
 export function voteRecordedPayload(
   facts: VoteRecordedFacts,
-  context: { mapName: string; approverDisplayName: string },
+  context: { mapName: string; approverDisplayName: string; game: Game },
   submissionUrl: string | undefined,
 ): DiscordWebhookPayload {
   const fields = [
+    field('Game', gameLabels[context.game]),
     field('Approver', context.approverDisplayName),
     field('Decision', facts.approvalDecision === 'yes' ? 'YES' : 'NO'),
   ]
@@ -105,13 +113,13 @@ export function voteRecordedPayload(
 }
 
 /** The decision-cast embed: green on approval, red on rejection,
- *  `Approved: <mapName>` / `Rejected: <mapName>`, the lead approver's
- *  display name, and the Decision note — always present, a null note
- *  rendering as the "none" marker. The title's map name and the lead display
- *  name come from the context read. */
+ *  `Approved: <mapName>` / `Rejected: <mapName>`, the leading Game field,
+ *  the lead approver's display name, and the Decision note — always
+ *  present, a null note rendering as the "none" marker. The title's map
+ *  name, the game, and the lead display name come from the context read. */
 export function decisionCastPayload(
   facts: DecisionCastFacts,
-  context: { mapName: string; leadDisplayName: string },
+  context: { mapName: string; leadDisplayName: string; game: Game },
   submissionUrl: string | undefined,
 ): DiscordWebhookPayload {
   return {
@@ -123,6 +131,7 @@ export function decisionCastPayload(
           facts.status === 'approved' ? EMBED_COLOR.green : EMBED_COLOR.red,
         url: submissionUrl,
         fields: [
+          field('Game', gameLabels[context.game]),
           field('Lead approver', context.leadDisplayName),
           field('Decision note', facts.decisionNotes ?? NO_NOTE),
         ],

@@ -43,7 +43,7 @@ void (async () => {
 <template>
   <div class="mx-auto flex min-h-screen max-w-7xl items-center px-4 py-12 lg:px-6">
     <section class="w-full max-w-3xl rounded-lg border border-white/5 bg-panel/60 p-8 lg:p-10">
-      <p class="text-2xl font-semibold uppercase tracking-[0.2rem] text-gray-300">CS2KZ Global Submission Portal</p>
+      <p class="text-2xl font-semibold uppercase tracking-[0.2rem] text-gray-300">KZ Global Submission Portal</p>
 
       <div class="mt-8 border-t border-white/5 pt-8">
         <h1 class="text-xl font-semibold">Steam Login</h1>

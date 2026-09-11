@@ -1,7 +1,7 @@
 import { gameValues, GameSchema, type Game } from '~/shared/schemas/game'
 
-/** UI labels for the switcher, written once so pages and the switcher cannot
- *  drift. */
+/** UI labels for the switcher and the Discord embed Game fields, written
+ *  once so pages and the notifier cannot drift. */
 export const gameLabels: Record<Game, string> = {
   cs2: 'CS2',
   csgo: 'CS:GO',

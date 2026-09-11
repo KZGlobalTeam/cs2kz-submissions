@@ -145,10 +145,15 @@ describe('createNotificationsService', () => {
     expect(contextReads).toEqual([{ submissionId: SUBMISSION_ID, userIds: [] }])
     expect(posts).toHaveLength(1)
     expect(posts[0]!.url).toBe(WEBHOOK_URL)
-    expect(posts[0]!.payload.username).toBe('CS2KZ Submissions')
+    expect(posts[0]!.payload.username).toBe('KZ Submissions')
     expect(posts[0]!.payload.embeds[0]).toMatchObject({
       title: 'Submission: The Spike Rush',
       color: EMBED_COLOR.blue,
+    })
+    expect(posts[0]!.payload.embeds[0]!.fields).toContainEqual({
+      name: 'Game',
+      value: 'CS2',
+      inline: false,
     })
     expect(posts[0]!.payload.embeds[0]!.fields).toContainEqual({
       name: 'Submitter',
@@ -177,6 +182,11 @@ describe('createNotificationsService', () => {
       { submissionId: SUBMISSION_ID, userIds: [APPROVER_ID] },
     ])
     expect(posts[0]!.payload.embeds[0]!.fields).toContainEqual({
+      name: 'Game',
+      value: 'CS2',
+      inline: false,
+    })
+    expect(posts[0]!.payload.embeds[0]!.fields).toContainEqual({
       name: 'Approver',
       value: 'Bob Approver',
       inline: false,
@@ -190,7 +200,7 @@ describe('createNotificationsService', () => {
     const { deps, posts } = createFakeDeps({
       webhookUrl: WEBHOOK_URL,
       // The context read says CS:GO even though the create facts carry no
-      // game; the link must follow the stored row.
+      // game; the link and the Game field must follow the stored row.
       context: { ...defaultContext(), game: 'csgo' },
     })
     const service = createNotificationsService(deps)
@@ -200,6 +210,11 @@ describe('createNotificationsService', () => {
     expect(posts[0]!.payload.embeds[0]!.url).toBe(
       `https://example.com/csgo/submissions/${SUBMISSION_ID}`,
     )
+    expect(posts[0]!.payload.embeds[0]!.fields).toContainEqual({
+      name: 'Game',
+      value: 'CS:GO',
+      inline: false,
+    })
   })
 
   it('resolves the lead approver display name from the decision facts', async () => {
@@ -214,6 +229,11 @@ describe('createNotificationsService', () => {
     expect(contextReads).toEqual([
       { submissionId: SUBMISSION_ID, userIds: [LEAD_ID] },
     ])
+    expect(posts[0]!.payload.embeds[0]!.fields).toContainEqual({
+      name: 'Game',
+      value: 'CS2',
+      inline: false,
+    })
     expect(posts[0]!.payload.embeds[0]!.fields).toContainEqual({
       name: 'Lead approver',
       value: 'Cara Lead',

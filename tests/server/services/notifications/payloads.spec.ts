@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import type { Game } from '~/shared/schemas/game'
 import {
   decisionCastPayload,
   EMBED_COLOR,
@@ -29,10 +30,15 @@ function createdFacts(
   }
 }
 
-function createdContext(overrides: { submitterDisplayName?: string; courseCount?: number } = {}) {
+function createdContext(overrides: {
+  submitterDisplayName?: string
+  courseCount?: number
+  game?: Game
+} = {}): { submitterDisplayName: string; courseCount: number; game: Game } {
   return {
     submitterDisplayName: 'Alice Submitter',
     courseCount: 3,
+    game: 'cs2',
     ...overrides,
   }
 }
@@ -73,6 +79,7 @@ describe('submissionCreatedPayload', () => {
         color: EMBED_COLOR.blue,
         url: SUBMISSION_URL,
         fields: [
+          { name: 'Game', value: 'CS2', inline: false },
           { name: 'Submitter', value: 'Alice Submitter', inline: false },
           {
             name: 'Workshop',
@@ -85,6 +92,19 @@ describe('submissionCreatedPayload', () => {
     ])
   })
 
+  it('names the submission game in the Game field, labelled like the switcher', () => {
+    const payload = submissionCreatedPayload(
+      createdFacts(),
+      createdContext({ game: 'csgo' }),
+      SUBMISSION_URL,
+    )
+    expect(payload.embeds[0]!.fields[0]).toEqual({
+      name: 'Game',
+      value: 'CS:GO',
+      inline: false,
+    })
+  })
+
   it('adds a Port flag field only on a port', () => {
     const plain = submissionCreatedPayload(
       createdFacts({ isPort: false }),
@@ -92,6 +112,7 @@ describe('submissionCreatedPayload', () => {
       SUBMISSION_URL,
     )
     expect(plain.embeds[0]!.fields.map((f) => f.name)).toEqual([
+      'Game',
       'Submitter',
       'Workshop',
       'Courses',
@@ -103,6 +124,7 @@ describe('submissionCreatedPayload', () => {
       SUBMISSION_URL,
     )
     expect(port.embeds[0]!.fields.map((f) => f.name)).toEqual([
+      'Game',
       'Submitter',
       'Workshop',
       'Courses',
@@ -133,7 +155,11 @@ describe('voteRecordedPayload', () => {
   it('is green with a YES decision and no rejection field on a yes-vote', () => {
     const payload = voteRecordedPayload(
       voteFacts({ approvalDecision: 'yes', rejectionReason: null }),
-      { mapName: 'The Spike Rush', approverDisplayName: 'Bob Approver' },
+      {
+        mapName: 'The Spike Rush',
+        approverDisplayName: 'Bob Approver',
+        game: 'cs2',
+      },
       SUBMISSION_URL,
     )
 
@@ -144,6 +170,7 @@ describe('voteRecordedPayload', () => {
         color: EMBED_COLOR.green,
         url: SUBMISSION_URL,
         fields: [
+          { name: 'Game', value: 'CS2', inline: false },
           { name: 'Approver', value: 'Bob Approver', inline: false },
           { name: 'Decision', value: 'YES', inline: false },
         ],
@@ -157,7 +184,11 @@ describe('voteRecordedPayload', () => {
         approvalDecision: 'no',
         rejectionReason: 'The blocker is broken',
       }),
-      { mapName: 'The Spike Rush', approverDisplayName: 'Bob Approver' },
+      {
+        mapName: 'The Spike Rush',
+        approverDisplayName: 'Bob Approver',
+        game: 'cs2',
+      },
       SUBMISSION_URL,
     )
 
@@ -177,10 +208,15 @@ describe('voteRecordedPayload', () => {
   it('still omits the rejection field if a no-vote ever carried a null reason', () => {
     const payload = voteRecordedPayload(
       voteFacts({ approvalDecision: 'no', rejectionReason: null }),
-      { mapName: 'The Spike Rush', approverDisplayName: 'Bob Approver' },
+      {
+        mapName: 'The Spike Rush',
+        approverDisplayName: 'Bob Approver',
+        game: 'cs2',
+      },
       SUBMISSION_URL,
     )
     expect(payload.embeds[0]!.fields.map((f) => f.name)).toEqual([
+      'Game',
       'Approver',
       'Decision',
     ])
@@ -189,7 +225,11 @@ describe('voteRecordedPayload', () => {
   it('adds an "Approval note" field on a yes-vote that carries a written note', () => {
     const payload = voteRecordedPayload(
       voteFacts({ approvalDecision: 'yes', approvalNote: 'Great tech' }),
-      { mapName: 'The Spike Rush', approverDisplayName: 'Bob Approver' },
+      {
+        mapName: 'The Spike Rush',
+        approverDisplayName: 'Bob Approver',
+        game: 'cs2',
+      },
       SUBMISSION_URL,
     )
 
@@ -206,10 +246,15 @@ describe('voteRecordedPayload', () => {
     for (const approvalNote of [null, '']) {
       const payload = voteRecordedPayload(
         voteFacts({ approvalDecision: 'yes', approvalNote }),
-        { mapName: 'The Spike Rush', approverDisplayName: 'Bob Approver' },
+        {
+          mapName: 'The Spike Rush',
+          approverDisplayName: 'Bob Approver',
+          game: 'cs2',
+        },
         SUBMISSION_URL,
       )
       expect(payload.embeds[0]!.fields.map((f) => f.name)).toEqual([
+        'Game',
         'Approver',
         'Decision',
       ])
@@ -223,10 +268,15 @@ describe('voteRecordedPayload', () => {
         rejectionReason: 'The blocker is broken',
         approvalNote: 'leftover',
       }),
-      { mapName: 'The Spike Rush', approverDisplayName: 'Bob Approver' },
+      {
+        mapName: 'The Spike Rush',
+        approverDisplayName: 'Bob Approver',
+        game: 'cs2',
+      },
       SUBMISSION_URL,
     )
     expect(payload.embeds[0]!.fields.map((f) => f.name)).toEqual([
+      'Game',
       'Approver',
       'Decision',
       'Rejection reason',
@@ -238,7 +288,7 @@ describe('decisionCastPayload', () => {
   it('is green with an "Approved:" title on approval', () => {
     const payload = decisionCastPayload(
       decisionFacts({ status: 'approved', decisionNotes: 'Great tech' }),
-      { mapName: 'The Spike Rush', leadDisplayName: 'Cara Lead' },
+      { mapName: 'The Spike Rush', leadDisplayName: 'Cara Lead', game: 'cs2' },
       SUBMISSION_URL,
     )
 
@@ -249,6 +299,7 @@ describe('decisionCastPayload', () => {
         color: EMBED_COLOR.green,
         url: SUBMISSION_URL,
         fields: [
+          { name: 'Game', value: 'CS2', inline: false },
           { name: 'Lead approver', value: 'Cara Lead', inline: false },
           { name: 'Decision note', value: 'Great tech', inline: false },
         ],
@@ -259,7 +310,7 @@ describe('decisionCastPayload', () => {
   it('is red with a "Rejected:" title on rejection', () => {
     const payload = decisionCastPayload(
       decisionFacts({ status: 'rejected', decisionNotes: 'Falls apart' }),
-      { mapName: 'The Spike Rush', leadDisplayName: 'Cara Lead' },
+      { mapName: 'The Spike Rush', leadDisplayName: 'Cara Lead', game: 'cs2' },
       SUBMISSION_URL,
     )
 
@@ -272,7 +323,7 @@ describe('decisionCastPayload', () => {
     // as an empty string.
     const payload = decisionCastPayload(
       decisionFacts({ status: 'approved', decisionNotes: null }),
-      { mapName: 'The Spike Rush', leadDisplayName: 'Cara Lead' },
+      { mapName: 'The Spike Rush', leadDisplayName: 'Cara Lead', game: 'cs2' },
       SUBMISSION_URL,
     )
     expect(payload.embeds[0]!.fields).toContainEqual({

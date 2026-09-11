@@ -157,6 +157,7 @@ export function createNotificationsService(
             mapName: context.mapName,
             approverDisplayName:
               context.displayNames[facts.approverUserId] ?? 'Unknown',
+            game: context.game,
           },
           submissionUrl(context.game, facts.submissionId),
         )
@@ -174,6 +175,7 @@ export function createNotificationsService(
             mapName: context.mapName,
             leadDisplayName:
               context.displayNames[facts.leadUserId] ?? 'Unknown',
+            game: context.game,
           },
           submissionUrl(context.game, facts.submissionId),
         )
