@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import type { Mode } from '~/shared/schemas/cs2kz'
+import type { Game } from '~/shared/schemas/game'
 import type { SubmissionVoteInput } from '~/shared/schemas/review'
 import { SubmissionVoteSchema } from '~/shared/schemas/review'
 import { createReviewWriteService } from '~/server/services/review-write/save-vote'
@@ -15,7 +17,7 @@ const SUBMISSION_ID = '11111111-1111-4111-8111-111111111111'
 const APPROVER_ID = '22222222-2222-4222-8222-222222222222'
 const COURSE_ID = 'c0ffee00-0000-4000-8000-000000000000'
 
-function filter(courseId: string, mode: 'classic' | 'vanilla', overrides: Record<string, unknown> = {}) {
+function filter(courseId: string, mode: Mode, overrides: Record<string, unknown> = {}) {
   return {
     courseId,
     mode,
@@ -48,9 +50,9 @@ function attachment(key: string) {
   }
 }
 
-function pendingSubmission(id: string = SUBMISSION_ID): FakeDb {
+function pendingSubmission(id: string = SUBMISSION_ID, game: Game = 'cs2'): FakeDb {
   const db = createFakeDb()
-  seedSubmission(db, { id, status: 'pending' })
+  seedSubmission(db, { id, status: 'pending', game })
   return db
 }
 
@@ -93,6 +95,59 @@ describe('saveVote', () => {
     }))
     expect(db.voteFilters.get(vote.id)).toEqual([
       filter('c1', 'classic', { nubTier: 'hard', proTier: 'death' }),
+    ])
+  })
+
+  it('rejects a vote whose filter mode is outside the submission\'s game — a CS:GO submission can never carry a classic/vanilla rating', async () => {
+    const db = pendingSubmission(SUBMISSION_ID, 'csgo')
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    await expect(
+      service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+        filters: [filter('c1', 'classic')],
+      })),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      statusMessage: 'Course mode "classic" is not allowed for this game',
+    })
+    expect(db.votes.size).toBe(0)
+    expect(db.voteFilters.size).toBe(0)
+    expect(db.voteAttachments.size).toBe(0)
+    expect(notified.votes).toEqual([])
+  })
+
+  it('rejects a CS2-submission vote proposing a CS:GO mode', async () => {
+    const db = pendingSubmission() // game defaults to cs2
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    await expect(
+      service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+        filters: [filter('c1', 'kzt')],
+      })),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      statusMessage: 'Course mode "kzt" is not allowed for this game',
+    })
+    expect(db.votes.size).toBe(0)
+    expect(notified.votes).toEqual([])
+  })
+
+  it('persists a vote whose filters are all in the submission\'s game\'s modes — CS:GO rates kztimer/simplekz/vanilla', async () => {
+    const db = pendingSubmission(SUBMISSION_ID, 'csgo')
+    const { deps } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    const vote = await service.saveVote(SUBMISSION_ID, APPROVER_ID, voteBody({
+      filters: [filter('c1', 'kzt'), filter('c1', 'skz'), filter('c1', 'vnl')],
+    }))
+
+    expect(db.votes.size).toBe(1)
+    expect(db.voteFilters.get(vote.id)).toEqual([
+      filter('c1', 'kzt'),
+      filter('c1', 'skz'),
+      filter('c1', 'vnl'),
     ])
   })
 
@@ -260,7 +315,7 @@ describe('saveVote', () => {
     // The submission is pending when the request begins… and a concurrent
     // finalize lands before the spine's in-transaction re-read.
     const { deps, deleted } = createFakeDeps(db, {
-      getSubmission: async (id) => ({ id, status: 'approved' }),
+      getSubmission: async (id) => ({ id, status: 'approved', game: 'cs2' }),
     })
     const service = createReviewWriteService(deps)
 
@@ -278,7 +333,7 @@ describe('saveVote', () => {
 
   it('returns a conflict for a submission that is already decided', async () => {
     const db = createFakeDb()
-    seedSubmission(db, { id: SUBMISSION_ID, status: 'rejected' })
+    seedSubmission(db, { id: SUBMISSION_ID, status: 'rejected', game: 'cs2' })
     const { deps, deleted } = createFakeDeps(db)
     const service = createReviewWriteService(deps)
 
@@ -416,7 +471,7 @@ describe('saveVote', () => {
   it('never pings on a 409 — already decided or flipped between read and write', async () => {
     // Already terminal when the request arrives.
     const decided = createFakeDb()
-    seedSubmission(decided, { id: SUBMISSION_ID, status: 'approved' })
+    seedSubmission(decided, { id: SUBMISSION_ID, status: 'approved', game: 'cs2' })
     const decidedDeps = createFakeDeps(decided)
     const decidedService = createReviewWriteService(decidedDeps.deps)
 
@@ -429,7 +484,7 @@ describe('saveVote', () => {
     // by the in-transaction re-read — the write rolls back, nothing pings.
     const raced = pendingSubmission()
     const racedDeps = createFakeDeps(raced, {
-      getSubmission: async (id) => ({ id, status: 'rejected' }),
+      getSubmission: async (id) => ({ id, status: 'rejected', game: 'cs2' }),
     })
     const racedService = createReviewWriteService(racedDeps.deps)
 

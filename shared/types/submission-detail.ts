@@ -1,6 +1,7 @@
 import type { ApprovalDecision, SubmissionStatus } from './submission'
 import type { RejectionAttachment } from './attachment'
 import type { CourseFilterState, CourseFilterTier, Mode } from '../schemas/cs2kz'
+import type { Game } from '../schemas/game'
 
 /**
  * Response shape of `GET /api/[game]/submissions/[id]` (see `server/queries/submission-details.ts`).
@@ -71,6 +72,9 @@ export interface SubmissionDetailCourse {
 
 export interface SubmissionDetailSubmission {
   id: string
+  /** The row's own game — the scope of the modes the review surfaces show
+   *  and of everything the review write paths accept for it. */
+  game: Game
   createdByUserId: string
   workshopUrl: string
   workshopId: number

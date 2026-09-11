@@ -7,6 +7,7 @@ import {
 import type { CourseFilterState, CourseFilterTier, Mode } from '~/shared/schemas/cs2kz'
 import { modeLabel, modesForGame } from '~/shared/schemas/course-mode'
 import type { RejectionAttachment } from '~/shared/types/attachment'
+import type { Game } from '~/shared/schemas/game'
 import type { SubmissionStatus } from '~/shared/types/submission'
 import type { SubmissionDetailVote } from '~/shared/types/submission-detail'
 
@@ -34,15 +35,17 @@ const props = defineProps<{
   courses: CourseInput[]
   votes: SubmissionDetailVote[]
   currentUserId: string
+  /** The submission's game — the page passes the value from the detail
+   *  payload's own row, so the panel offers exactly the modes the decision
+   *  write path will accept. */
+  game: Game
 }>()
 
 const emit = defineEmits<{ saved: [] }>()
 
-const FILTER_MODES = modesForGame('cs2')
-
 function seedLeadFilters(courses: CourseInput[]): LeadFilter[] {
   return courses.flatMap((course) =>
-    FILTER_MODES.map((mode) => ({
+    modesForGame(props.game).map((mode) => ({
       courseId: course.id,
       mode,
       nubTier: 'very-easy' as CourseFilterTier,
@@ -57,7 +60,6 @@ const decisionStatus = shallowRef<SubmissionStatus>('approved')
 const decisionNotes = shallowRef('')
 const stagedAttachments = ref<RejectionAttachment[]>([])
 const saving = shallowRef(false)
-const { game } = useGameRoute()
 
 const tierOptions = Array.from({ length: tierCount }, (_, i) => ({
   label: String(i + 1),
@@ -102,7 +104,7 @@ function setProTier(entry: LeadFilter, value: string) {
 async function submitDecision() {
   saving.value = true
   try {
-    await $fetch(apiGamePath(game.value, `/submissions/${props.submissionId}/decision`), {
+    await $fetch(apiGamePath(props.game, `/submissions/${props.submissionId}/decision`), {
       method: 'PUT',
       body: {
         status: decisionStatus.value,

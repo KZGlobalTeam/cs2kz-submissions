@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import type { Mode } from '~/shared/schemas/cs2kz'
+import type { Game } from '~/shared/schemas/game'
 import type { LeadDecisionInput } from '~/shared/schemas/review'
 import { createReviewWriteService } from '~/server/services/review-write/save-vote'
 import {
@@ -17,7 +19,7 @@ const COURSE_ID = 'c0ffee00-0000-4000-8000-000000000000'
 function finalFilter(overrides: Record<string, unknown> = {}) {
   return {
     courseId: COURSE_ID,
-    mode: 'classic' as const,
+    mode: 'classic' as Mode,
     nubTier: 'medium' as const,
     proTier: 'hard' as const,
     state: 'ranked' as const,
@@ -54,9 +56,9 @@ function derivedFilter(overrides: Record<string, unknown> = {}) {
   return finalFilter({ ...overrides, isRanked: state === 'ranked' })
 }
 
-function pendingSubmission(id: string = SUBMISSION_ID): FakeDb {
+function pendingSubmission(id: string = SUBMISSION_ID, game: Game = 'cs2'): FakeDb {
   const db = createFakeDb()
-  seedSubmission(db, { id, status: 'pending' })
+  seedSubmission(db, { id, status: 'pending', game })
   return db
 }
 
@@ -112,6 +114,48 @@ describe('finalizeSubmission', () => {
     expect(db.finalFilters.get(SUBMISSION_ID)).toEqual([])
   })
 
+  it('rejects a decision whose finalized filter mode is outside the submission\'s game — the guard covers the lead decision write path too', async () => {
+    const db = pendingSubmission(SUBMISSION_ID, 'csgo')
+    const { deps, notified } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    await expect(
+      service.finalizeSubmission(SUBMISSION_ID, LEAD_ID, decisionBody({
+        filters: [finalFilter({ mode: 'classic' })],
+      })),
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      statusMessage: 'Course mode "classic" is not allowed for this game',
+    })
+    expect(db.submissions.get(SUBMISSION_ID)?.status).toBe('pending')
+    expect(db.finalFilters.size).toBe(0)
+    expect(db.decisionAttachments.size).toBe(0)
+    expect(notified.decisions).toEqual([])
+  })
+
+  it('an approval persists finalized filters in the submission\'s game\'s modes — a CS:GO decision finalizes kzt/skz/vnl', async () => {
+    const db = pendingSubmission(SUBMISSION_ID, 'csgo')
+    const { deps } = createFakeDeps(db)
+    const service = createReviewWriteService(deps)
+
+    const updated = await service.finalizeSubmission(SUBMISSION_ID, LEAD_ID, decisionBody({
+      filters: [
+        finalFilter({ mode: 'kzt', state: 'ranked' }),
+        finalFilter({ mode: 'skz', state: 'unranked' }),
+        finalFilter({ mode: 'vnl', state: 'pending' }),
+      ],
+    }))
+
+    expect(updated.status).toBe('approved')
+    // `isRanked` derives from `state` as always; the three CS:GO modes all
+    // ride the shared Finalized-filter shape unchanged.
+    expect(db.finalFilters.get(SUBMISSION_ID)).toEqual([
+      { ...finalFilter({ mode: 'kzt', state: 'ranked' }), isRanked: true, resolvedByUserId: LEAD_ID },
+      { ...finalFilter({ mode: 'skz', state: 'unranked' }), isRanked: false, resolvedByUserId: LEAD_ID },
+      { ...finalFilter({ mode: 'vnl', state: 'pending' }), isRanked: false, resolvedByUserId: LEAD_ID },
+    ])
+  })
+
   it('a rejection without attachments writes no attachment rows but still ends terminal', async () => {
     const db = pendingSubmission()
     const { deps } = createFakeDeps(db)
@@ -151,7 +195,7 @@ describe('finalizeSubmission', () => {
     // The submission looks pending when the request begins… and a concurrent
     // finalize lands before the spine's in-transaction re-read.
     const { deps, deleted } = createFakeDeps(db, {
-      getSubmission: async (id) => ({ id, status: 'approved' }),
+      getSubmission: async (id) => ({ id, status: 'approved', game: 'cs2' }),
     })
     const service = createReviewWriteService(deps)
 
@@ -172,7 +216,7 @@ describe('finalizeSubmission', () => {
 
   it('a second finalize after a Decision errors with a conflict, not an empty 200', async () => {
     const db = createFakeDb()
-    seedSubmission(db, { id: SUBMISSION_ID, status: 'rejected' })
+    seedSubmission(db, { id: SUBMISSION_ID, status: 'rejected', game: 'cs2' })
     const { deps, deleted } = createFakeDeps(db)
     const service = createReviewWriteService(deps)
 
@@ -323,7 +367,7 @@ describe('finalizeSubmission', () => {
 
     // Already terminal — a repeat finalize is a conflict, not a re-ping.
     const decided = createFakeDb()
-    seedSubmission(decided, { id: SUBMISSION_ID, status: 'approved' })
+    seedSubmission(decided, { id: SUBMISSION_ID, status: 'approved', game: 'cs2' })
     const decidedDeps = createFakeDeps(decided)
     const decidedService = createReviewWriteService(decidedDeps.deps)
 

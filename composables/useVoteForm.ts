@@ -3,6 +3,7 @@ import { reactive } from 'vue'
 import type { RejectionAttachment } from '~/shared/types/attachment'
 import type { CourseFilterTier, Mode } from '~/shared/schemas/cs2kz'
 import type { ApprovalDecision } from '~/shared/types/submission'
+import type { Game } from '~/shared/schemas/game'
 import { modesForGame } from '~/shared/schemas/course-mode'
 
 export interface VoteFormFilter {
@@ -37,17 +38,17 @@ export interface ExistingVote {
 const DEFAULT_TIER: CourseFilterTier = 'very-easy'
 
 /** The vote form seeds one filter row per Course per mode of the
- *  submission's game — CS2 today, from the shared vocabulary so the CS:GO
- *  KZT/SKZ/VNL set lands in one place when the game context threads here
- *  (ticket 04). */
-const FILTER_MODES = modesForGame('cs2')
-
+ *  submission's game — CS2 rates classic/vanilla (CKZ/VNL), CS:GO rates
+ *  kztimer/simplekz/vanilla (KZT/SKZ/VNL) — from the shared per-game
+ *  vocabulary, so the two games' surfaces can never drift from the mode
+ *  sets the write path validates against. */
 function seedFilters(
   courses: Array<{ id: string }>,
-  existing?: ExistingVote,
+  existing: ExistingVote | undefined,
+  game: Game,
 ): VoteFormFilter[] {
   return courses.flatMap((course) =>
-    FILTER_MODES.map((mode) => {
+    modesForGame(game).map((mode) => {
       const match = existing?.filters.find(
         (filter) => filter.courseId === course.id && filter.mode === mode,
       )
@@ -66,14 +67,15 @@ function seedFilters(
 
 export function useVoteForm(
   courses: Array<{ id: string }>,
-  existing?: ExistingVote,
+  existing: ExistingVote | undefined,
+  game: Game,
 ) {
   const form = reactive({
     approvalDecision: existing?.approvalDecision ?? ('yes' as ApprovalDecision),
     rejectionReason: existing?.rejectionReason ?? '',
     approvalNote: existing?.approvalNote ?? '',
     attachments: existing?.attachments ?? [],
-    filters: seedFilters(courses, existing),
+    filters: seedFilters(courses, existing, game),
   })
 
   return { form }

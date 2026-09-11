@@ -2,6 +2,7 @@
 import type { VoteFormFilter } from '~/composables/useVoteForm'
 import type { RejectionAttachment } from '~/shared/types/attachment'
 import type { SubmissionDetailVote } from '~/shared/types/submission-detail'
+import type { Game } from '~/shared/schemas/game'
 
 import CourseFilterVoteTable from './CourseFilterVoteTable.vue'
 import VoteSummaryPanel from './VoteSummaryPanel.vue'
@@ -19,6 +20,10 @@ const props = defineProps<{
   courses: CourseInput[]
   votes: SubmissionDetailVote[]
   currentUserId: string
+  /** The submission's game — the page passes the value from the detail
+   *  payload's own row, so the form seeds exactly the modes the write path
+   *  will accept. */
+  game: Game
 }>()
 
 const emit = defineEmits<{ saved: [] }>()
@@ -26,8 +31,7 @@ const emit = defineEmits<{ saved: [] }>()
 const selfVote = props.votes.find(
   (vote) => vote.approverUserId === props.currentUserId,
 )
-const { game } = useGameRoute()
-const { form } = useVoteForm(props.courses, selfVote)
+const { form } = useVoteForm(props.courses, selfVote, props.game)
 const saving = shallowRef(false)
 const toast = useToast()
 const validationError = ref<string | null>(null)
@@ -87,7 +91,7 @@ async function submitVote() {
   validationError.value = null
   saving.value = true
   try {
-    await $fetch(apiGamePath(game.value, `/submissions/${props.submissionId}/vote`), {
+    await $fetch(apiGamePath(props.game, `/submissions/${props.submissionId}/vote`), {
       method: 'PUT',
       body: {
         approvalDecision: form.approvalDecision,

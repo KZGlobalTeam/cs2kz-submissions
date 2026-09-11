@@ -19,7 +19,12 @@ export const courseFilterStateValues = [
   'ranked',
 ] as const
 
-export const modeValues = ['classic', 'vanilla'] as const
+/** Every Course mode the portal knows, across both games. The shared enum
+ *  holds all five values; each game's allowed set is the vocabulary in
+ *  `course-mode.ts` (CS2: classic/vanilla; CS:GO: kzt/skz/vnl), never a
+ *  per-schema filter — the DB enum and the wire schema derive from this
+ *  same array, so a mode can never exist in one and not the other. */
+export const modeValues = ['classic', 'vanilla', 'kzt', 'skz', 'vnl'] as const
 export const mapStateValues = ['invalid', 'in-testing', 'approved'] as const
 
 export const CourseFilterTierSchema = z.enum(courseFilterTierValues)

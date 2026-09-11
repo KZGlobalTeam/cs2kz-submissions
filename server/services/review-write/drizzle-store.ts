@@ -26,7 +26,7 @@ export function transactionStore(tx: TransactionClient): ReviewWriteStore {
         .from(submissions)
         .where(eq(submissions.id, submissionId))
         .limit(1)
-      return row ? { id: row.id, status: row.status } : null
+      return row ? { id: row.id, status: row.status, game: row.game } : null
     },
 
     async upsertVote(input: VoteWrite) {
@@ -143,7 +143,11 @@ export function transactionStore(tx: TransactionClient): ReviewWriteStore {
             eq(submissions.status, 'pending'),
           ),
         )
-        .returning({ id: submissions.id, status: submissions.status })
+        .returning({
+          id: submissions.id,
+          status: submissions.status,
+          game: submissions.game,
+        })
 
       return row ?? null
     },

@@ -156,6 +156,7 @@ export function createFakeStore(
       const updated: SubmissionRecord = {
         id: submission.id,
         status: update.status,
+        game: submission.game,
       }
       db.submissions.set(submissionId, updated)
       return updated

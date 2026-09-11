@@ -160,6 +160,7 @@ watch(details, () => {
         :courses="details.courses"
         :votes="details.votes"
         :current-user-id="userId"
+        :game="details.submission.game"
         @saved="onSaved"
       />
 
@@ -170,7 +171,7 @@ watch(details, () => {
           :user-id="userId"
           :submission-id="details.submission.id"
           :is-port="details.submission.isPort"
-          :game="game"
+          :game="details.submission.game"
           class="lg:sticky lg:top-6"
         />
       </div>
@@ -183,6 +184,7 @@ watch(details, () => {
       :courses="details.courses"
       :votes="details.votes"
       :current-user-id="userId"
+      :game="details.submission.game"
       @saved="onSaved"
     />
 
@@ -217,7 +219,7 @@ watch(details, () => {
           :user-id="userId"
           :submission-id="details.submission.id"
           :is-port="details.submission.isPort"
-          :game="game"
+          :game="details.submission.game"
           class="lg:sticky lg:top-6"
           @loaded="readonlyChecklistVisible = $event"
         />

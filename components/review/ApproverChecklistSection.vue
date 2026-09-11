@@ -27,8 +27,9 @@ const props = defineProps<{
   isPort: boolean
   /** The submission's game — the rule groups the checklist mirrors are per
    *  game (CS:GO has its own copy without porting), so the approver checks
-   *  the same groups the mapper acknowledged. The route's game is the
-   *  submission's game (the detail read is game-scoped). */
+   *  the same groups the mapper acknowledged. The page passes the row's own
+   *  game from the detail payload: the detail read is by id, and the row is
+   *  the truth of which game its rules belong to. */
   game: Game
 }>()
 

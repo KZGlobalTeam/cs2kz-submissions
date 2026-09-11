@@ -10,6 +10,10 @@ import type { Game } from '~/shared/schemas/game'
  *
  * - CS2 rates classic and vanilla, labelled CKZ and VNL.
  * - CS:GO rates kztimer, simplekz, and vanilla, labelled KZT, SKZ, and VNL.
+ *
+ * The values all come from the one shared five-value `Mode` enum
+ * (`shared/schemas/cs2kz.ts` + the `course_mode` DB enum, which derive from
+ * the same array); only the per-game membership is written here.
  */
 export const gameModeSets = {
   cs2: [
@@ -20,17 +24,12 @@ export const gameModeSets = {
     { mode: 'kzt', label: 'KZT' },
     { mode: 'skz', label: 'SKZ' },
     { mode: 'vnl', label: 'VNL' },
-  ] as const,
-} as const
+  ] as const satisfies readonly CourseModeEntry<Mode>[],
+} as const satisfies Record<Game, readonly CourseModeEntry<Mode>[]>
 
-/** CS:GO's own Course modes — kztimer, simplekz, and vanilla — derived from
- *  the vocabulary so the values are written once. Not yet members of the
- *  shared `Mode` enum: the ticket-04 migration grows the `course_mode` DB
- *  enum to all five values. */
-export type CsgoMode = (typeof gameModeSets.csgo)[number]['mode']
-
-/** Every Course mode the portal knows, across both games. */
-export type CourseMode = Mode | CsgoMode
+/** Every Course mode the portal knows — the shared five-value enum (a mode
+ *  is scoped to its Game, but all five values live in one enum). */
+export type CourseMode = Mode
 
 /** One row of the per-game vocabulary: a Course mode and its UI label. The
  *  constraint is `string` — not `CourseMode` — so the entries can satisfy
@@ -57,10 +56,21 @@ export function modeLabel(mode: CourseMode): string {
   return MODE_LABELS[mode]
 }
 
-/** The allowed Course modes of a game, in render order. */
-export function modesForGame(game: 'cs2'): readonly Mode[]
-export function modesForGame(game: 'csgo'): readonly CsgoMode[]
-export function modesForGame(game: Game): readonly CourseMode[]
+/** The allowed Course modes of a game, in render order — what the vote form,
+ *  the lead decision panel, and the readonly surfaces seed and iterate. */
 export function modesForGame(game: Game): readonly CourseMode[] {
   return gameModeSets[game].map((entry) => entry.mode)
+}
+
+/** The first Course mode of a proposed/finalized filter list that does not
+ *  belong to the submission's Game, or null when every mode is in scope. The
+ *  pure verdict the review-write spine maps to a 400 — written once here so
+ *  the service seam and the tests share the exact same rule (a CS:GO
+ *  submission can never carry a classic/vanilla rating, and vice versa). */
+export function firstModeOutsideGame(
+  modes: readonly CourseMode[],
+  game: Game,
+): CourseMode | null {
+  const allowed = new Set(modesForGame(game))
+  return modes.find((mode) => !allowed.has(mode)) ?? null
 }

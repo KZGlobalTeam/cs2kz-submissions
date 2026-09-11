@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  firstModeOutsideGame,
   gameModeSets,
   modeLabel,
   modesForGame,
@@ -20,6 +21,28 @@ describe('modesForGame', () => {
     for (const mode of modesForGame('csgo')) {
       expect(cs2).not.toContain(mode)
     }
+  })
+})
+
+describe('firstModeOutsideGame', () => {
+  it('returns null when every mode belongs to the game\'s set', () => {
+    expect(firstModeOutsideGame(['classic', 'vanilla'], 'cs2')).toBeNull()
+    expect(firstModeOutsideGame(['kzt', 'skz', 'vnl'], 'csgo')).toBeNull()
+  })
+
+  it('flags a CS:GO mode on a CS2 submission (and vice versa) — the pure verdict behind the write-path 400', () => {
+    expect(firstModeOutsideGame(['classic', 'kzt'], 'cs2')).toBe('kzt')
+    expect(firstModeOutsideGame(['classic'], 'csgo')).toBe('classic')
+    expect(firstModeOutsideGame(['vnl'], 'cs2')).toBe('vnl')
+  })
+
+  it('reports the first offending mode of a mixed list', () => {
+    expect(firstModeOutsideGame(['kzt', 'skz', 'classic', 'vanilla'], 'csgo')).toBe('classic')
+  })
+
+  it('an empty filter list is always in scope', () => {
+    expect(firstModeOutsideGame([], 'cs2')).toBeNull()
+    expect(firstModeOutsideGame([], 'csgo')).toBeNull()
   })
 })
 

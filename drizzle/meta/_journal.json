@@ -78,6 +78,13 @@
       "when": 1789047026681,
       "tag": "0010_productive_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789090838110,
+      "tag": "0011_heavy_randall_flagg",
+      "breakpoints": true
     }
   ]
 }

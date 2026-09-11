@@ -4,6 +4,9 @@ import type {
   LeadDecisionInput,
   SubmissionVoteInput,
 } from '~/shared/schemas/review'
+import { firstModeOutsideGame } from '~/shared/schemas/course-mode'
+import type { CourseMode } from '~/shared/schemas/course-mode'
+import type { Game } from '~/shared/schemas/game'
 import {
   REJECTION_ATTACHMENT_MESSAGES,
   assessRejectionAttachments,
@@ -21,6 +24,35 @@ import type {
 interface GuardedWriteOptions {
   notFoundMessage: string
   notPendingMessage: string
+  /** The write's proposed/finalized filter modes. The mode-scope guard
+   *  validates them against the submission's own game — read inside the
+   *  transaction, right after the status guard, before any row is written.
+   *  Reads stay scoped by the route segment (route-game.ts); a write's mode
+   *  is additionally checked against the row, so a mode the route would
+   *  never authorize cannot ride a direct cross-game call. */
+  filterModes: ReadonlyArray<{ mode: CourseMode }>
+}
+
+/** The shared mode-scope rule of both review write paths (user stories 21
+ *  and 23): a proposed or finalized filter whose mode is not in the
+ *  submission's game's set is a caller mistake — a 400 naming the offending
+ *  mode, thrown before any row is written, so a CS:GO submission can never
+ *  carry a classic/vanilla rating (and vice versa). The pure verdict comes
+ *  from the shared vocabulary; only the error mapping lives here. */
+function assertFilterModesInGame(
+  game: Game,
+  filters: ReadonlyArray<{ mode: CourseMode }>,
+): void {
+  const offending = firstModeOutsideGame(
+    filters.map((filter) => filter.mode),
+    game,
+  )
+  if (offending !== null) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: `Course mode "${offending}" is not allowed for this game`,
+    })
+  }
 }
 
 /** Shared transaction spine for review writes: re-read the submission inside
@@ -57,6 +89,9 @@ async function runGuardedWrite<T>(
         statusMessage: options.notPendingMessage,
       })
     }
+    // The mode guard runs right after the status guard, against the row's
+    // own game read inside this transaction, before any row is written.
+    assertFilterModesInGame(submission.game, options.filterModes)
     outcome = await write(store)
   })
 
@@ -126,6 +161,7 @@ export function createReviewWriteService(deps: ReviewWriteDeps): ReviewWriteServ
         {
           notFoundMessage: 'Submission not found',
           notPendingMessage: 'Only pending submissions can be voted on',
+          filterModes: input.filters,
         },
         async (store) => {
           const vote = await store.upsertVote({
@@ -193,6 +229,7 @@ export function createReviewWriteService(deps: ReviewWriteDeps): ReviewWriteServ
         {
           notFoundMessage: 'Submission not found',
           notPendingMessage: 'Only pending submissions can be finalized',
+          filterModes: input.filters,
         },
         async (store) => {
           // `isRanked` is derived from `state` at write time: the decision

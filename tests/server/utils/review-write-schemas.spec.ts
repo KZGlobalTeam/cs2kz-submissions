@@ -201,6 +201,18 @@ describe('SubmissionVoteSchema', () => {
     }
   })
 
+  it('accepts the CS:GO modes at the wire — the shared mode enum grew to five values (membership per game is the write path\'s job)', () => {
+    for (const mode of ['kzt', 'skz', 'vnl'] as const) {
+      const result = SubmissionVoteSchema.safeParse(
+        rawVoteBody({ filters: [{ ...voteFilter, mode }] }),
+      )
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.filters[0]!.mode).toBe(mode)
+      }
+    }
+  })
+
   it('strips the removed rejectionExplanation field (non-strict parse) so a stale client is silently ignored', () => {
     const result = SubmissionVoteSchema.safeParse(
       rawVoteBody({ rejectionExplanation: 'stale' }),
@@ -306,6 +318,18 @@ describe('LeadDecisionSchema', () => {
     }
   })
 
+  it('accepts the CS:GO modes on a finalized filter — the shared five-value enum rides the same decision shape', () => {
+    for (const mode of ['kzt', 'skz', 'vnl'] as const) {
+      const result = LeadDecisionSchema.safeParse(
+        decisionBody({ filters: [{ ...finalFilter(), mode }] }),
+      )
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.filters[0]!.mode).toBe(mode)
+      }
+    }
+  })
+
   it('rejects an unknown finalized filter state', () => {
     const result = LeadDecisionSchema.safeParse(
       decisionBody({ filters: [{ ...finalFilter(), state: 'ranked!' }] }),
@@ -342,6 +366,10 @@ describe('LeadDecisionSchema', () => {
 })
 
 describe('DB enums derive from the shared value arrays', () => {
+  it('the shared mode enum carries all five values; per-game membership is the vocabulary, not the enum', () => {
+    expect(modeValues).toEqual(['classic', 'vanilla', 'kzt', 'skz', 'vnl'])
+  })
+
   it('courses mode, tier, and state enums match the shared wire values', () => {
     expect(modeEnum.enumValues).toEqual(modeValues)
     expect(courseFilterTierEnum.enumValues).toEqual(courseFilterTierValues)

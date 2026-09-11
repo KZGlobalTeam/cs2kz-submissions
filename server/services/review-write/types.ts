@@ -3,16 +3,24 @@ import type {
   FinalFilterInput,
   VoteFilterInput,
 } from '~/shared/schemas/review'
+import type { Game } from '~/shared/schemas/game'
 import type { ApprovalDecision, SubmissionStatus } from '~/shared/types/submission'
 import type {
   DecisionCastFacts,
   VoteRecordedFacts,
 } from '~/server/services/notifications/types'
 
-/** The fields of the submission row the spine's status guard reads. */
+/** The fields of the submission row the spine's guards read — the status
+ *  guard and the mode-scope guard, which validates a write's filter modes
+ *  against the submission's own game. A row belongs to the game it was
+ *  created in (#01): reads on a request are scoped by the route segment
+ *  (route-game.ts), while a write's modes are checked against the row's own
+ *  game — the route can navigate, the row carries the truth of which game
+ *  its filters belong to. */
 export interface SubmissionRecord {
   id: string
   status: SubmissionStatus
+  game: Game
 }
 
 export interface VoteWrite {
