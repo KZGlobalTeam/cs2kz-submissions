@@ -7,8 +7,12 @@ Tracks community map submissions for CS2KZ and packages approved maps into relea
 ### Games
 
 **Game**:
-One of the two supported games a Submission or Release belongs to: CS2 or CS:GO. The whole app is scoped to one game at a time via its route context (`/cs2/…`, `/csgo/…`); the shared top-bar switcher is the only place the game changes, and pages never render a game badge. The game scopes the course-mode vocabulary, the course naming convention, the rules, and the port flow. Existing rows were backfilled to CS2.
+One of the two supported games a Submission or Release belongs to: CS2 or CS:GO. The whole app is scoped to one game at a time via its route context (`/cs2/…`, `/csgo/…`); a signed-in user's user-card switch is the only place the game changes — pages never render a game badge, and the bare sign-in page carries no game context, only the Preferred game picker. The game scopes the course-mode vocabulary, the course naming convention, the rules, and the port flow. Existing rows were backfilled to CS2.
 _Avoid_: Mode, platform, game mode
+
+**Preferred game**:
+The Game a user's sign-in lands on — chosen on the game-neutral sign-in page and kept in sync by the user-card switch, so the next sign-in lands where the user last worked. Stored per browser (a cookie), never per account: it does not follow the user across devices and falls back to CS2, the portal's default context, when absent. A landing choice, not a permission.
+_Avoid_: Home game, default game
 
 ### Roles and people
 

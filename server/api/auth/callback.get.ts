@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { createError, sendRedirect } from 'h3'
+import { createError, getCookie, sendRedirect } from 'h3'
 
 import { users } from '~/db/schema'
 import { getUserRoles } from '~/server/utils/auth'
@@ -8,6 +8,8 @@ import {
   fetchSteamProfile,
   verifySteamAssertion,
 } from '~/server/utils/steam-openid'
+
+import { coerceGame, PREFERRED_GAME_COOKIE, resolvePostLoginPath } from '~/shared/utils/games'
 
 import { db } from '../../utils/db'
 
@@ -58,22 +60,23 @@ export default defineEventHandler(async (event) => {
 
     await persistSession(event, userId!)
 
-    // Land the user on the page matching their role: approvers / lead
-    // approvers go to the review queue, everyone else (mappers) to the
-    // submissions dashboard.
+    // Land the user on the game they picked at sign-in, in the page matching
+    // their role: approvers / lead approvers go to the review queue, everyone
+    // else (submitters) to the submissions dashboard. The preference cookie
+    // was written by the sign-in page before launching Steam, so it survives
+    // the OpenID round-trip; absent or invalid it coerces to CS2, the
+    // portal's default context.
     const roles = await getUserRoles(userId!)
-    const isReviewer = roles.includes('approver') || roles.includes('lead_approver')
+    const preferredGame = coerceGame(getCookie(event, PREFERRED_GAME_COOKIE))
 
     // Land the user back on the host that issued the login — and therefore
     // holds the session cookie — instead of a configured site URL that may
     // point at a different host (e.g. a stale deployment domain). Redirecting
     // to a host without the cookie would immediately log the user out again.
-    // The landing is the game spine's default context (CS2), so it carries
-    // the game segment.
     const origin = getRequestURL(event).origin
     return sendRedirect(
       event,
-      `${origin}/cs2/${isReviewer ? 'review' : 'submissions'}`,
+      `${origin}${resolvePostLoginPath(preferredGame, roles)}`,
       302,
     )
   }

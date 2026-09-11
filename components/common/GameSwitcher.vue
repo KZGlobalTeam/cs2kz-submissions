@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { gameOptions, gameSwitchPath } from '~/shared/utils/games'
+import GamePicker from '~/components/common/GamePicker.vue'
+import {
+  gameSwitchPath,
+  PREFERRED_GAME_COOKIE,
+  PREFERRED_GAME_COOKIE_MAX_AGE,
+} from '~/shared/utils/games'
 import type { Game } from '~/shared/schemas/game'
 
 const { game } = useGameRoute()
 const route = useRoute()
+const preference = useCookie<string | null>(PREFERRED_GAME_COOKIE, {
+  maxAge: PREFERRED_GAME_COOKIE_MAX_AGE,
+})
 
 /**
  * Flipping the switcher re-scopes every page to the target game: the same
@@ -11,11 +19,16 @@ const route = useRoute()
  * which exits to the target game's submissions overview — the switch is a
  * navigation, and navigation away from the editor discards its in-progress
  * form (there is no per-form game state to reset).
+ *
+ * The switch is navigation *plus* preference write, never one without the
+ * other: flipping it also records the target as the preferred game, so the
+ * next sign-in lands where the user last worked.
  */
 async function switchGame(target: Game) {
   if (target === game.value) {
     return
   }
+  preference.value = target
   const { path, preserveQuery } = gameSwitchPath(target, route.path)
   await navigateTo({
     path,
@@ -25,19 +38,5 @@ async function switchGame(target: Game) {
 </script>
 
 <template>
-  <div
-    class="flex items-center gap-1 rounded-lg border border-white/5 bg-panel/60 p-1"
-    role="group"
-    aria-label="Switch game"
-  >
-    <UButton
-      v-for="option in gameOptions"
-      :key="option.value"
-      size="sm"
-      :label="option.label"
-      :variant="game === option.value ? 'solid' : 'ghost'"
-      :color="game === option.value ? 'primary' : 'neutral'"
-      @click="switchGame(option.value)"
-    />
-  </div>
+  <GamePicker :model-value="game" @update:model-value="switchGame" />
 </template>

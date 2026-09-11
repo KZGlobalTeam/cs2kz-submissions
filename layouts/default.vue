@@ -32,10 +32,17 @@ const navigation = computed(() => {
     <aside
       class="sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto border-r border-white/5 bg-panel/40 px-4 py-6 lg:block"
     >
+      <!-- The signed-in user card: the account row (avatar / name / logout)
+           with the game switch beneath it. The switch is the single place the
+           game changes — flipping it re-scopes every page and updates the
+           preferred game, so the next sign-in lands where the user last
+           worked. Signed-out visitors never see this sidebar: the auth
+           middleware bounces every game page to the bare sign-in page. -->
       <div
-        class="mb-4 flex items-center justify-between gap-2 rounded-lg border border-white/5 bg-panel/60 px-3 py-2"
+        v-if="session.user"
+        class="mb-4 rounded-lg border border-white/5 bg-panel/60 px-3 py-2"
       >
-        <template v-if="session.user">
+        <div class="flex items-center justify-between gap-2">
           <div class="flex min-w-0 items-center gap-2">
             <UAvatar
               v-if="session.user.avatarUrl"
@@ -55,8 +62,10 @@ const navigation = computed(() => {
             :disabled="logoutPending"
             @click="logout"
           />
-        </template>
-        <UButton v-else to="/cs2" variant="outline" size="sm" label="Sign in" />
+        </div>
+        <div class="mt-2 border-t border-white/5 pt-2">
+          <GameSwitcher />
+        </div>
       </div>
 
       <UNavigationMenu :items="navigation" orientation="vertical" class="w-full" />
@@ -68,16 +77,11 @@ const navigation = computed(() => {
     </aside>
 
     <div class="min-w-0 flex-1">
-      <!-- The game spine's only switcher: the single place the game changes.
-           The page below is keyed by the game so flipping context remounts
-           every page — no per-form game state survives the switch, which is
-           what makes leaving the editor discard unsaved edits. -->
-      <header
-        class="flex h-14 items-center justify-end border-b border-white/5 bg-panel/40 px-4 lg:px-6"
-      >
-        <GameSwitcher />
-      </header>
-
+      <!-- The main column has no header: the game switch lived in the top bar
+           and moved into the user card, so the header had nothing left. The
+           page below is keyed by the game so flipping context remounts every
+           page — no per-form game state survives the switch, which is what
+           makes leaving the editor discard unsaved edits. -->
       <div class="px-4 py-6 lg:px-6">
         <main :key="game">
           <slot />

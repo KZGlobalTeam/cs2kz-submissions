@@ -39,7 +39,8 @@ export function useSession() {
         authenticated: false,
         user: null,
       }
-      await navigateTo('/cs2')
+      // Logout returns to the game-neutral entry: the bare sign-in page.
+      await navigateTo('/')
     } finally {
       logoutPending.value = false
     }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { gameValues } from '~/shared/schemas/game'
+import type { UserRole } from '~/shared/types/roles'
 
 import {
   apiGamePath,
@@ -10,6 +11,7 @@ import {
   gamePath,
   gameSwitchPath,
   isGameSegment,
+  resolvePostLoginPath,
 } from '~/shared/utils/games'
 
 describe('isGameSegment', () => {
@@ -112,5 +114,24 @@ describe('gameSwitchPath', () => {
   it('keeps the query-preserving flag only for non-edit re-scoping', () => {
     expect(gameSwitchPath('csgo', '/cs2/review').preserveQuery).toBe(true)
     expect(gameSwitchPath('cs2', '/csgo/submissions/abc/edit').preserveQuery).toBe(false)
+  })
+})
+
+describe('resolvePostLoginPath', () => {
+  const submitter: readonly UserRole[] = []
+  const approver: readonly UserRole[] = ['approver']
+  const leadApprover: readonly UserRole[] = ['lead_approver']
+  const reviewLead: readonly UserRole[] = ['approver', 'lead_approver']
+
+  it('lands non-reviewer accounts on the submissions dashboard of the signed-in game', () => {
+    expect(resolvePostLoginPath('cs2', submitter)).toBe('/cs2/submissions')
+    expect(resolvePostLoginPath('csgo', submitter)).toBe('/csgo/submissions')
+  })
+
+  it('lands any reviewer role on the review queue of the signed-in game', () => {
+    for (const roles of [approver, leadApprover, reviewLead]) {
+      expect(resolvePostLoginPath('cs2', roles)).toBe('/cs2/review')
+      expect(resolvePostLoginPath('csgo', roles)).toBe('/csgo/review')
+    }
   })
 })

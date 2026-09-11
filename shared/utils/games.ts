@@ -1,4 +1,17 @@
 import { gameValues, GameSchema, type Game } from '~/shared/schemas/game'
+import type { UserRole } from '~/shared/types/roles'
+
+/** The site-wide client cookie carrying the user's preferred game — the
+ *  landing preference written by the sign-in picker and the user-card switch,
+ *  read server-side by the Steam callback to pick the post-login landing.
+ *  Site-wide path and a long lifetime so it survives the Steam round-trip and
+ *  follows the browser across sessions. */
+export const PREFERRED_GAME_COOKIE = 'cs2kz_preferred_game'
+
+/** The preference cookie's lifetime in seconds — a year, so the landing
+ *  preference follows the browser across sessions without a refresh ritual,
+ *  matching US17's per-browser persistence. */
+export const PREFERRED_GAME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 
 /** UI labels for the switcher and the Discord embed Game fields, written
  *  once so pages and the notifier cannot drift. */
@@ -69,4 +82,20 @@ export function gameSwitchPath(target: Game, currentPath: string): GameSwitch {
     path: `/${target}${rest ? `/${rest}` : ''}`,
     preserveQuery: true,
   }
+}
+
+/** The role→landing rule of sign-in: any reviewer (approver or lead) lands
+ *  on the review queue, everyone else (submitters) on the submissions
+ *  dashboard. */
+function isReviewer(roles: readonly UserRole[]): boolean {
+  return roles.includes('approver') || roles.includes('lead_approver')
+}
+
+/** The full post-login landing path for a game and a user's roles — reviewers
+ *  land on the review queue, everyone else on the submissions dashboard
+ *  (`/cs2/review`, `/csgo/submissions`, …). Shared by the Steam callback and
+ *  both sign-in gates (the bare root and the game roots) so the landing rule
+ *  is written once. */
+export function resolvePostLoginPath(game: Game, roles: readonly UserRole[]): string {
+  return gamePath(game, isReviewer(roles) ? '/review' : '/submissions')
 }
