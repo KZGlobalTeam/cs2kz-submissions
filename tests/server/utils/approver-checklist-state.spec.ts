@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { submissionRulesSteps } from '~/components/submission/submissionRules'
+import {
+  csgoSubmissionRulesSteps,
+  rulesStepsForGame,
+  submissionRulesSteps,
+} from '~/components/submission/submissionRules'
 import type { ApproverChecklist } from '~/components/review/approver-checklist-storage'
 import {
   buildChecklistPayload,
@@ -13,6 +17,61 @@ import {
 const allGroups = submissionRulesSteps
 const nonPortGroups = visibleRuleGroups(allGroups, false)
 const portGroups = visibleRuleGroups(allGroups, true)
+
+describe('rulesStepsForGame', () => {
+  it('returns the CS2 set for CS2 — porting included, exactly as today', () => {
+    expect(rulesStepsForGame('cs2')).toBe(submissionRulesSteps)
+    expect(rulesStepsForGame('cs2').map((step) => step.key)).toContain('porting')
+    expect(rulesStepsForGame('cs2').map((step) => step.key)).toEqual([
+      'naming',
+      'courses',
+      'ranked',
+      'jumpstat',
+      'porting',
+      'other',
+    ])
+  })
+
+  it('returns the CS:GO copy for CS:GO — the CS2 rules minus the porting group', () => {
+    const csgo = rulesStepsForGame('csgo')
+    expect(csgo.map((step) => step.key)).toEqual([
+      'naming',
+      'courses',
+      'ranked',
+      'jumpstat',
+      'other',
+    ])
+    expect(csgoSubmissionRulesSteps).toBe(csgo)
+  })
+
+  it('is a structural copy today: same group texts as CS2 minus porting, but independent objects', () => {
+    // The CS:GO set is a placeholder copy of the CS2 rules minus the porting
+    // group — it must read identically today, and be structurally separate
+    // so the two sets can never silently drift into sharing one rule set.
+    const cs2WithoutPorting = submissionRulesSteps.filter((step) => !step.askIsPort)
+    expect(csgoSubmissionRulesSteps.map((step) => step.rules.map((rule) => rule.text)))
+      .toEqual(cs2WithoutPorting.map((step) => step.rules.map((rule) => rule.text)))
+    expect(csgoSubmissionRulesSteps).not.toBe(submissionRulesSteps)
+    csgoSubmissionRulesSteps.forEach((step, i) => {
+      expect(step).not.toBe(cs2WithoutPorting[i])
+      expect(step.rules).not.toBe(cs2WithoutPorting[i]!.rules)
+    })
+  })
+
+  it('never renders the porting group on a CS:GO checklist, port or not', () => {
+    // CS:GO rows are never ports (the wire schema rejects port evidence), but
+    // even with the flag flipped, the CS:GO copy has no porting group to show.
+    const withPort = visibleRuleGroups(rulesStepsForGame('csgo'), true)
+    expect(withPort.map((group) => group.key)).not.toContain('porting')
+    expect(withPort.map((group) => group.key)).toEqual([
+      'naming',
+      'courses',
+      'ranked',
+      'jumpstat',
+      'other',
+    ])
+  })
+})
 
 describe('visibleRuleGroups', () => {
   it('shows every group except porting when the submission is not a port', () => {

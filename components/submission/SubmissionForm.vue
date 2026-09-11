@@ -24,8 +24,11 @@ const props = withDefaults(
 
 const isEditing = computed(() => props.mode === 'edit')
 const { game } = useGameRoute()
+// CS:GO has no Port concept and derives its course names from order; both
+// flow from the route's game, so the form needs no per-form game state.
+const isCsgo = computed(() => game.value === 'csgo')
 
-const { form } = useSubmissionForm(props.initialValue)
+const { form } = useSubmissionForm(game.value, props.initialValue)
 const submitting = shallowRef(false)
 const confirmOpen = shallowRef(false)
 const uploadingPortImage = shallowRef(false)
@@ -191,13 +194,20 @@ async function onSubmit(_event: FormSubmitEvent<Schema>) {
 
 async function confirmSubmit() {
   submitting.value = true
+  // CS:GO carries no port evidence on the wire, ever: the form has no port
+  // section, and the payload forces the columns clean so a stale/tampered
+  // state can never reach the schema (which rejects it anyway).
   const payload = {
     workshopUrl: form.workshopUrl,
     mapName: form.mapName,
     notes: form.notes || null,
-    isPort: form.isPort,
-    portAuthorizationImage: form.isPort ? form.portAuthorizationImage : null,
-    portNotes: form.isPort ? (form.portNotes || null) : null,
+    isPort: isCsgo.value ? false : form.isPort,
+    portAuthorizationImage: isCsgo.value
+      ? null
+      : (form.isPort ? form.portAuthorizationImage : null),
+    portNotes: isCsgo.value
+      ? null
+      : (form.isPort ? (form.portNotes || null) : null),
     mappers: form.mappers,
     courses: form.courses.map((course) => ({
       ...course,
@@ -271,7 +281,7 @@ async function confirmSubmit() {
         />
       </UFormField>
 
-      <UFormField name="isPort">
+      <UFormField v-if="!isCsgo" name="isPort">
         <UCheckbox
           v-model="form.isPort"
           label="This map is a port"
@@ -328,7 +338,7 @@ async function confirmSubmit() {
     </UFormField>
 
     <UFormField name="courses">
-      <CourseEditorList v-model="form.courses" />
+      <CourseEditorList v-model="form.courses" :game="game" />
     </UFormField>
 
     <div class="flex justify-end">

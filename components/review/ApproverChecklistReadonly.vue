@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { marked } from 'marked'
 
-import { submissionRulesSteps } from '~/components/submission/submissionRules'
+import { rulesStepsForGame } from '~/components/submission/submissionRules'
 import type { SubmissionRulesStep } from '~/components/submission/submissionRules'
+import type { Game } from '~/shared/schemas/game'
 
 import {
   hasSavedContent,
@@ -26,6 +27,11 @@ const props = defineProps<{
    *  when the submission actually is a port, exactly like the editable
    *  section and the pre-submission dialog. */
   isPort: boolean
+  /** The submission's game — the rule groups the checklist mirrors are per
+   *  game (CS:GO has its own copy without porting), so the read-only card
+   *  shows the same groups the mapper acknowledged. The route's game is the
+   *  submission's game (the detail read is game-scoped). */
+  game: Game
 }>()
 
 /** Signals the page once the saved state is known, so it can collapse the
@@ -35,10 +41,13 @@ const props = defineProps<{
  *  (any tick set or a non-empty note). */
 const emit = defineEmits<{ loaded: [visible: boolean] }>()
 
+/** The steps the card renders from — the submission's game's rule set. */
+const steps = rulesStepsForGame(props.game)
+
 /** The groups to render: every pre-submission rule group, the porting group
  *  only when the submission is a port — same single source as the editable
  *  section and the mapper dialog. */
-const groups = computed(() => visibleRuleGroups(submissionRulesSteps, props.isPort))
+const groups = computed(() => visibleRuleGroups(steps, props.isPort))
 
 // Ticks and note, seeded from the viewer's saved browser state; the card
 // never edits them (every control below is disabled). `openState` tracks
@@ -60,7 +69,7 @@ const hasContent = shallowRef(false)
 // single source as the editable section and the pre-submission dialog, so the
 // read-only view shows exactly the same rule texts.
 const rendered = new Map<string, string>()
-for (const step of submissionRulesSteps) {
+for (const step of steps) {
   step.rules.forEach((rule, i) => {
     rendered.set(`${step.key}:${i}`, marked.parse(rule.text, { async: false }) as string)
   })

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  CsgoSubmissionInputSchema,
   SubmissionInputSchema,
+  submissionInputSchemaFor,
   type SubmissionInput,
 } from '~/shared/schemas/submission'
 
@@ -47,6 +49,20 @@ function body(overrides: Partial<SubmissionInput> = {}): SubmissionInput {
  *  strictness. */
 function rawBody(overrides: Record<string, unknown>): unknown {
   return { ...body(), ...overrides }
+}
+
+/** A valid CS:GO body: no port evidence and convention-named courses. The
+ *  CS:GO schema shares the base columns; the game's own rules (no ports,
+ *  `Main`/`Bonus N` names) are what distinguish it from the CS2 cases. */
+function csgoBody(overrides: Record<string, unknown> = {}): unknown {
+  return {
+    ...body(),
+    courses: [
+      { name: 'Main', image: courseImage, mappers: [mapper] },
+      { name: 'Bonus 1', image: courseImage, mappers: [mapper] },
+    ],
+    ...overrides,
+  }
 }
 
 describe('SubmissionInputSchema', () => {
@@ -272,6 +288,160 @@ describe('SubmissionInputSchema', () => {
     if (!result.success) {
       expect(result.error.issues).toEqual([
         expect.objectContaining({ path: ['portAuthorizationImage', 'mime'] }),
+      ])
+    }
+  })
+})
+
+describe('submissionInputSchemaFor', () => {
+  it('dispatches each game to its own schema, so the write endpoints cannot drift', () => {
+    expect(submissionInputSchemaFor('cs2')).toBe(SubmissionInputSchema)
+    expect(submissionInputSchemaFor('csgo')).toBe(CsgoSubmissionInputSchema)
+  })
+})
+
+describe('CsgoSubmissionInputSchema', () => {
+  it('accepts a convention-named submission with no port evidence', () => {
+    expect(CsgoSubmissionInputSchema.safeParse(csgoBody()).success).toBe(true)
+  })
+
+  it('rejects isPort=true — CS:GO has no Port concept', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(csgoBody({ isPort: true }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'CS:GO submissions cannot be ports — the port concept belongs to CS2 only',
+          path: ['isPort'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a port authorization screenshot', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(
+      csgoBody({ portAuthorizationImage: portImage }),
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'A CS:GO submission cannot carry proof of permission',
+          path: ['portAuthorizationImage'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects port notes', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(
+      csgoBody({ portNotes: 'Ported with permission from the original author' }),
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'A CS:GO submission cannot carry port notes',
+          path: ['portNotes'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects every port-evidence form at once, one issue each', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(
+      csgoBody({ isPort: true, portAuthorizationImage: portImage, portNotes: 'ported' }),
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.map((issue) => issue.path)).toEqual([
+        ['isPort'],
+        ['portAuthorizationImage'],
+        ['portNotes'],
+      ])
+    }
+  })
+
+  it('accepts the full convention: Main, then Bonus 1..N in ascending order', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(
+      csgoBody({
+        courses: [
+          { name: 'Main', image: courseImage, mappers: [mapper] },
+          { name: 'Bonus 1', image: courseImage, mappers: [mapper] },
+          { name: 'Bonus 2', image: courseImage, mappers: [mapper] },
+        ],
+      }),
+    )
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects a free course name outside the convention', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(
+      csgoBody({
+        courses: [
+          { name: 'Main', image: courseImage, mappers: [mapper] },
+          { name: 'Course B', image: courseImage, mappers: [mapper] },
+        ],
+      }),
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'CS:GO course names must be `Main`, then `Bonus 1`, `Bonus 2`, … in course order',
+          path: ['courses'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a first course that is not Main', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(
+      csgoBody({ courses: [{ name: 'Bonus 1', image: courseImage, mappers: [mapper] }] }),
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({ path: ['courses'] }),
+      ])
+    }
+  })
+
+  it('rejects a gap in the bonus sequence (Bonus 2 without Bonus 1)', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(
+      csgoBody({
+        courses: [
+          { name: 'Main', image: courseImage, mappers: [mapper] },
+          { name: 'Bonus 2', image: courseImage, mappers: [mapper] },
+        ],
+      }),
+    )
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({ path: ['courses'] }),
+      ])
+    }
+  })
+
+  it('rejects a stray Main later in the order', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(
+      csgoBody({
+        courses: [
+          { name: 'Main', image: courseImage, mappers: [mapper] },
+          { name: 'Main', image: courseImage, mappers: [mapper] },
+        ],
+      }),
+    )
+    expect(result.success).toBe(false)
+  })
+
+  it('still rejects an empty course list (the shared at-least-one rule)', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(csgoBody({ courses: [] }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({ path: ['courses'] }),
       ])
     }
   })

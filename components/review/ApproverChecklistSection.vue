@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { marked } from 'marked'
 
-import { submissionRulesSteps } from '~/components/submission/submissionRules'
+import { rulesStepsForGame } from '~/components/submission/submissionRules'
 import type { SubmissionRulesStep } from '~/components/submission/submissionRules'
+import type { Game } from '~/shared/schemas/game'
 
 import {
   buildChecklistPayload,
@@ -24,11 +25,19 @@ const props = defineProps<{
    *  solely by it (no toggle, mirroring how the dialog's "is this a port?"
    *  question is replaced by the recorded fact). */
   isPort: boolean
+  /** The submission's game — the rule groups the checklist mirrors are per
+   *  game (CS:GO has its own copy without porting), so the approver checks
+   *  the same groups the mapper acknowledged. The route's game is the
+   *  submission's game (the detail read is game-scoped). */
+  game: Game
 }>()
+
+/** The steps to render from — the submission's game's rule set. */
+const steps = rulesStepsForGame(props.game)
 
 /** The groups to render: every pre-submission rule group, all at once on one
  *  page, porting only when the submission is a port. */
-const groups = computed(() => visibleRuleGroups(submissionRulesSteps, props.isPort))
+const groups = computed(() => visibleRuleGroups(steps, props.isPort))
 
 // Ticks and the Approver note at the bottom, seeded from the viewer's
 // browser state for this submission and written through to it on every
@@ -48,7 +57,7 @@ const openState = reactive<Record<string, boolean>>(
 // Render each rule's markdown once, keyed by `${stepKey}:${ruleIndex}` — same
 // single source as the pre-submission dialog.
 const rendered = new Map<string, string>()
-for (const step of submissionRulesSteps) {
+for (const step of steps) {
   step.rules.forEach((rule, i) => {
     rendered.set(`${step.key}:${i}`, marked.parse(rule.text, { async: false }) as string)
   })

@@ -161,6 +161,7 @@ export function createFakeStore(
       return row
         ? {
             id: row.id,
+            game: row.game,
             status: row.status,
             createdByUserId: row.createdByUserId,
             portAuthorizationImageUrl: row.portAuthorizationImageUrl,

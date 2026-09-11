@@ -4,6 +4,7 @@ import SubmissionForm from '~/components/submission/SubmissionForm.vue'
 import type { SubmissionFormValue } from '~/composables/useSubmissionForm'
 
 import { apiGamePath, gamePath } from '~/shared/utils/games'
+import { courseNameForGame } from '~/shared/utils/course-names'
 
 definePageMeta({
   middleware: ['auth'],
@@ -51,8 +52,13 @@ function toFormValue(details: SubmissionDetailResponse): SubmissionFormValue {
     })),
     courses: [...details.courses]
       .sort((a, b) => a.orderIndex - b.orderIndex)
-      .map((course) => ({
-        name: course.name,
+      .map((course, index) => ({
+        // CS:GO names stay derived from course order on edit too: the stored
+        // names are re-derived from position (orderIndex is the sort key), so
+        // the form state — and whatever the submitter saves — always follows
+        // the convention even for a legacy row. CS2 maps stored names as-is.
+        // The derivation rule lives in `courseNameForGame`.
+        name: courseNameForGame(game.value, index + 1, course.name),
         image: {
           url: course.imageUrl,
           mime: course.imageMime,

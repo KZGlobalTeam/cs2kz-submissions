@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import CourseEditorCard from './CourseEditorCard.vue'
+import { courseNameForGame } from '~/shared/utils/course-names'
+import type { Game } from '~/shared/schemas/game'
 import type { CourseInput } from '~/composables/useSubmissionForm'
 
 const props = defineProps<{
   modelValue: CourseInput[]
+  /** The current game: for CS:GO, course names are derived from course order
+   *  (`Main`, `Bonus 1`, `Bonus 2`, …) and never typed — `addCourse` appends
+   *  the derived name and `removeCourse` re-derives the remaining names, so
+   *  the convention holds after any add/remove. CS2 courses keep free names.
+   *  The derivation rule lives in `courseNameForGame`.
+   */
+  game: Game
 }>()
 
 const emit = defineEmits<{
@@ -20,21 +29,27 @@ function updateCourse(index: number, value: CourseInput) {
 }
 
 function removeCourse(index: number) {
+  // Re-derive the remaining names after the removal, so CS:GO names always
+  // match the convention (a removed middle course shifts its successors down
+  // — `Bonus 2` becomes `Bonus 1`, etc.); for CS2 the name stays unchanged.
   emit(
     'update:modelValue',
-    props.modelValue.filter((_, courseIndex) => courseIndex !== index),
+    props.modelValue
+      .filter((_, i) => i !== index)
+      .map((course, i) => ({
+        ...course,
+        name: courseNameForGame(props.game, i + 1, course.name),
+      })),
   )
 }
 
 function addCourse() {
-  emit('update:modelValue', [
-    ...props.modelValue,
-    {
-      name: '',
-      image: null,
-      mappers: [{ steamId64: '', displayName: '' }],
-    },
-  ])
+  const appended = {
+    name: courseNameForGame(props.game, props.modelValue.length + 1, ''),
+    image: null,
+    mappers: [{ steamId64: '', displayName: '' }],
+  }
+  emit('update:modelValue', [...props.modelValue, appended])
 }
 </script>
 
@@ -55,6 +70,7 @@ function addCourse() {
         :key="`course-${index}`"
         :course="course"
         :index="index"
+        :game="game"
         @update="updateCourse(index, $event)"
         @remove="removeCourse(index)"
       />

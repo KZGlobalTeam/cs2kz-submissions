@@ -1,5 +1,7 @@
 import { reactive } from 'vue'
 
+import { courseNameForGame } from '~/shared/utils/course-names'
+import type { Game } from '~/shared/schemas/game'
 import type { CourseImageMeta } from '~/shared/types/submission'
 
 export interface MapperInput {
@@ -32,11 +34,21 @@ function blankMapper(): MapperInput {
   return { steamId64: '', displayName: '' }
 }
 
-function blankCourse(): CourseInput {
-  return { name: '', image: null, mappers: [blankMapper()] }
+function blankCourse(game: Game, orderIndex: number): CourseInput {
+  return {
+    // CS:GO course names are derived from course order, never typed
+    // (CONTEXT.md — Course name convention): the first course is `Main`, the
+    // N-th bonus `Bonus N`. The editor renders the field non-editable on top
+    // of this prefill, so the convention holds by construction. CS2 courses
+    // start blank — free names, exactly as today. The derivation rule lives
+    // in `courseNameForGame`; this is just the create-form prefill.
+    name: courseNameForGame(game, orderIndex, ''),
+    image: null,
+    mappers: [blankMapper()],
+  }
 }
 
-function blankForm(): SubmissionFormValue {
+function blankForm(game: Game): SubmissionFormValue {
   return {
     workshopUrl: '',
     mapName: '',
@@ -45,16 +57,14 @@ function blankForm(): SubmissionFormValue {
     portAuthorizationImage: null,
     portNotes: '',
     mappers: [blankMapper()],
-    courses: [blankCourse()],
+    courses: [blankCourse(game, 1)],
   }
 }
 
-export function useSubmissionForm(initial?: SubmissionFormValue) {
-  const form = reactive<SubmissionFormValue>(initial ?? blankForm())
+/** The CS:GO submission form starts with a `Main` course present; CS2 starts
+ *  with one blank course, exactly as today. */
+export function useSubmissionForm(game: Game, initial?: SubmissionFormValue) {
+  const form = reactive<SubmissionFormValue>(initial ?? blankForm(game))
 
-  return {
-    form,
-    blankMapper,
-    blankCourse,
-  }
+  return { form }
 }

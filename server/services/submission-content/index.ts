@@ -40,23 +40,32 @@ export function createSubmission(
 }
 
 /** Bound entry point: the owner-edit endpoint stays a thin
- *  parse-and-delegate adapter. */
+ *  parse-and-delegate adapter. The route's game is passed through so the
+ *  write refuses a row whose own game differs (opaque 404). */
 export function updateSubmission(
   submissionId: string,
   ownerUserId: string,
+  game: Game,
   input: SubmissionInput,
 ) {
   return submissionContentService.updateSubmission(
     submissionId,
     ownerUserId,
+    game,
     input,
   )
 }
 
 /** Bound entry point: the delete endpoint stays a thin parse-and-delegate
- *  adapter (the lead-approver path passes no owner). */
-export function deleteSubmission(submissionId: string, ownerUserId?: string) {
-  return submissionContentService.deleteSubmission(submissionId, ownerUserId)
+ *  adapter (the lead-approver path passes no owner). The route's game is
+ *  passed through so the write refuses a row whose own game differs.
+ */
+export function deleteSubmission(
+  submissionId: string,
+  ownerUserId: string | undefined,
+  game: Game,
+) {
+  return submissionContentService.deleteSubmission(submissionId, ownerUserId, game)
 }
 
 export type {

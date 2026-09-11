@@ -44,7 +44,7 @@ describe('deleteSubmission', () => {
     const { deps, deleted } = createFakeDeps(db)
     const service = createSubmissionContentService(deps)
 
-    const result = await service.deleteSubmission(SUBMISSION_ID, CREATOR_ID)
+    const result = await service.deleteSubmission(SUBMISSION_ID, CREATOR_ID, 'cs2')
 
     expect(result).toEqual({ id: SUBMISSION_ID })
     expect(db.submissions.size).toBe(0)
@@ -65,7 +65,7 @@ describe('deleteSubmission', () => {
     const service = createSubmissionContentService(deps)
 
     await expect(
-      service.deleteSubmission(SUBMISSION_ID, OTHER_USER),
+      service.deleteSubmission(SUBMISSION_ID, OTHER_USER, 'cs2'),
     ).rejects.toMatchObject({
       statusCode: 404,
       statusMessage: 'Submission not found',
@@ -83,7 +83,7 @@ describe('deleteSubmission', () => {
     const service = createSubmissionContentService(deps)
 
     await expect(
-      service.deleteSubmission(SUBMISSION_ID, CREATOR_ID),
+      service.deleteSubmission(SUBMISSION_ID, CREATOR_ID, 'cs2'),
     ).rejects.toMatchObject({
       statusCode: 409,
       statusMessage: 'Review has started',
@@ -100,7 +100,7 @@ describe('deleteSubmission', () => {
     const { deps, deleted } = createFakeDeps(db)
     const service = createSubmissionContentService(deps)
 
-    const result = await service.deleteSubmission(SUBMISSION_ID)
+    const result = await service.deleteSubmission(SUBMISSION_ID, undefined, 'cs2')
 
     expect(result).toEqual({ id: SUBMISSION_ID })
     expect(db.submissions.size).toBe(0)
@@ -119,7 +119,7 @@ describe('deleteSubmission', () => {
     const ownerDeps = createFakeDeps(owner)
     const ownerService = createSubmissionContentService(ownerDeps.deps)
 
-    await ownerService.deleteSubmission(SUBMISSION_ID, CREATOR_ID)
+    await ownerService.deleteSubmission(SUBMISSION_ID, CREATOR_ID, 'cs2')
     expect(ownerDeps.notified.submissions).toEqual([])
 
     // Lead path: reviewed and decided, passed with no owner.
@@ -128,8 +128,41 @@ describe('deleteSubmission', () => {
     const leadDeps = createFakeDeps(lead)
     const leadService = createSubmissionContentService(leadDeps.deps)
 
-    await leadService.deleteSubmission(SUBMISSION_ID)
+    await leadService.deleteSubmission(SUBMISSION_ID, undefined, 'cs2')
     expect(leadDeps.notified.submissions).toEqual([])
+  })
+
+  it('returns the opaque 404 for a submission of another game on both paths', async () => {
+    // A CS:GO row deleted through the CS2 route is refused on both the owner
+    // and the lead path — the write's route game and the row's own game
+    // disagree, so cross-game deletes can never happen even on a direct call.
+    const db = createFakeDb()
+    seedSubmission(db, fakeSubmissionRow({
+      id: SUBMISSION_ID,
+      createdByUserId: CREATOR_ID,
+      game: 'csgo',
+    }))
+    seedCourseRows(db, SUBMISSION_ID, [COURSE_URL])
+    const { deps, deleted } = createFakeDeps(db)
+    const service = createSubmissionContentService(deps)
+
+    await expect(
+      service.deleteSubmission(SUBMISSION_ID, CREATOR_ID, 'cs2'),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      statusMessage: 'Submission not found',
+    })
+    await expect(
+      service.deleteSubmission(SUBMISSION_ID, undefined, 'cs2'),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      statusMessage: 'Submission not found',
+    })
+
+    // The row and its images are untouched.
+    expect(db.submissions.get(SUBMISSION_ID)?.game).toBe('csgo')
+    expect(db.courses.get(SUBMISSION_ID)?.length).toBe(1)
+    expect(deleted).toEqual([])
   })
 
   it('returns the opaque 404 for a missing submission on both paths', async () => {
@@ -138,13 +171,13 @@ describe('deleteSubmission', () => {
     const service = createSubmissionContentService(deps)
 
     await expect(
-      service.deleteSubmission(SUBMISSION_ID, CREATOR_ID),
+      service.deleteSubmission(SUBMISSION_ID, CREATOR_ID, 'cs2'),
     ).rejects.toMatchObject({
       statusCode: 404,
       statusMessage: 'Submission not found',
     })
     await expect(
-      service.deleteSubmission(SUBMISSION_ID),
+      service.deleteSubmission(SUBMISSION_ID, undefined, 'cs2'),
     ).rejects.toMatchObject({
       statusCode: 404,
       statusMessage: 'Submission not found',

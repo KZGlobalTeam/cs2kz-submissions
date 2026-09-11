@@ -170,6 +170,7 @@ watch(details, () => {
           :user-id="userId"
           :submission-id="details.submission.id"
           :is-port="details.submission.isPort"
+          :game="game"
           class="lg:sticky lg:top-6"
         />
       </div>
@@ -216,6 +217,7 @@ watch(details, () => {
           :user-id="userId"
           :submission-id="details.submission.id"
           :is-port="details.submission.isPort"
+          :game="game"
           class="lg:sticky lg:top-6"
           @loaded="readonlyChecklistVisible = $event"
         />

@@ -1,9 +1,15 @@
 <script setup lang="ts">
 import { marked } from 'marked'
-import { submissionRulesSteps } from './submissionRules'
+import { rulesStepsForGame } from './submissionRules'
+import type { Game } from '~/shared/schemas/game'
 
 const props = defineProps<{
   open: boolean
+  /** The game context whose rule set the mapper must acknowledge: CS2 shows
+   *  the CS2 rules (porting included), CS:GO its own copy without porting.
+   *  The dialog is opened from the current game's submissions page, so the
+   *  route's game is the game. */
+  game: Game
 }>()
 
 const emit = defineEmits<{
@@ -12,7 +18,7 @@ const emit = defineEmits<{
   proceed: []
 }>()
 
-const steps = submissionRulesSteps
+const steps = rulesStepsForGame(props.game)
 
 // Render each rule's markdown once. keyed by `${stepKey}:${ruleIndex}`.
 const renderedRules = new Map<string, string>()

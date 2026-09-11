@@ -7,7 +7,10 @@ import { requireRouteGame } from '~/server/utils/route-game'
 
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
-  requireRouteGame(event)
+  // The route's game is the context the delete is made in; the service
+  // refuses a row whose own game differs (opaque 404), so a CS:GO row can
+  // never be deleted through the CS2 route.
+  const game = requireRouteGame(event)
 
   const submissionId = getRouterParam(event, 'id')
   if (!submissionId) {
@@ -26,5 +29,6 @@ export default defineEventHandler(async (event) => {
   return deleteSubmission(
     submissionId,
     canDeleteUnrestricted ? undefined : user.id,
+    game,
   )
 })

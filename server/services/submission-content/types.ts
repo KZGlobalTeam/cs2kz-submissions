@@ -3,10 +3,12 @@ import type { SubmissionStatus } from '~/shared/types/submission'
 import type { Game } from '~/shared/schemas/game'
 
 /** The submission row facts the guarded-write spine and the image lifecycle
- *  read: the ADR-0002 gate reads `status` and `createdByUserId`, and the
- *  replace/delete sweeps cover `portAuthorizationImageUrl`. */
+ *  read: the ADR-0002 gate reads `status` and `createdByUserId`, the
+ *  game-guard reads `game` (a row belongs to the game it was created in), and
+ *  the replace/delete sweeps cover `portAuthorizationImageUrl`. */
 export interface SubmissionRecord {
   id: string
+  game: Game
   status: SubmissionStatus
   createdByUserId: string
   portAuthorizationImageUrl: string | null

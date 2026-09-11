@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import MapperListField from './MapperListField.vue'
+import type { Game } from '~/shared/schemas/game'
 import type { CourseInput } from '~/composables/useSubmissionForm'
 
 const props = defineProps<{
   course: CourseInput
   index: number
+  /** The current game: for CS:GO the course name renders non-editable (the
+   *  value is already derived from course order by the list editor), so the
+   *  convention is impossible to violate by typing. CS2 keeps the free-text
+   *  name input, exactly as today. */
+  game: Game
 }>()
 
 const emit = defineEmits<{
@@ -101,6 +107,7 @@ async function onFileChange(event: Event) {
       <UFormField label="Course Name" :name="`courses.${index}.name`" required>
         <UInput
           :model-value="course.name"
+          :disabled="game === 'csgo'"
           placeholder="Course 1"
           class="w-full"
           @update:model-value="updateCourse({ name: $event })"

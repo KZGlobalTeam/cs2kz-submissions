@@ -99,7 +99,10 @@ type WriteOutcome<T> = { result: T; removedUrls: string[] }
 
 /** Shared transaction spine for the guarded operations (replace, delete):
  *  re-read the row inside the transaction, map missing *and* non-creator to
- *  the same opaque 404 (no existence leak), run the ADR-0002 mutability gate
+ *  the same opaque 404 (no existence leak), reject a route game that does
+ *  not match the row's own game (a submission belongs to the game it was
+ *  created in — a cross-game id is treated as not found, so existence never
+ *  leaks across contexts), run the ADR-0002 mutability gate
  *  inside the transaction when an owner is passed — the lead path passes no
  *  owner and skips the gate entirely — then run the kind-specific write step
  *  and compensate storage after the commit. A throw inside the transaction
@@ -111,6 +114,7 @@ async function runGuardedWrite<T>(
   submissionId: string,
   options: GuardedWriteOptions,
   ownerUserId: string | undefined,
+  game: Game,
   write: (store: SubmissionContentStore) => Promise<WriteOutcome<T>>,
 ): Promise<T> {
   let outcome: WriteOutcome<T> | undefined
@@ -118,6 +122,16 @@ async function runGuardedWrite<T>(
   await deps.runTransaction(async (store) => {
     const submission = await store.getSubmission(submissionId)
     if (!submission) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: options.notFoundMessage,
+      })
+    }
+
+    if (submission.game !== game) {
+      // The route's game is the context the write was made in; a row whose
+      // game differs belongs to the other context. Same opaque 404 as a
+      // missing row — a cross-game id must not leak that the row exists.
       throw createError({
         statusCode: 404,
         statusMessage: options.notFoundMessage,
@@ -198,11 +212,13 @@ export interface SubmissionContentService {
   updateSubmission(
     submissionId: string,
     ownerUserId: string,
+    game: Game,
     input: SubmissionInput,
   ): Promise<{ id: string }>
   deleteSubmission(
     submissionId: string,
-    ownerUserId?: string,
+    ownerUserId: string | undefined,
+    game: Game,
   ): Promise<{ id: string }>
 }
 
@@ -256,7 +272,7 @@ export function createSubmissionContentService(
       return submission
     },
 
-    async updateSubmission(submissionId, ownerUserId, input) {
+    async updateSubmission(submissionId, ownerUserId, game, input) {
       const content = toContentWrite(input)
       const bodyUrls = contentImageUrls(input)
 
@@ -269,6 +285,7 @@ export function createSubmissionContentService(
             reviewStartedMessage: 'Review has started',
           },
           ownerUserId,
+          game,
           async (store) => {
             // The URLs the current (pre-edit) content references, so any the
             // saved content no longer references are removed from storage
@@ -311,7 +328,7 @@ export function createSubmissionContentService(
       }
     },
 
-    async deleteSubmission(submissionId, ownerUserId) {
+    async deleteSubmission(submissionId, ownerUserId, game) {
       return runGuardedWrite(
         deps,
         submissionId,
@@ -320,6 +337,7 @@ export function createSubmissionContentService(
           reviewStartedMessage: 'Review has started',
         },
         ownerUserId,
+        game,
         async (store) => {
           // Collect the stored URLs — course images, the
           // port-authorization image, and any vote/decision attachment

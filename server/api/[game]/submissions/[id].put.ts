@@ -2,23 +2,24 @@ import { createError, getRouterParam, readBody } from 'h3'
 import { ZodError } from 'zod'
 
 import { updateSubmission } from '~/server/services/submission-content'
-import { SubmissionInputSchema } from '~/shared/schemas/submission'
+import { submissionInputSchemaFor, type SubmissionInput } from '~/shared/schemas/submission'
 import { requireAuth } from '~/server/utils/permissions'
 import { requireRouteGame } from '~/server/utils/route-game'
 
 /**
  * Owner edit endpoint. Accepts exactly the same validated shape as creation
- * (the shared `SubmissionInputSchema` from ticket 01), so the two write
- * paths cannot drift — including the port-evidence cross-field rules. The
- * game segment is validated up front; the row's own game is fixed at
- * creation and this write never changes it — a submission belongs to the
- * game it was created in. The service answers with an opaque 404 for
- * non-creators and a 409 once review has started, re-checked inside the
- * write transaction.
+ * — the shared per-game `submissionInputSchemaFor` dispatch — so the two
+ * write paths cannot drift: a CS:GO edit enforces the CS:GO rules (no port
+ * evidence, the `Main`/`Bonus N` course-name convention) and a CS2 edit
+ * keeps today's port-evidence cross-field rules. The game segment is
+ * validated up front; the row's own game is fixed at creation and this write
+ * never changes it — a submission belongs to the game it was created in.
+ * The service answers with an opaque 404 for non-creators and a 409 once
+ * review has started, re-checked inside the write transaction.
  */
 export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
-  requireRouteGame(event)
+  const game = requireRouteGame(event)
 
   const submissionId = getRouterParam(event, 'id')
   if (!submissionId) {
@@ -28,9 +29,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  let body: ReturnType<typeof SubmissionInputSchema.parse>
+  let body: SubmissionInput
   try {
-    body = SubmissionInputSchema.parse(await readBody(event))
+    body = submissionInputSchemaFor(game).parse(await readBody(event))
   }
   catch (error) {
     if (error instanceof ZodError) {
@@ -46,5 +47,5 @@ export default defineEventHandler(async (event) => {
     throw error
   }
 
-  return updateSubmission(submissionId, user.id, body)
+  return updateSubmission(submissionId, user.id, game, body)
 })

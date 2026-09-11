@@ -2,7 +2,7 @@ import { createError, readBody } from 'h3'
 import { ZodError } from 'zod'
 
 import { createSubmission } from '~/server/services/submission-content'
-import { SubmissionInputSchema } from '~/shared/schemas/submission'
+import { submissionInputSchemaFor, type SubmissionInput } from '~/shared/schemas/submission'
 import { requireAuth } from '~/server/utils/permissions'
 import { requireRouteGame } from '~/server/utils/route-game'
 
@@ -10,11 +10,14 @@ export default defineEventHandler(async (event) => {
   const user = await requireAuth(event)
   // The game segment validates the route context; the create form carries no
   // game picker — the context is the picker, and the row is stamped with it.
+  // The same segment picks the submission-input schema, so a CS:GO create
+  // enforces the CS:GO rules (no ports, derived course names) and a CS2
+  // create keeps today's rules.
   const game = requireRouteGame(event)
 
-  let body: ReturnType<typeof SubmissionInputSchema.parse>
+  let body: SubmissionInput
   try {
-    body = SubmissionInputSchema.parse(await readBody(event))
+    body = submissionInputSchemaFor(game).parse(await readBody(event))
   }
   catch (error) {
     if (error instanceof ZodError) {

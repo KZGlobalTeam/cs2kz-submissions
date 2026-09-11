@@ -121,6 +121,7 @@ async function confirmDeleteSubmission() {
         />
         <SubmissionRulesDialog
           v-model:open="rulesOpen"
+          :game="game"
           @proceed="navigateTo(gamePath(game, '/submissions/new'))"
         />
       </div>

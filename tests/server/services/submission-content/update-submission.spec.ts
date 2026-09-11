@@ -52,6 +52,7 @@ describe('updateSubmission', () => {
     const result = await service.updateSubmission(
       SUBMISSION_ID,
       CREATOR_ID,
+      'cs2',
       submissionInput({
         mapName: 'New name',
         mappers: [mapper('76561198000000009', 'Replacement Mapper')],
@@ -97,6 +98,7 @@ describe('updateSubmission', () => {
     await service.updateSubmission(
       SUBMISSION_ID,
       CREATOR_ID,
+      'cs2',
       submissionInput({
         isPort: false,
         portNotes: null,
@@ -117,6 +119,7 @@ describe('updateSubmission', () => {
       service.updateSubmission(
         SUBMISSION_ID,
         OTHER_USER,
+        'cs2',
         submissionInput({
           courses: [
             course('Course A', OLD_COURSE_URL),
@@ -150,6 +153,7 @@ describe('updateSubmission', () => {
       service.updateSubmission(
         SUBMISSION_ID,
         CREATOR_ID,
+        'cs2',
         submissionInput({
           courses: [
             course('Course A', OLD_COURSE_URL),
@@ -176,7 +180,7 @@ describe('updateSubmission', () => {
     const service = createSubmissionContentService(deps)
 
     await expect(
-      service.updateSubmission(SUBMISSION_ID, CREATOR_ID, submissionInput()),
+      service.updateSubmission(SUBMISSION_ID, CREATOR_ID, 'cs2', submissionInput()),
     ).rejects.toMatchObject({
       statusCode: 409,
       statusMessage: 'Review has started',
@@ -192,6 +196,7 @@ describe('updateSubmission', () => {
       getSubmission: async (id) => ({
         id,
         status: 'approved',
+        game: 'cs2',
         createdByUserId: CREATOR_ID,
         portAuthorizationImageUrl: KEPT_PORT_URL,
       }),
@@ -202,6 +207,7 @@ describe('updateSubmission', () => {
       service.updateSubmission(
         SUBMISSION_ID,
         CREATOR_ID,
+        'cs2',
         submissionInput({
           courses: [
             course('Course A', OLD_COURSE_URL),
@@ -238,6 +244,7 @@ describe('updateSubmission', () => {
       service.updateSubmission(
         SUBMISSION_ID,
         CREATOR_ID,
+        'cs2',
         submissionInput({
           courses: [
             course('Course A', OLD_COURSE_URL),
@@ -272,6 +279,7 @@ describe('updateSubmission', () => {
       service.updateSubmission(
         SUBMISSION_ID,
         CREATOR_ID,
+        'cs2',
         submissionInput({
           courses: [
             course('Course A', OLD_COURSE_URL),
@@ -300,6 +308,7 @@ describe('updateSubmission', () => {
     await service.updateSubmission(
       SUBMISSION_ID,
       CREATOR_ID,
+      'cs2',
       submissionInput({ mapName: 'New name' }),
     )
 
@@ -314,9 +323,49 @@ describe('updateSubmission', () => {
     const service = createSubmissionContentService(deps)
 
     await expect(
-      service.updateSubmission(SUBMISSION_ID, OTHER_USER, submissionInput()),
+      service.updateSubmission(SUBMISSION_ID, OTHER_USER, 'cs2', submissionInput()),
     ).rejects.toMatchObject({ statusCode: 404 })
     expect(notified.submissions).toEqual([])
+  })
+
+  it('returns the opaque 404 for a submission of another game — the row game is fixed at creation', async () => {
+    // A CS:GO row edited through the CS2 route must be refused: the write's
+    // route game and the row's own game disagree, so a direct cross-game PUT
+    // can never validate a CS:GO row against the CS2 schema (port evidence
+    // and free course names would otherwise be accepted and stored).
+    const db = createFakeDb()
+    seedSubmission(db, fakeSubmissionRow({
+      id: SUBMISSION_ID,
+      createdByUserId: CREATOR_ID,
+      game: 'csgo',
+    }))
+    seedCourseRows(db, SUBMISSION_ID, [OLD_COURSE_URL, OLD_OTHER_URL])
+    const { deps, deleted } = createFakeDeps(db)
+    const service = createSubmissionContentService(deps)
+
+    await expect(
+      service.updateSubmission(
+        SUBMISSION_ID,
+        CREATOR_ID,
+        'cs2',
+        submissionInput({ mapName: 'CS2 body onto a CS:GO row' }),
+      ),
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      statusMessage: 'Submission not found',
+    })
+
+    // Nothing was written; the failed write's orphan compensation removed
+    // only the body's own fresh upload, never the referenced stored URLs.
+    expect(db.submissions.get(SUBMISSION_ID)).toMatchObject({
+      mapName: 'Test map',
+      game: 'csgo',
+    })
+    expect(db.courses.get(SUBMISSION_ID)?.map((c) => c.imageUrl)).toEqual([
+      OLD_COURSE_URL,
+      OLD_OTHER_URL,
+    ])
+    expect(deleted).toEqual(['https://storage.example/course-images/course-one.jpg'])
   })
 
   it('returns the opaque 404 for a missing submission and writes nothing', async () => {
@@ -325,7 +374,7 @@ describe('updateSubmission', () => {
     const service = createSubmissionContentService(deps)
 
     await expect(
-      service.updateSubmission(SUBMISSION_ID, CREATOR_ID, submissionInput()),
+      service.updateSubmission(SUBMISSION_ID, CREATOR_ID, 'cs2', submissionInput()),
     ).rejects.toMatchObject({
       statusCode: 404,
       statusMessage: 'Submission not found',

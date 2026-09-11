@@ -25,6 +25,7 @@ export function transactionStore(tx: TransactionClient): SubmissionContentStore 
       const [row] = await tx
         .select({
           id: submissions.id,
+          game: submissions.game,
           status: submissions.status,
           createdByUserId: submissions.createdByUserId,
           portAuthorizationImageUrl: submissions.portAuthorizationImageUrl,
@@ -82,6 +83,7 @@ export function transactionStore(tx: TransactionClient): SubmissionContentStore 
         )
         .returning({
           id: submissions.id,
+          game: submissions.game,
           status: submissions.status,
           createdByUserId: submissions.createdByUserId,
           portAuthorizationImageUrl: submissions.portAuthorizationImageUrl,
