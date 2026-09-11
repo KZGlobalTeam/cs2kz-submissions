@@ -62,6 +62,35 @@ export function modesForGame(game: Game): readonly CourseMode[] {
   return gameModeSets[game].map((entry) => entry.mode)
 }
 
+/** The Finalized filters (or any mode-tagged rows) of one Course that the
+ *  given game's readonly surfaces render, in the game's render order — what
+ *  the readonly courses section and the decided mapper-facing detail view
+ *  iterate. A CS:GO course's settled filters always show KZT, then SKZ, then
+ *  VNL whatever order the payload carried them in; a stored row of another
+ *  game (impossible through the review-write guard, but cached or legacy
+ *  data would surface here) never renders. The first row of a duplicated
+ *  mode wins (also impossible in practice — the per-course unique
+ *  constraint); rows of an unaddressed mode are simply absent. */
+export function finalFiltersForGame<F extends { mode: CourseMode }>(
+  rows: readonly F[],
+  game: Game,
+): F[] {
+  const byMode = new Map<CourseMode, F>()
+  for (const row of rows) {
+    if (!byMode.has(row.mode)) {
+      byMode.set(row.mode, row)
+    }
+  }
+  const ordered: F[] = []
+  for (const mode of modesForGame(game)) {
+    const row = byMode.get(mode)
+    if (row) {
+      ordered.push(row)
+    }
+  }
+  return ordered
+}
+
 /** The first Course mode of a proposed/finalized filter list that does not
  *  belong to the submission's Game, or null when every mode is in scope. The
  *  pure verdict the review-write spine maps to a 400 — written once here so

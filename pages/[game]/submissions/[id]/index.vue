@@ -191,6 +191,7 @@ watch(details, () => {
     <CoursesReadonly
       v-if="showReadonlyCourses && !(!isPending && isApprover)"
       :courses="details.courses"
+      :game="details.submission.game"
     />
 
     <!-- On decided submissions, the approver-votes section replaces the
@@ -212,6 +213,7 @@ watch(details, () => {
       <ApproverVotesSection
         :courses="details.courses"
         :votes="details.votes"
+        :game="details.submission.game"
       />
 
       <div v-if="hasApproverRole" v-show="readonlyChecklistVisible">

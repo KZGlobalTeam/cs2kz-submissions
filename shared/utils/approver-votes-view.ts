@@ -1,6 +1,7 @@
 import { tierToNumber } from '~/shared/schemas/cs2kz'
 import type { Mode } from '~/shared/schemas/cs2kz'
 import { modesForGame } from '~/shared/schemas/course-mode'
+import type { Game } from '~/shared/schemas/game'
 import type {
   SubmissionDetailCourse,
   SubmissionDetailFinalFilter,
@@ -13,7 +14,11 @@ import type {
  * submission details page (issue 02): maps the details payload — the
  * courses, the Votes, and the per-Course Finalized filters — into the
  * per-Course, per-Course-mode, per-field badge structure the page renders
- * verbatim.
+ * verbatim. The submission's game is passed in (the page supplies the
+ * detail payload's own row game — the row is truth), and the per-game mode
+ * vocabulary decides the Course-mode blocks: a decided CS:GO submission
+ * shows KZT, SKZ, then VNL per course; CS2 shows CKZ and VNL exactly as
+ * today.
  *
  * Stateless and payload-shaped: it takes the exact `SubmissionDetailCourse[]`
  * / `SubmissionDetailVote[]` types the details API returns. The Finalized
@@ -39,8 +44,9 @@ import type {
  *   proposal badges with no Final badge.
  * - A Course mode appears only when a Vote proposed a filter for it or the
  *   Course has a Finalized filter for it — the spec's "no placeholder rows
- *   for unvoted filters" rule; Course modes order classic, then vanilla,
- *   matching the vote form.
+ *   for unvoted filters" rule; Course modes order per the submission's
+ *   game (CKZ then VNL for CS2, KZT then SKZ then VNL for CS:GO), matching
+ *   the vote form and the lead decision panel.
  * - A decided submission with zero Votes yields the same well-defined shape
  *   with empty proposal groups — the empty structure the Status of Approval
  *   section renders as a terminal page, never a pending-review message.
@@ -117,7 +123,6 @@ export interface ApproverVotesView {
   courses: CourseBadges[]
 }
 
-const MODE_ORDER = modesForGame('cs2')
 const FINAL_APPROVER_NAME = 'Final'
 
 /** The omission rule for reasoning: only written reasoning renders — a
@@ -230,12 +235,13 @@ function buildModeBadges(
 function buildCourseBadges(
   course: SubmissionDetailCourse,
   votes: SubmissionDetailVote[],
+  modeOrder: readonly Mode[],
 ): CourseBadges {
   return {
     courseId: course.id,
     courseName: course.name,
     courseImageUrl: course.imageUrl,
-    modes: MODE_ORDER.flatMap((mode) => {
+    modes: modeOrder.flatMap((mode) => {
       const finalFilter = course.finalFilters.find(
         (filter) => filter.mode === mode,
       )
@@ -252,10 +258,15 @@ function buildCourseBadges(
 }
 
 /** Derives the approver-votes section's badge structure from the details
- *  payload (issue 02). Pure and stateless: payload in, display model out. */
+ *  payload (issue 02). Pure and stateless: payload and the submission's
+ *  game in, display model out — `game` picks the per-game mode vocabulary
+ *  (`modesForGame`), so a CS:GO submission's blocks always render its own
+ *  KZT/SKZ/VNL modes and out-of-game rows contribute nothing. */
 export function buildApproverVotesView(
   courses: SubmissionDetailCourse[],
   votes: SubmissionDetailVote[],
+  game: Game,
 ): ApproverVotesView {
-  return { courses: courses.map((course) => buildCourseBadges(course, votes)) }
+  const modeOrder = modesForGame(game)
+  return { courses: courses.map((course) => buildCourseBadges(course, votes, modeOrder)) }
 }

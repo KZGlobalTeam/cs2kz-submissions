@@ -21,6 +21,12 @@ import VoteSummaryPanel from './VoteSummaryPanel.vue'
  * the approver roles, and the API strips the votes payload from
  * non-approvers); the server-side strip is the enforcement boundary.
  *
+ * The section renders no Course mode at all — Vote cards carry the
+ * approver's note/reason and Rejection attachments, never filter rows — so
+ * it is game-agnostic by construction: votes on a CS:GO submission read
+ * exactly like votes on a CS2 one, and the game's per-Course-mode history
+ * lives entirely in the approver-votes section above.
+ *
  * The card mirrors the vote form's layout — the label is a styled paragraph,
  * not a heading element, and there are no input controls of any kind.
  */

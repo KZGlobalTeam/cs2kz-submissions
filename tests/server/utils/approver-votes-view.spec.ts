@@ -132,6 +132,7 @@ describe('buildApproverVotesView', () => {
           }),
         ]),
       ],
+      'cs2',
     )
 
     expect(view.courses[0]?.courseName).toBe('Aerodrome')
@@ -186,6 +187,7 @@ describe('buildApproverVotesView', () => {
           }),
         ]),
       ],
+      'cs2',
     )
 
     const classic = view.courses[0]!.modes[0]!
@@ -220,6 +222,7 @@ describe('buildApproverVotesView', () => {
         ]),
         vote('Bob', []),
       ],
+      'cs2',
     )
 
     // course-2 receives nothing from either Vote — no modes, no badges.
@@ -273,6 +276,7 @@ describe('buildApproverVotesView', () => {
           filterRow('course-1', 'classic', { notes: '  jumpstat is brutal  ' }),
         ]),
       ],
+      'cs2',
     )
 
     // Null, empty, and whitespace-only notes are not reasoning; the row
@@ -297,6 +301,7 @@ describe('buildApproverVotesView', () => {
           }),
         ]),
       ],
+      'cs2',
     )
 
     const classic = view.courses[0]!.modes[0]!
@@ -321,6 +326,7 @@ describe('buildApproverVotesView', () => {
           filterRow('course-1', 'vanilla', { isRanked: false }),
         ]),
       ],
+      'cs2',
     )
 
     const [classic, vanilla] = view.courses[0]!.modes
@@ -356,6 +362,7 @@ describe('buildApproverVotesView', () => {
           filterRow('course-1', 'classic', { notes: 'Proposed' }),
         ]),
       ],
+      'cs2',
     )
 
     expect(view.courses[0]!.modes[0]!.reasoning).toEqual({
@@ -374,6 +381,7 @@ describe('buildApproverVotesView', () => {
         ]),
       ],
       [],
+      'cs2',
     )
 
     expect(approved.courses[0]).toMatchObject({
@@ -425,6 +433,7 @@ describe('buildApproverVotesView', () => {
     const rejected = buildApproverVotesView(
       [course('course-1', 'Aerodrome')],
       [],
+      'cs2',
     )
     expect(rejected.courses[0]!.modes).toEqual([])
   })
@@ -437,6 +446,7 @@ describe('buildApproverVotesView', () => {
           filterRow('course-1', 'vanilla'),
         ]),
       ],
+      'cs2',
     )
     expect(vanillaOnly.courses[0]!.modes.map((mode) => mode.mode)).toEqual([
       'vanilla',
@@ -449,6 +459,7 @@ describe('buildApproverVotesView', () => {
           filterRow('course-1', 'classic'),
         ]),
       ],
+      'cs2',
     )
     expect(both.courses[0]!.modes.map((mode) => mode.mode)).toEqual([
       'classic',
@@ -471,6 +482,7 @@ describe('buildApproverVotesView', () => {
           filterRow('course-2', 'vanilla', { isRanked: false }),
         ]),
       ],
+      'cs2',
     )
 
     expect(view.courses.map((item) => item.courseId)).toEqual([
@@ -506,6 +518,140 @@ describe('buildApproverVotesView', () => {
     })
     expect(view.courses[1]!.modes[0]!.nubTier.entries).toEqual([
       { approverName: 'Alice', displayValue: 1 },
+    ])
+  })
+})
+describe('buildApproverVotesView per game', () => {
+  it("renders a decided CS:GO submission's three Course modes per course — KZT, SKZ, VNL — with the same fields and Final reference badges", () => {
+    // Approved: all three modes finalized; Alice proposed on KZT and SKZ.
+    const view = buildApproverVotesView(
+      [
+        course('course-1', 'Aerodrome', [
+          finalFilter('course-1', 'kzt', { nubTier: 'hard', proTier: 'impossible' }),
+          finalFilter('course-1', 'skz'),
+          finalFilter('course-1', 'vnl'),
+        ]),
+      ],
+      [
+        vote('Alice', [
+          filterRow('course-1', 'kzt', {
+            nubTier: 'medium',
+            proTier: 'very-hard',
+            isRanked: false,
+            notes: 'KZT times are not ready',
+          }),
+          filterRow('course-1', 'skz', { isRanked: true }),
+        ]),
+      ],
+      'csgo',
+    )
+
+    expect(view.courses[0]!.modes.map((mode) => mode.mode)).toEqual([
+      'kzt',
+      'skz',
+      'vnl',
+    ])
+
+    // KZT: proposal + Final badge on every field but Reasoning.
+    const kzt = view.courses[0]!.modes[0]!
+    expect(kzt.rankedStatus).toEqual({
+      entries: [{ approverName: 'Alice', displayValue: 'Unranked' }],
+      final: { approverName: 'Final', displayValue: 'Ranked' },
+    })
+    expect(kzt.nubTier).toEqual({
+      entries: [{ approverName: 'Alice', displayValue: 3 }],
+      final: { approverName: 'Final', displayValue: 5 },
+    })
+    expect(kzt.proTier).toEqual({
+      entries: [{ approverName: 'Alice', displayValue: 6 }],
+      final: { approverName: 'Final', displayValue: 10 },
+    })
+    expect(kzt.reasoning).toEqual({
+      entries: [{ approverName: 'Alice', displayValue: 'KZT times are not ready' }],
+    })
+
+    // SKZ: proposal + Final badge.
+    const skz = view.courses[0]!.modes[1]!
+    expect(skz.rankedStatus.entries).toEqual([
+      { approverName: 'Alice', displayValue: 'Ranked' },
+    ])
+    expect(skz.rankedStatus.final).toEqual({
+      approverName: 'Final',
+      displayValue: 'Ranked',
+    })
+
+    // VNL: no proposals, Final badges only — the settled filter still shows.
+    const vnl = view.courses[0]!.modes[2]!
+    expect(vnl.rankedStatus.entries).toEqual([])
+    expect(vnl.rankedStatus.final).toEqual({
+      approverName: 'Final',
+      displayValue: 'Ranked',
+    })
+    expect(vnl.reasoning).toEqual({ entries: [] })
+  })
+
+  it('never leaks an out-of-game mode into the view: payload rows and proposals outside the game contribute nothing', () => {
+    // A CS:GO decided submission whose payload carries a rogue CS2 mode
+    // (impossible through the review-write guard — this pins the render's
+    // own per-game walk).
+    const csgo = buildApproverVotesView(
+      [
+        course('course-1', 'Aerodrome', [
+          finalFilter('course-1', 'classic'),
+          finalFilter('course-1', 'kzt'),
+        ]),
+      ],
+      [
+        vote('Alice', [
+          filterRow('course-1', 'vanilla'),
+        ]),
+      ],
+      'csgo',
+    )
+    expect(csgo.courses[0]!.modes.map((mode) => mode.mode)).toEqual(['kzt'])
+
+    // And the other direction: a CS2 view never renders a CS:GO mode.
+    const cs2 = buildApproverVotesView(
+      [
+        course('course-1', 'Aerodrome', [
+          finalFilter('course-1', 'kzt'),
+          finalFilter('course-1', 'classic'),
+        ]),
+      ],
+      [
+        vote('Alice', [
+          filterRow('course-1', 'vnl'),
+        ]),
+      ],
+      'cs2',
+    )
+    expect(cs2.courses[0]!.modes.map((mode) => mode.mode)).toEqual(['classic'])
+  })
+
+  it("orders a rejected CS:GO submission's proposal-only modes KZT, SKZ, then VNL, matching the vote form's seeded order", () => {
+    // Rejected: no Finalized filters at all — only the addressed modes
+    // render, in game vocabulary order.
+    const view = buildApproverVotesView(
+      [course('course-1', 'Aerodrome')],
+      [
+        vote('Alice', [
+          filterRow('course-1', 'vnl', { isRanked: false }),
+          filterRow('course-1', 'kzt'),
+        ]),
+      ],
+      'csgo',
+    )
+
+    expect(view.courses[0]!.modes.map((mode) => mode.mode)).toEqual([
+      'kzt',
+      'vnl',
+    ])
+    expect(view.courses[0]!.modes[0]!.rankedStatus.entries).toEqual([
+      { approverName: 'Alice', displayValue: 'Ranked' },
+    ])
+    expect(view.courses[0]!.modes[0]!.rankedStatus.final).toBeNull()
+    expect(view.courses[0]!.modes[1]!.rankedStatus.entries).toEqual([
+      { approverName: 'Alice', displayValue: 'Unranked' },
     ])
   })
 })

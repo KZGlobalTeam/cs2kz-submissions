@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SubmissionDetailCourse, SubmissionDetailVote } from '~/shared/types/submission-detail'
+import type { Game } from '~/shared/schemas/game'
 import { modeLabel } from '~/shared/schemas/course-mode'
 
 import { buildApproverVotesView } from '~/shared/utils/approver-votes-view'
@@ -23,6 +24,11 @@ import { buildApproverVotesView } from '~/shared/utils/approver-votes-view'
  * Reasoning row renders no Final badge at all: proposals only, since the
  * display model never derives a reasoning settlement (issue 01).
  *
+ * The Course-mode blocks follow the submission's own game's vocabulary
+ * (the `game` prop the page passes from the detail payload's row — the
+ * row is truth): a decided CS:GO submission shows KZT, SKZ, and VNL
+ * blocks per course, CS2 shows CKZ and VNL exactly as today.
+ *
  * There are no headings (course names and mode labels render as styled
  * paragraphs, not heading elements) and no input controls of any kind: no
  * checkbox, radio group, select, or textarea.
@@ -37,9 +43,13 @@ import { buildApproverVotesView } from '~/shared/utils/approver-votes-view'
 const props = defineProps<{
   courses: SubmissionDetailCourse[]
   votes: SubmissionDetailVote[]
+  /** The submission's game — the page passes the value from the detail
+   *  payload's own row, so the section renders the game's own mode
+   *  blocks. */
+  game: Game
 }>()
 
-const view = computed(() => buildApproverVotesView(props.courses, props.votes))
+const view = computed(() => buildApproverVotesView(props.courses, props.votes, props.game))
 </script>
 
 <template>

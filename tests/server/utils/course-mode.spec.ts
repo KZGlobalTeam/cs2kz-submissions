@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  finalFiltersForGame,
   firstModeOutsideGame,
   gameModeSets,
   modeLabel,
@@ -21,6 +22,65 @@ describe('modesForGame', () => {
     for (const mode of modesForGame('csgo')) {
       expect(cs2).not.toContain(mode)
     }
+  })
+})
+
+describe('finalFiltersForGame', () => {
+  it("orders a CS:GO course's Finalized filters KZT, SKZ, VNL in vocabulary order, whatever the payload order", () => {
+    const rows = [
+      { mode: 'skz', nubTier: 'easy' },
+      { mode: 'vnl', nubTier: 'medium' },
+      { mode: 'kzt', nubTier: 'hard' },
+    ] as const
+
+    expect(finalFiltersForGame(rows, 'csgo').map((row) => row.mode)).toEqual([
+      'kzt',
+      'skz',
+      'vnl',
+    ])
+  })
+
+  it("keeps only the game's own modes — a stored out-of-game row never renders", () => {
+    const rows = [
+      { mode: 'classic' },
+      { mode: 'kzt' },
+      { mode: 'vanilla' },
+      { mode: 'vnl' },
+    ] as const
+
+    expect(finalFiltersForGame(rows, 'csgo').map((row) => row.mode)).toEqual([
+      'kzt',
+      'vnl',
+    ])
+    expect(finalFiltersForGame(rows, 'cs2').map((row) => row.mode)).toEqual([
+      'classic',
+      'vanilla',
+    ])
+  })
+
+  it('CS2 regression: classic then vanilla, exactly as the decided CS2 pages render today', () => {
+    const rows = [{ mode: 'classic' }, { mode: 'vanilla' }] as const
+
+    expect(finalFiltersForGame(rows, 'cs2').map((row) => row.mode)).toEqual([
+      'classic',
+      'vanilla',
+    ])
+  })
+
+  it("keeps the first row of a duplicated mode (the schema's unique constraint forbids it; the view stays stable)", () => {
+    const rows = [
+      { mode: 'kzt', nubTier: 'easy' },
+      { mode: 'kzt', nubTier: 'impossible' },
+    ] as const
+
+    expect(finalFiltersForGame(rows, 'csgo')).toEqual([
+      { mode: 'kzt', nubTier: 'easy' },
+    ])
+  })
+
+  it('an empty list stays empty for either game', () => {
+    expect(finalFiltersForGame([], 'cs2')).toEqual([])
+    expect(finalFiltersForGame([], 'csgo')).toEqual([])
   })
 })
 
