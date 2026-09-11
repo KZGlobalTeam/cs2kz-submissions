@@ -1,10 +1,12 @@
 import { createError } from 'h3'
 
+import { modesForGame } from '~/shared/schemas/course-mode'
 import type { Game } from '~/shared/schemas/game'
 
 import type {
   ReleaseContentsDeps,
   ReleaseContentsService,
+  ReleaseCourseFilters,
   ReleaseCourseRow,
   ReleaseFinalFilter,
   ReleaseFinalFilterRow,
@@ -58,9 +60,12 @@ export function createReleaseContentsService(
      *
      *  Guards: an unknown release — or one of another game than the
      *  request's — is a 404; any non-approved submission is a 400 (a
-     *  release containing a non-approved map is a data error). An empty
-     *  release resolves to `maps: []` — whether that is an error is each
-     *  artifact's call. */
+     *  release containing a non-approved map is a data error). A course's
+     *  finalized filters resolve keyed by the release's game's mode set —
+     *  two modes for a CS2 release, three for a CS:GO one — each null when
+     *  that mode has no row, so an artifact can never read another game's
+     *  modes off the manifest. An empty release resolves to `maps: []` —
+     *  whether that is an error is each artifact's call. */
     async resolve(releaseId, game: Game) {
       const release = await deps.store.getRelease(releaseId, game)
       if (!release) {
@@ -106,29 +111,32 @@ export function createReleaseContentsService(
           .map((mapper) => mapper.steamId64),
         courses: orderCourses(
           courseRows.filter((course) => course.submissionId === map.id),
-        ).map((course) => ({
-          courseId: course.id,
-          orderIndex: course.orderIndex,
-          name: course.name,
-          imageUrl: course.imageUrl,
-          mappers: courseMappers
-            .filter((mapper) => mapper.courseId === course.id)
-            .map((mapper) => mapper.steamId64),
-          filters: {
-            classic: stripCourseId(
+        ).map((course) => {
+          // The resolution keys the filters by the release's own game — the
+          // row is truth — so the export can read exactly its game's
+          // finalized filters: a CS2 course's manifest never carries kzt
+          // keys, and vice versa. (The store's WHERE already guarantees the
+          // release's game equals the requested route game.)
+          const filters = {} as ReleaseCourseFilters
+          for (const mode of modesForGame(release.game)) {
+            filters[mode] = stripCourseId(
               finalFilters.find(
                 (filter) =>
-                  filter.courseId === course.id && filter.mode === 'classic',
+                  filter.courseId === course.id && filter.mode === mode,
               ) ?? null,
-            ),
-            vanilla: stripCourseId(
-              finalFilters.find(
-                (filter) =>
-                  filter.courseId === course.id && filter.mode === 'vanilla',
-              ) ?? null,
-            ),
-          },
-        })),
+            )
+          }
+          return {
+            courseId: course.id,
+            orderIndex: course.orderIndex,
+            name: course.name,
+            imageUrl: course.imageUrl,
+            mappers: courseMappers
+              .filter((mapper) => mapper.courseId === course.id)
+              .map((mapper) => mapper.steamId64),
+            filters,
+          }
+        }),
       }))
 
       return { releaseName: release.name, maps }

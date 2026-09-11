@@ -87,7 +87,7 @@ describe('createReleaseContentsService.resolve', () => {
   it('resolves a release of its own game in either context', async () => {
     const db = createFakeDb()
     seedRelease(db, RELEASE_ID, 'Release One')
-    seedRelease(db, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'CS:GO Drop', 'csgo')
+    seedRelease(db, 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'CS:GO Release Two', 'csgo')
 
     await expect(service(db).resolve(RELEASE_ID, 'cs2')).resolves.toEqual({
       releaseName: 'Release One',
@@ -96,7 +96,7 @@ describe('createReleaseContentsService.resolve', () => {
     await expect(
       service(db).resolve('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'csgo'),
     ).resolves.toEqual({
-      releaseName: 'CS:GO Drop',
+      releaseName: 'CS:GO Release Two',
       maps: [],
     })
   })
@@ -199,6 +199,103 @@ describe('createReleaseContentsService.resolve', () => {
     // cannot even carry one, and the manifest never reads the column.
     expect(filters.classic).not.toHaveProperty('notes')
     expect(filters.vanilla).toBeNull()
+  })
+
+  it('resolves a CS:GO release\u2019s filters keyed by its three modes', async () => {
+    const db = createFakeDb()
+    seedRelease(db, RELEASE_ID, 'CS:GO Release Two', 'csgo')
+    seedLink(db, RELEASE_ID, [MAP_A])
+    seedMap(db, approvedMap({}))
+    seedCourse(db, course({}))
+    seedFinalFilter(db, {
+      submissionId: MAP_A,
+      courseId: COURSE_1,
+      mode: 'kzt',
+      nubTier: 'very-easy',
+      proTier: 'medium',
+      state: 'ranked',
+    })
+    seedFinalFilter(db, {
+      submissionId: MAP_A,
+      courseId: COURSE_1,
+      mode: 'skz',
+      nubTier: 'easy',
+      proTier: 'hard',
+      state: 'pending',
+    })
+    seedFinalFilter(db, {
+      submissionId: MAP_A,
+      courseId: COURSE_1,
+      mode: 'vnl',
+      nubTier: 'medium',
+      proTier: 'extreme',
+      state: 'ranked',
+    })
+
+    const { maps } = await service(db).resolve(RELEASE_ID, 'csgo')
+
+    // The manifest iterates the release's game's mode set: three keys for a
+    // CS:GO release, in the vocabulary's render order.
+    expect(maps[0]!.courses[0]!.filters).toEqual({
+      kzt: {
+        mode: 'kzt',
+        nubTier: 'very-easy',
+        proTier: 'medium',
+        state: 'ranked',
+      },
+      skz: {
+        mode: 'skz',
+        nubTier: 'easy',
+        proTier: 'hard',
+        state: 'pending',
+      },
+      vnl: {
+        mode: 'vnl',
+        nubTier: 'medium',
+        proTier: 'extreme',
+        state: 'ranked',
+      },
+    })
+  })
+
+  it('keys a course\u2019s filters with only its release\u2019s game\u2019s modes', async () => {
+    const db = createFakeDb()
+    seedRelease(db, RELEASE_ID, 'Release One') // cs2
+    seedLink(db, RELEASE_ID, [MAP_A])
+    seedMap(db, approvedMap({}))
+    seedCourse(db, course({}))
+    seedFinalFilter(db, {
+      submissionId: MAP_A,
+      courseId: COURSE_1,
+      mode: 'classic',
+      nubTier: 'very-easy',
+      proTier: 'medium',
+      state: 'ranked',
+    })
+    // A rogue other-game row (impossible through the review-write mode guard,
+    // but the manifest never keys it either way).
+    seedFinalFilter(db, {
+      submissionId: MAP_A,
+      courseId: COURSE_1,
+      mode: 'kzt',
+      nubTier: 'very-easy',
+      proTier: 'medium',
+      state: 'ranked',
+    })
+
+    const { maps } = await service(db).resolve(RELEASE_ID, 'cs2')
+
+    // A CS2 release's course never carries kzt/skz/vnl keys, and an absent
+    // mode of the game's own set is still present as null.
+    expect(maps[0]!.courses[0]!.filters).toEqual({
+      classic: {
+        mode: 'classic',
+        nubTier: 'very-easy',
+        proTier: 'medium',
+        state: 'ranked',
+      },
+      vanilla: null,
+    })
   })
 })
 

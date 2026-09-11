@@ -3,6 +3,7 @@ import type {
   CourseFilterTier,
   Mode,
 } from '~/shared/schemas/cs2kz'
+import type { CourseMode } from '~/shared/schemas/course-mode'
 import type { Game } from '~/shared/schemas/game'
 import type { SubmissionStatus } from '~/shared/types/submission'
 
@@ -22,6 +23,17 @@ export interface ReleaseFinalFilter {
  *  pack never reads filters, so it is free to ignore them). */
 export type ReleaseFinalFilterRow = ReleaseFinalFilter & { courseId: string }
 
+/** One course's finalized filters, keyed by its release's game's modes — two
+ *  keys for a CS2 release (classic, vanilla), three for a CS:GO one (kzt,
+ *  skz, vnl). The resolution fills exactly its game's keys, each null when
+ *  that mode has no row; a course never carries the other game's modes. The
+ *  manifest does not judge presence — a course may carry one mode's filter
+ *  and not the others' (that refusal is an export concern). No notes: a
+ *  Finalized filter carries no reason text after the finalized-reasoning
+ *  purge; the export shaping re-synthesizes the placeholder at the edge
+ *  (ADR-0008). */
+export type ReleaseCourseFilters = Partial<Record<CourseMode, ReleaseFinalFilter | null>>
+
 /** One course in the ordered manifest: identity, position, the image facts
  *  the pack streams, and the finalized filters the export renders. */
 export interface ReleaseCourse {
@@ -31,10 +43,7 @@ export interface ReleaseCourse {
   imageUrl: string
   /** Steam identities in table insertion order. */
   mappers: string[]
-  filters: {
-    classic: ReleaseFinalFilter | null
-    vanilla: ReleaseFinalFilter | null
-  }
+  filters: ReleaseCourseFilters
 }
 
 /** One map in the ordered manifest. `status` is deliberately absent: the
@@ -65,8 +74,10 @@ export interface ReleaseContents {
 
 /** The row facts the resolution reads. The store stays a dumb data accessor;
  *  the resolution owns ordering, the approved-only guard and the assembly.
- *  The game is read so the resolution can refuse a release of any other
- *  game than the request's. */
+ *  The game is read so the manifest's finalized filters resolve keyed per
+ *  the release's own game — the row is truth (the store's WHERE also
+ *  refuses a release of any other game than the request's, so the two can
+ *  never disagree). */
 export interface ReleaseRow {
   name: string
   game: Game
