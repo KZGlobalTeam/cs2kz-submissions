@@ -166,7 +166,7 @@ export const csgoSubmissionRulesSteps: SubmissionRulesStep[] = [
   },
   {
     key: 'ranked',
-    title: 'Rules for Ranked Courses',
+    title: 'Rules for Main Courses',
     rules: [
       {
         text: 'Avoid using clips, non-solid blocks, triggers, or moving blocks in unintuitive or exploitable ways.',
@@ -188,7 +188,6 @@ export const csgoSubmissionRulesSteps: SubmissionRulesStep[] = [
       {
         text: 'Jumpstats areas must include labeled LJ blocks ranging at least from **210–280**, in increments of 10, using readable Arabic numerals.',
       },
-      { text: 'Doing `!lj` should teleport you to the jumpstat area.' },
     ],
   },
   {
