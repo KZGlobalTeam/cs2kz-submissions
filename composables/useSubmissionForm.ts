@@ -38,10 +38,11 @@ function blankCourse(game: Game, orderIndex: number): CourseInput {
   return {
     // CS:GO course names are derived from course order, never typed
     // (CONTEXT.md — Course name convention): the first course is `Main`, the
-    // N-th bonus `Bonus N`. The editor renders the field non-editable on top
-    // of this prefill, so the convention holds by construction. CS2 courses
-    // start blank — free names, exactly as today. The derivation rule lives
-    // in `courseNameForGame`; this is just the create-form prefill.
+    // N-th bonus `Bonus N`. The card shows the derived name as its title on
+    // top of this prefill — there is no name input at all, so the
+    // convention holds by construction. CS2 courses start blank — free
+    // names, exactly as today. The derivation rule lives in
+    // `courseNameForGame`; this is just the create-form prefill.
     name: courseNameForGame(game, orderIndex, ''),
     image: null,
     mappers: [blankMapper()],

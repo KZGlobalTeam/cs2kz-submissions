@@ -72,7 +72,7 @@ A per-viewer state in the review queue: a pending submission the *current* revie
 _Avoid_: Unreviewed
 
 **Submission rules**:
-The canonical, ordered set of grouped requirements (map and course naming, course rules, ranked-course rules, jumpstat areas, porting, other) a submitter must tick through before submitting; the same groups are mirrored one-to-one in each approver's private checklist. The set is per Game: CS:GO has its own copy (initially the CS2 rules minus porting, pending the community's own draft) and never shares a rule set with CS2.
+The canonical, ordered set of grouped requirements (map and course naming, course rules, ranked-course rules, jumpstat areas, porting, other) a submitter must tick through before submitting; the same groups are mirrored one-to-one in each approver's private checklist. The set is per Game: CS:GO has its own copy (started as the CS2 rules minus porting and already diverged: `Main` course rules instead of ranked, and no `!lj` jumpstat teleport rule — the rest pending the community's own draft) and never shares a rule set with CS2.
 _Avoid_: Steps, requirements
 
 **Submission note**:
@@ -93,7 +93,7 @@ _Avoid_: Submission (once approved), workshop item
 A playable route inside a map. Each course has an order within the map and a dedicated course image, and its name follows the game's naming convention (see Course name convention).
 
 **Course name convention**:
-The fixed course naming CS:GO submissions must follow: the first course is `Main`, subsequent courses are `Bonus 1`, `Bonus 2`, … Enforced by construction in the form (names are prefilled and not editable) and validated server-side. CS2 courses keep free ASCII names.
+The fixed course naming CS:GO submissions must follow: the first course is `Main`, subsequent courses are `Bonus 1`, `Bonus 2`, … Enforced by construction in the form (names are prefilled and displayed as each course card's title — there is no name input on a CS:GO submission) and validated server-side. CS2 courses keep free ASCII names.
 _Avoid_: Course name (bare), naming
 
 **Course mode**:

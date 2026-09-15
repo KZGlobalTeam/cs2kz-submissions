@@ -3,10 +3,10 @@ import type { Game } from '~/shared/schemas/game'
 /**
  * The CS:GO course-name convention (CONTEXT.md — Course name convention):
  * the first course is `Main`, the N-th subsequent course is `Bonus N`.
- * Names are derived by construction in the form (prefilled, non-editable)
- * and enforced by the shared wire schema server-side, so a direct API write
- * with a free name is a 400. CS2 courses keep free ASCII names and never
- * touch these helpers.
+ * Names are derived by construction in the form (prefilled and shown as the
+ * course card's title — never typed into an input) and enforced by the
+ * shared wire schema server-side, so a direct API write with a free name is
+ * a 400. CS2 courses keep free ASCII names and never touch these helpers.
  */
 
 export const CSGO_MAIN_COURSE_NAME = 'Main'

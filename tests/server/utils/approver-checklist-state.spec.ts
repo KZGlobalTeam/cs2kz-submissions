@@ -32,7 +32,7 @@ describe('rulesStepsForGame', () => {
     ])
   })
 
-  it('returns the CS:GO copy for CS:GO — the CS2 rules minus the porting group', () => {
+  it('returns the CS:GO copy for CS:GO — never the CS2 set, no porting group', () => {
     const csgo = rulesStepsForGame('csgo')
     expect(csgo.map((step) => step.key)).toEqual([
       'naming',
@@ -44,18 +44,55 @@ describe('rulesStepsForGame', () => {
     expect(csgoSubmissionRulesSteps).toBe(csgo)
   })
 
-  it('is a structural copy today: same group texts as CS2 minus porting, but independent objects', () => {
-    // The CS:GO set is a placeholder copy of the CS2 rules minus the porting
-    // group — it must read identically today, and be structurally separate
-    // so the two sets can never silently drift into sharing one rule set.
+  it('is a structural copy of CS2 minus porting, with the two pinned CS:GO divergences, as independent objects', () => {
+    // The CS:GO set began as a placeholder copy of the CS2 rules minus the
+    // porting group (CONTEXT.md — Submission rules), then diverged on purpose
+    // (ticket #2): the ranked group is titled for the CS:GO `Main` course,
+    // and the jumpstat group omits CS2's `!lj` teleport rule. Both
+    // divergences are pinned explicitly below; every other group must read
+    // identically, so an accidental edit to either set fails here.
     const cs2WithoutPorting = submissionRulesSteps.filter((step) => !step.askIsPort)
-    expect(csgoSubmissionRulesSteps.map((step) => step.rules.map((rule) => rule.text)))
-      .toEqual(cs2WithoutPorting.map((step) => step.rules.map((rule) => rule.text)))
-    expect(csgoSubmissionRulesSteps).not.toBe(submissionRulesSteps)
+    const ljRuleText = 'Doing `!lj` should teleport you to the jumpstat area.'
+
+    const csgoJumpstat = csgoSubmissionRulesSteps.find((step) => step.key === 'jumpstat')!
+    const cs2Jumpstat = cs2WithoutPorting.find((step) => step.key === 'jumpstat')!
+    const csgoRanked = csgoSubmissionRulesSteps.find((step) => step.key === 'ranked')!
+    const cs2Ranked = cs2WithoutPorting.find((step) => step.key === 'ranked')!
+
+    expect(csgoSubmissionRulesSteps.map((step) => step.key)).toEqual(
+      cs2WithoutPorting.map((step) => step.key),
+    )
+
+    // Pinned divergence 1 — retitled ranked group: "Rules for Main Courses"
+    // on CS:GO, "Rules for Ranked Courses" on CS2.
+    expect(csgoRanked.title).toBe('Rules for Main Courses')
+    expect(cs2Ranked.title).toBe('Rules for Ranked Courses')
+
+    // Pinned divergence 2 — the jumpstat group is CS2's minus exactly the
+    // `!lj` teleport rule (no jumpstat teleport on CS:GO).
+    expect(cs2Jumpstat.rules.map((rule) => rule.text)).toContain(ljRuleText)
+    expect(csgoJumpstat.rules.map((rule) => rule.text)).not.toContain(ljRuleText)
+    expect(csgoJumpstat.rules.map((rule) => rule.text)).toEqual(
+      cs2Jumpstat.rules.map((rule) => rule.text).filter((text) => text !== ljRuleText),
+    )
+
+    // Everything else reads identically to CS2 minus the porting group…
     csgoSubmissionRulesSteps.forEach((step, i) => {
-      expect(step).not.toBe(cs2WithoutPorting[i])
-      expect(step.rules).not.toBe(cs2WithoutPorting[i]!.rules)
+      const cs2Step = cs2WithoutPorting[i]!
+      if (step.key !== 'jumpstat') {
+        expect(step.rules.map((rule) => rule.text)).toEqual(
+          cs2Step.rules.map((rule) => rule.text),
+        )
+      }
+      if (step.key !== 'ranked') {
+        expect(step.title).toBe(cs2Step.title)
+      }
+      // …and the two sets are structurally independent: never shared objects.
+      expect(step).not.toBe(cs2Step)
+      expect(step.rules).not.toBe(cs2Step.rules)
     })
+
+    expect(csgoSubmissionRulesSteps).not.toBe(submissionRulesSteps)
   })
 
   it('never renders the porting group on a CS:GO checklist, port or not', () => {

@@ -1,17 +1,27 @@
 <script setup lang="ts">
 import MapperListField from './MapperListField.vue'
+import { csgoCourseNameForOrder } from '~/shared/utils/course-names'
 import type { Game } from '~/shared/schemas/game'
 import type { CourseInput } from '~/composables/useSubmissionForm'
 
 const props = defineProps<{
   course: CourseInput
   index: number
-  /** The current game: for CS:GO the course name renders non-editable (the
-   *  value is already derived from course order by the list editor), so the
-   *  convention is impossible to violate by typing. CS2 keeps the free-text
-   *  name input, exactly as today. */
+  /** The current game: for CS:GO there is no course-name input at all — the
+   *  card title shows the name derived from course order (`Main`, `Bonus 1`,
+   *  …), recomputed here from the index so the heading never trusts state.
+   *  CS2 keeps the free-text name input and the `Course N` card title,
+   *  exactly as today. */
   game: Game
 }>()
+
+/** The card heading per game: the convention name for CS:GO (derived from
+ *  course order, never from state), the positional `Course N` label for CS2. */
+const title = computed(() =>
+  props.game === 'csgo'
+    ? csgoCourseNameForOrder(props.index + 1)
+    : `Course ${props.index + 1}`,
+)
 
 const emit = defineEmits<{
   update: [value: CourseInput]
@@ -94,7 +104,7 @@ async function onFileChange(event: Event) {
 <template>
   <section class="rounded-lg border border-white/5 bg-black/20 p-4">
     <div class="mb-4 flex items-center justify-between">
-      <h3 class="text-lg font-semibold">Course {{ index + 1 }}</h3>
+      <h3 class="text-lg font-semibold">{{ title }}</h3>
       <UButton
         variant="ghost"
         color="error"
@@ -104,10 +114,9 @@ async function onFileChange(event: Event) {
     </div>
 
     <div class="grid gap-4">
-      <UFormField label="Course Name" :name="`courses.${index}.name`" required>
+      <UFormField v-if="game !== 'csgo'" label="Course Name" :name="`courses.${index}.name`" required>
         <UInput
           :model-value="course.name"
-          :disabled="game === 'csgo'"
           placeholder="Course 1"
           class="w-full"
           @update:model-value="updateCourse({ name: $event })"
