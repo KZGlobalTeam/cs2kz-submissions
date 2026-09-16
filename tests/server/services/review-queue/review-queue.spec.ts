@@ -5,13 +5,13 @@ import {
   createFakeReadDb,
   createFakeReadStore,
   seedCourse,
-  seedMapper,
   seedSubmission,
+  seedSubmitter,
   seedVote,
   type FakeCourseRow,
-  type FakeMapperRow,
   type FakeReadDb,
   type FakeSubmissionRow,
+  type FakeSubmitterRow,
   type FakeVoteRow,
 } from './fake-review-read-store'
 
@@ -38,8 +38,8 @@ function submission(
   }
 }
 
-function mapper(submissionId: string, displayNameSnapshot: string): FakeMapperRow {
-  return { submissionId, displayNameSnapshot }
+function submitter(submissionId: string, displayName: string, steamId64: string): FakeSubmitterRow {
+  return { submissionId, displayName, steamId64 }
 }
 
 function vote(submissionId: string, approverUserId: string, decision: 'yes' | 'no'): FakeVoteRow {
@@ -56,6 +56,12 @@ function seededDb(): FakeReadDb {
   seedSubmission(db, submission('s2', { createdByUserId: OTHER_OWNER }))
   seedSubmission(db, submission('s3'))
   seedSubmission(db, submission('s4', { status: 'approved' }))
+  // Every submission has exactly one creator (the not-null createdByUserId
+  // FK) — the fake seeds them like the real join always returns them.
+  seedSubmitter(db, submitter('s1', 'Submitter One', '76561198000000001'))
+  seedSubmitter(db, submitter('s2', 'Submitter Two', '76561198000000002'))
+  seedSubmitter(db, submitter('s3', 'Submitter Three', '76561198000000003'))
+  seedSubmitter(db, submitter('s4', 'Submitter Four', '76561198000000004'))
   return db
 }
 
@@ -182,10 +188,8 @@ describe('review-queue read module', () => {
   })
 
   describe('getQueuePage', () => {
-    it('projects the full queue row: mappers, tallies, my vote, course count, ISO dates', async () => {
+    it('projects the full queue row: submittedBy, tallies, my vote, course count, ISO dates', async () => {
       const db = seededDb()
-      seedMapper(db, mapper('s1', 'Mapper One'))
-      seedMapper(db, mapper('s1', 'Mapper Two'))
       seedVote(db, vote('s1', 'a1', 'yes'))
       seedVote(db, vote('s1', 'a2', 'yes'))
       seedVote(db, vote('s1', 'a3', 'no'))
@@ -212,7 +216,10 @@ describe('review-queue read module', () => {
         status: 'pending',
         createdAt: '2025-01-01T00:00:00.000Z',
         approvedAt: null,
-        mappers: ['Mapper One', 'Mapper Two'],
+        submittedBy: {
+          displayName: 'Submitter One',
+          profileUrl: 'https://steamcommunity.com/profiles/76561198000000001',
+        },
         yesVotes: 2,
         noVotes: 1,
         myVote: null,
@@ -221,7 +228,10 @@ describe('review-queue read module', () => {
 
       const s3 = items.find((row) => row.id === 's3')!
       expect(s3).toMatchObject({
-        mappers: [],
+        submittedBy: {
+          displayName: 'Submitter Three',
+          profileUrl: 'https://steamcommunity.com/profiles/76561198000000003',
+        },
         yesVotes: 0,
         noVotes: 1,
         myVote: null,
@@ -334,6 +344,16 @@ describe('review-queue read module', () => {
         approvedAt: new Date('2025-05-01T00:00:00.000Z'),
       }))
       seedSubmission(db, submission('unapproved', { status: 'approved', approvedAt: null }))
+      // Creator rows for every submission, mirroring the real join.
+      for (const [id, name, steamId64] of [
+        ['old-pending', 'Old Pending Submitter', '76561198000000011'],
+        ['new-pending', 'New Pending Submitter', '76561198000000012'],
+        ['mid-approved', 'Mid Approved Submitter', '76561198000000013'],
+        ['new-approved', 'New Approved Submitter', '76561198000000014'],
+        ['unapproved', 'Unapproved Submitter', '76561198000000015'],
+      ] as const) {
+        seedSubmitter(db, submitter(id, name, steamId64))
+      }
       const module = createReviewQueueRead(createFakeReadStore(db))
 
       const byCreatedAt = await module.getQueuePage({ game: 'cs2' }, { limit: 10, offset: 0 })

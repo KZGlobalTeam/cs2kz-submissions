@@ -4,20 +4,22 @@ import type {
   PageBounds,
   ReviewQueueFilters,
   ReviewReadStore,
+  SubmissionSubmitterRow,
   SubmissionsPageRow,
   ViewerVoteRow,
 } from './types'
 import { resolveFilters } from './types'
 
 /** The aggregates one review-queue row is projected from, all keyed by
- *  submission id: the named mapper display-name snapshots in store order,
- *  the yes/no tallies (a submission with no votes of a decision defaults to
- *  zero), the viewer's own vote (at most one row per submission thanks to
- *  the unique (submission, approver) constraint; the last store row wins),
- *  and the course count. Built once per queue page from the six
- *  statement-granular store reads, then merged row by row. */
+ *  submission id: the live submitter identity (exactly one per submission
+ *  thanks to the not-null `createdByUserId` FK), the yes/no tallies (a
+ *  submission with no votes of a decision defaults to zero), the viewer's own
+ *  vote (at most one row per submission thanks to the unique (submission,
+ *  approver) constraint; the last store row wins), and the course count.
+ *  Built once per queue page from the six statement-granular store reads,
+ *  then merged row by row. */
 interface QueueRowAggregates {
-  mappersBySubmission: Map<string, string[]>
+  submittersBySubmission: Map<string, SubmissionSubmitterRow>
   votesBySubmission: Map<string, { yes: number; no: number }>
   myVoteBySubmission: Map<string, ApprovalDecision>
   courseCountBySubmission: Map<string, number>
@@ -38,16 +40,29 @@ function serializeSubmissionRow(row: SubmissionsPageRow) {
   }
 }
 
-/** The queue assembly: the serialized submission row plus the named mappers,
- *  the yes/no tallies, the viewer's own vote (null when the queue read
- *  carries no viewer), and the course count. `ReviewSubmissionRow` is
- *  derived from this body, so the row shape and the code that produces it
- *  cannot drift. */
+/** The review queue's "Submitted By" identity: the account's live Steam
+ *  name plus its permanent profile URL. The URL is always constructed from
+ *  the immutable steamId64 — the stored `users.profileUrl` may be a vanity
+ *  custom URL that a rename silently breaks, so it is never used here. */
+function toSubmittedBy(submitter: SubmissionSubmitterRow) {
+  return {
+    displayName: submitter.displayName,
+    profileUrl: `https://steamcommunity.com/profiles/${submitter.steamId64}`,
+  }
+}
+
+/** The queue assembly: the serialized submission row plus the submitter, the
+ *  yes/no tallies, the viewer's own vote (null when the queue read carries
+ *  no viewer), and the course count. `ReviewSubmissionRow` is derived from
+ *  this body, so the row shape and the code that produces it cannot drift. */
 function buildQueueRow(row: SubmissionsPageRow, aggregates: QueueRowAggregates) {
+  // Exactly one row per submission — the not-null `createdByUserId` FK with
+  // `onDelete: restrict` and not-null user columns make the inner join total.
+  const submitter = aggregates.submittersBySubmission.get(row.id)!
   return {
     ...serializeSubmissionRow(row),
     courseCount: aggregates.courseCountBySubmission.get(row.id) ?? 0,
-    mappers: aggregates.mappersBySubmission.get(row.id) ?? [],
+    submittedBy: toSubmittedBy(submitter),
     yesVotes: aggregates.votesBySubmission.get(row.id)?.yes ?? 0,
     noVotes: aggregates.votesBySubmission.get(row.id)?.no ?? 0,
     myVote: aggregates.myVoteBySubmission.get(row.id) ?? null,
@@ -149,8 +164,8 @@ export function createReviewQueueRead(store: ReviewReadStore): ReviewQueueRead {
       // rule (the Unvoted filter's user is the viewer), decoupled from the
       // Unvoted predicate — so myVote works on every queue read, filtered or
       // not, exactly as today.
-      const [mappers, voteTallies, myVotes, courseCounts] = await Promise.all([
-        store.listMappers(ids),
+      const [submitters, voteTallies, myVotes, courseCounts] = await Promise.all([
+        store.listSubmitters(ids),
         store.countVotesByDecision(ids),
         resolved.viewerId
           ? store.listMyVotes(ids, resolved.viewerId)
@@ -159,20 +174,14 @@ export function createReviewQueueRead(store: ReviewReadStore): ReviewQueueRead {
       ])
 
       const aggregates: QueueRowAggregates = {
-        mappersBySubmission: new Map<string, string[]>(),
+        submittersBySubmission: new Map<string, SubmissionSubmitterRow>(),
         votesBySubmission: new Map<string, { yes: number; no: number }>(),
         myVoteBySubmission: new Map<string, ApprovalDecision>(),
         courseCountBySubmission: new Map<string, number>(),
       }
 
-      for (const mapper of mappers) {
-        const names = aggregates.mappersBySubmission.get(mapper.submissionId)
-        if (names) {
-          names.push(mapper.displayNameSnapshot)
-        }
-        else {
-          aggregates.mappersBySubmission.set(mapper.submissionId, [mapper.displayNameSnapshot])
-        }
+      for (const submitter of submitters) {
+        aggregates.submittersBySubmission.set(submitter.submissionId, submitter)
       }
 
       for (const tally of voteTallies) {

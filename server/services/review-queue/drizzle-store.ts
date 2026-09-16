@@ -1,6 +1,6 @@
 import { and, count, desc, eq, inArray, notExists, sql, type SQL } from 'drizzle-orm'
 
-import { submissionCourses, submissionMappers, submissionVotes, submissions } from '~/db/schema'
+import { submissionCourses, submissionVotes, submissions, users } from '~/db/schema'
 import { db } from '~/server/utils/db'
 
 import type { ResolvedFilters, ReviewReadStore } from './types'
@@ -79,17 +79,21 @@ export function createDrizzleReviewReadStore(database = db()): ReviewReadStore {
       return Number(row?.value ?? 0)
     },
 
-    async listMappers(submissionIds) {
+    async listSubmitters(submissionIds) {
       if (submissionIds.length === 0) {
         return []
       }
+      // The submitter is the submissions row's creator — inner join through
+      // the not-null FK, exactly one row per submission (see the contract).
       return database
         .select({
-          submissionId: submissionMappers.submissionId,
-          displayNameSnapshot: submissionMappers.displayNameSnapshot,
+          submissionId: submissions.id,
+          displayName: users.displayName,
+          steamId64: users.steamId64,
         })
-        .from(submissionMappers)
-        .where(inArray(submissionMappers.submissionId, submissionIds))
+        .from(submissions)
+        .innerJoin(users, eq(submissions.createdByUserId, users.id))
+        .where(inArray(submissions.id, submissionIds))
     },
 
     async countVotesByDecision(submissionIds) {

@@ -236,7 +236,10 @@ describe('the submissions list endpoint adapter', () => {
         createdAt: '2025-01-01T00:00:00.000Z',
         approvedAt: null,
         courseCount: 0,
-        mappers: [],
+        submittedBy: {
+          displayName: 'Submitter One',
+          profileUrl: 'https://steamcommunity.com/profiles/76561198000000001',
+        },
         yesVotes: 0,
         noVotes: 0,
         myVote: null,

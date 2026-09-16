@@ -5,13 +5,13 @@ import {
   createFakeReadDb,
   createFakeReadStore,
   seedCourse,
-  seedMapper,
+  seedSubmitter,
   seedSubmission,
   seedVote,
   type FakeCourseRow,
-  type FakeMapperRow,
   type FakeReadDb,
   type FakeSubmissionRow,
+  type FakeSubmitterRow,
   type FakeVoteRow,
 } from './fake-review-read-store'
 
@@ -38,8 +38,8 @@ function submission(
   }
 }
 
-function mapper(submissionId: string, displayNameSnapshot: string): FakeMapperRow {
-  return { submissionId, displayNameSnapshot }
+function submitter(submissionId: string, displayName: string, steamId64: string): FakeSubmitterRow {
+  return { submissionId, displayName, steamId64 }
 }
 
 function vote(submissionId: string, approverUserId: string, decision: 'yes' | 'no'): FakeVoteRow {
@@ -190,18 +190,16 @@ describe('fake review read store', () => {
     })
   })
 
-  it('lists the named mapper rows for the requested submissions only', async () => {
+  it('lists the submitter rows for the requested submissions only', async () => {
     const db = seededDb()
-    seedMapper(db, mapper('s1', 'Mapper One'))
-    seedMapper(db, mapper('s1', 'Mapper Two'))
-    seedMapper(db, mapper('s3', 'Mapper Three'))
+    seedSubmitter(db, submitter('s1', 'Submitter One', '76561198000000001'))
+    seedSubmitter(db, submitter('s3', 'Submitter Three', '76561198000000003'))
     const store = createFakeReadStore(db)
 
-    const rows = await store.listMappers(['s1', 's2'])
+    const rows = await store.listSubmitters(['s1', 's2'])
 
     expect(rows).toEqual([
-      { submissionId: 's1', displayNameSnapshot: 'Mapper One' },
-      { submissionId: 's1', displayNameSnapshot: 'Mapper Two' },
+      { submissionId: 's1', displayName: 'Submitter One', steamId64: '76561198000000001' },
     ])
   })
 
@@ -255,7 +253,7 @@ describe('fake review read store', () => {
   it('returns empty lists for unknown ids', async () => {
     const store = createFakeReadStore(seededDb())
 
-    expect(await store.listMappers(['nope'])).toEqual([])
+    expect(await store.listSubmitters(['nope'])).toEqual([])
     expect(await store.countVotesByDecision(['nope'])).toEqual([])
     expect(await store.listMyVotes(['nope'], VIEWER)).toEqual([])
     expect(await store.countCourses(['nope'])).toEqual([])

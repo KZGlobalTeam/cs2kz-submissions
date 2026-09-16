@@ -77,7 +77,7 @@ const columns = computed<TableColumn<ReviewSubmissionRow>[]>(() => {
   const cols: TableColumn<ReviewSubmissionRow>[] = [
     { accessorKey: 'mapName', header: 'Map' },
     { accessorKey: 'workshopId', header: 'Workshop' },
-    { accessorKey: 'mappers', header: 'Mappers' },
+    { accessorKey: 'submittedBy', header: 'Submitted By' },
     { accessorKey: 'courseCount', header: 'Courses' },
     {
       accessorKey: 'createdAt',
@@ -189,8 +189,15 @@ async function confirmDeleteSubmission() {
           </a>
         </template>
 
-        <template #mappers-cell="{ row }">
-          <span>{{ row.original.mappers.length ? row.original.mappers.join(', ') : '—' }}</span>
+        <template #submittedBy-cell="{ row }">
+          <a
+            :href="row.original.submittedBy.profileUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-medium text-blue-500 underline underline-offset-2 hover:text-blue-400"
+          >
+            {{ row.original.submittedBy.displayName }}
+          </a>
         </template>
 
         <template #courseCount-cell="{ row }">

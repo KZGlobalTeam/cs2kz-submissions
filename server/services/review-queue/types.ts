@@ -98,11 +98,17 @@ export interface SubmissionsPageRow {
   approvedAt: Date | null
 }
 
-/** One named mapper row of a submission (the stored display-name snapshot as
- *  of submission time). */
-export interface SubmissionMapperRow {
+/** One creator row of a submission — the live Steam identity of the account
+ *  that submitted it (the `createdByUserId` reference), joined at read time
+ *  from the users table. "Submitted By" deliberately shows the live display
+ *  name, never a submission-time snapshot: the Mapper credits are the ones
+ *  that carry at-submission-time names. Exactly one row per submission — the
+ *  foreign key is not-null with `onDelete: restrict` and both columns are
+ *  not-null, so the inner join can never miss. */
+export interface SubmissionSubmitterRow {
   submissionId: string
-  displayNameSnapshot: string
+  displayName: string
+  steamId64: string
 }
 
 /** Vote counts grouped by approval decision — one row per
@@ -143,8 +149,9 @@ export interface ReviewReadStore {
    *  used — the module always runs list and count against one value. */
   countSubmissions(filters: ResolvedFilters): Promise<number>
 
-  /** Named mapper rows for the given submissions, in store order. */
-  listMappers(submissionIds: string[]): Promise<SubmissionMapperRow[]>
+  /** Creator rows for the given submissions, keyed by submission id — the
+   *  live display name and immutable steam id of each submitter. */
+  listSubmitters(submissionIds: string[]): Promise<SubmissionSubmitterRow[]>
 
   /** Vote counts grouped by (submission, approval decision). */
   countVotesByDecision(submissionIds: string[]): Promise<VoteCountByDecisionRow[]>

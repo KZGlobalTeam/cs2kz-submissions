@@ -5,7 +5,7 @@ import type {
   PageOrder,
   ResolvedFilters,
   ReviewReadStore,
-  SubmissionMapperRow,
+  SubmissionSubmitterRow,
   SubmissionsPageRow,
   ViewerVoteRow,
   VoteCountByDecisionRow,
@@ -27,8 +27,9 @@ export interface FakeVoteRow {
   approvalDecision: ApprovalDecision
 }
 
-/** One named mapper row of a submission. */
-export type FakeMapperRow = SubmissionMapperRow
+/** One creator row of a submission, mirroring the store contract's submitter
+ *  read (the live Steam identity of the submitting account). */
+export type FakeSubmitterRow = SubmissionSubmitterRow
 
 /** One course row of a submission. */
 export interface FakeCourseRow {
@@ -39,7 +40,7 @@ export interface FakeCourseRow {
 /** In-memory picture of the tables the reads touch. */
 export interface FakeReadDb {
   submissions: FakeSubmissionRow[]
-  mappers: FakeMapperRow[]
+  submitters: FakeSubmitterRow[]
   votes: FakeVoteRow[]
   courses: FakeCourseRow[]
 }
@@ -47,7 +48,7 @@ export interface FakeReadDb {
 export function createFakeReadDb(): FakeReadDb {
   return {
     submissions: [],
-    mappers: [],
+    submitters: [],
     votes: [],
     courses: [],
   }
@@ -57,8 +58,8 @@ export function seedSubmission(db: FakeReadDb, row: FakeSubmissionRow): void {
   db.submissions.push(row)
 }
 
-export function seedMapper(db: FakeReadDb, row: FakeMapperRow): void {
-  db.mappers.push(row)
+export function seedSubmitter(db: FakeReadDb, row: FakeSubmitterRow): void {
+  db.submitters.push(row)
 }
 
 export function seedVote(db: FakeReadDb, row: FakeVoteRow): void {
@@ -120,8 +121,8 @@ export function createFakeReadStore(db: FakeReadDb): ReviewReadStore {
       return matchingRows(filters).length
     },
 
-    async listMappers(submissionIds) {
-      return db.mappers.filter((row) =>
+    async listSubmitters(submissionIds) {
+      return db.submitters.filter((row) =>
         submissionIds.includes(row.submissionId),
       )
     },
