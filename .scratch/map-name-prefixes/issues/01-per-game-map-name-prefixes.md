@@ -17,3 +17,7 @@
 - [x] Verification: `pnpm typecheck` clean, `pnpm lint` clean, full suite green with no CS2 regressions.
 
 ## Comments
+
+## Answer
+
+Implemented in commit `c49fc04`. The map-name rule now lives once in `shared/utils/map-names.ts` (per-game prefix sets, 27-char cap, body charset with a non-empty tail, list-text rendering) and `shared/schemas/map-name.ts` (`mapNameSchemaFor(game)`), consumed by the submission form and by both per-game wire schemas — a CS2 write with `skz_`/bare/overlong/space-body now 400s, CS:GO accepts all four prefixes. CS2 messages, rules copy, and the `kz_example_map` placeholder stay byte-identical; CS:GO's two naming sentences derive from the shared vocabulary. TDD at seams C and A (28 new tests: `tests/server/utils/map-names.spec.ts`, per-game blocks in `submission-input-schema.spec.ts`), plus the third pinned CS:GO divergence in `approver-checklist-state.spec.ts`; the review round also fixed the empty-name double-issue (guarded prefix refine, pinned by tests). `pnpm typecheck`, `pnpm lint`, and the full suite (430 tests) are green.
