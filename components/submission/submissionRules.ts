@@ -163,9 +163,6 @@ export const csgoSubmissionRulesSteps: SubmissionRulesStep[] = [
       {
         text: 'Map name must be identical with the workshop map name and vpk file name.',
       },
-      {
-        text: 'Course names can **only** contain ASCII characters (including spaces, punctuation, quotes, etc.) and be unique across all courses **on your map**.',
-      },
     ],
   },
   {
