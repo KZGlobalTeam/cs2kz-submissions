@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { csgoCourseNamesMatchConvention } from '~/shared/utils/course-names'
+import { mapNameSchemaFor } from '~/shared/schemas/map-name'
 import type { Game } from '~/shared/schemas/game'
 
 /** A mapper credited on a submission (or on one of its courses). */
@@ -66,6 +67,9 @@ const submissionInputShape = {
     .min(1, 'Workshop URL is required')
     .url('Must be a valid URL')
     .refine(isSteamWorkshopUrl, 'Must be a Steam Workshop URL'),
+  // The base column is per-game overridden below; the shared placeholder
+  // here only keeps the shape's key set complete so both games see the
+  // same columns before their own map-name rule applies.
   mapName: z.string().min(1),
   notes: z.string().nullable(),
   isPort: z.boolean(),
@@ -80,12 +84,14 @@ const submissionInputShape = {
  * reused by the owner-edit endpoint, so the two write paths consume one
  * definition and cannot drift apart). The port-evidence cross-field rules are
  * enforced here: a port must carry an authorization screenshot, and port
- * evidence is not allowed on a map that is not a port. The workshop URL is
- * also enforced here with the same rule and messages the client form shows,
- * so both write endpoints reject an invalid URL with a 400 before any write.
+ * evidence is not allowed on a map that is not a port. The workshop URL and
+ * the map name are also enforced here with the same rules and messages the
+ * client form shows, so both write endpoints reject an invalid URL or a
+ * map name violating the game's prefix/character/length rule with a 400
+ * before any write.
  */
 export const SubmissionInputSchema = z
-  .object(submissionInputShape)
+  .object({ ...submissionInputShape, mapName: mapNameSchemaFor('cs2') })
   .superRefine((value, ctx) => {
     if (value.isPort && !value.portAuthorizationImage) {
       ctx.addIssue({
@@ -115,7 +121,7 @@ export const SubmissionInputSchema = z
  * direct API write with a free name dies before the write path.
  */
 export const CsgoSubmissionInputSchema = z
-  .object(submissionInputShape)
+  .object({ ...submissionInputShape, mapName: mapNameSchemaFor('csgo') })
   .superRefine((value, ctx) => {
     if (value.isPort) {
       ctx.addIssue({

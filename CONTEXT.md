@@ -89,6 +89,10 @@ _Avoid_: Notes (bare)
 An approved submission included in a release. Identified by its map name and workshop ID, with a set of mappers.
 _Avoid_: Submission (once approved), workshop item
 
+**Map name prefix**:
+The leading namespace of a Map name: `kz_` for CS2; CS:GO also accepts `skz_`, `vnl_`, and `kzpro_` — the mover-community namespaces (KZT, SimpleKZ, vanilla, KZPro). Always lowercase and matched exactly, never case-insensitively. A valid map name is a permitted prefix followed by the map's own name — at least one character — and the full name is capped at 27 characters. The allowed prefixes are per Game, and the rule is enforced identically by the submission form and the wire schema, so a direct API write with a foreign prefix is a 400.
+_Avoid_: Prefix (bare)
+
 **Course**:
 A playable route inside a map. Each course has an order within the map and a dedicated course image, and its name follows the game's naming convention (see Course name convention).
 

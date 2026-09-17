@@ -1,4 +1,5 @@
 import type { Game } from '~/shared/schemas/game'
+import { MAP_NAME_MAX_LENGTH, mapNamePrefixListText } from '~/shared/utils/map-names'
 
 export interface SubmissionRule {
   /** Markdown text describing the rule. */
@@ -25,7 +26,10 @@ export interface SubmissionRulesStep {
  * The rules a mapper must acknowledge before creating a submission,
  * grouped into ordered steps. Order matters: it is the order the dialog
  * walks the user through. This is the CS2 set — the porting group belongs
- * to CS2 only (CONTEXT.md — Port); CS:GO has its own copy below.
+ * to CS2 only (CONTEXT.md — Port); CS:GO has its own copy below. The
+ * naming step is written out verbatim rather than derived from the shared
+ * map-name vocabulary: the CS2 copy must stay byte-identical, and only the
+ * CS:GO copy below derives its two naming sentences from those constants.
  */
 export const submissionRulesSteps: SubmissionRulesStep[] = [
   {
@@ -130,20 +134,31 @@ export const submissionRulesSteps: SubmissionRulesStep[] = [
  * CS2 set) so the two sets are structurally separate from day one: a later
  * CS2 wording change never touches the CS:GO copy, and the community draft
  * replaces exactly this array. The per-game structure is final; only the
- * copy's wording will change. A CS:GO map is an original (it later gets
- * ported to CS2), so the porting step never appears.
+ * copy's wording will change. The two naming sentences are derived from the
+ * shared map-name vocabulary (see below) so they track what the form and
+ * the wire schema enforce; the rest of the copy stays a literal placeholder.
+ * A CS:GO map is an original (it later gets ported to CS2), so the porting
+ * step never appears.
  */
+
+/** The CS:GO prefix sentence’s shared wording — one source for the form
+ *  message, the wire-schema message, and this rules step, so the dialog can
+ *  never drift from what the form enforces. The length cap comes from the
+ *  same vocabulary, and the charset sentence between them is part of the
+ *  placeholder copy (the rule itself did not change). */
+const csgoMapNamePrefixList = mapNamePrefixListText('csgo')
+
 export const csgoSubmissionRulesSteps: SubmissionRulesStep[] = [
   {
     key: 'naming',
     title: 'Map and Course Naming Requirements',
     rules: [
-      { text: 'Map name must start with `kz_`.' },
+      { text: `Map name must start with ${csgoMapNamePrefixList}.` },
       {
         text: 'Map name must only contain ASCII **alphanumeric characters** (and underscores).',
       },
       {
-        text: 'Map name must **not exceed 27 characters** in length (including the `kz_` prefix).',
+        text: `Map name must **not exceed ${MAP_NAME_MAX_LENGTH} characters** in length.`,
       },
       {
         text: 'Map name must be identical with the workshop map name and vpk file name.',

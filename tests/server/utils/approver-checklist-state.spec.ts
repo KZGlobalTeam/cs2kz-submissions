@@ -5,6 +5,7 @@ import {
   rulesStepsForGame,
   submissionRulesSteps,
 } from '~/components/submission/submissionRules'
+import { MAP_NAME_MAX_LENGTH, mapNamePrefixListText } from '~/shared/utils/map-names'
 import type { ApproverChecklist } from '~/components/review/approver-checklist-storage'
 import {
   buildChecklistPayload,
@@ -44,13 +45,16 @@ describe('rulesStepsForGame', () => {
     expect(csgoSubmissionRulesSteps).toBe(csgo)
   })
 
-  it('is a structural copy of CS2 minus porting, with the two pinned CS:GO divergences, as independent objects', () => {
+  it('is a structural copy of CS2 minus porting, with the three pinned CS:GO divergences, as independent objects', () => {
     // The CS:GO set began as a placeholder copy of the CS2 rules minus the
     // porting group (CONTEXT.md — Submission rules), then diverged on purpose
     // (ticket #2): the ranked group is titled for the CS:GO `Main` course,
-    // and the jumpstat group omits CS2's `!lj` teleport rule. Both
-    // divergences are pinned explicitly below; every other group must read
-    // identically, so an accidental edit to either set fails here.
+    // and the jumpstat group omits CS2's `!lj` teleport rule. Ticket
+    // map-name-prefixes adds a third divergence: the naming group's first
+    // and third sentences derive from the shared map-name vocabulary (CS:GO
+    // adopts the four mover namespaces), while everything else in that
+    // group — and every other group — must read identically to CS2, so an
+    // accidental edit to either set fails here.
     const cs2WithoutPorting = submissionRulesSteps.filter((step) => !step.askIsPort)
     const ljRuleText = 'Doing `!lj` should teleport you to the jumpstat area.'
 
@@ -58,6 +62,8 @@ describe('rulesStepsForGame', () => {
     const cs2Jumpstat = cs2WithoutPorting.find((step) => step.key === 'jumpstat')!
     const csgoRanked = csgoSubmissionRulesSteps.find((step) => step.key === 'ranked')!
     const cs2Ranked = cs2WithoutPorting.find((step) => step.key === 'ranked')!
+    const csgoNaming = csgoSubmissionRulesSteps.find((step) => step.key === 'naming')!
+    const cs2Naming = cs2WithoutPorting.find((step) => step.key === 'naming')!
 
     expect(csgoSubmissionRulesSteps.map((step) => step.key)).toEqual(
       cs2WithoutPorting.map((step) => step.key),
@@ -76,10 +82,26 @@ describe('rulesStepsForGame', () => {
       cs2Jumpstat.rules.map((rule) => rule.text).filter((text) => text !== ljRuleText),
     )
 
+    // Pinned divergence 3 — the naming group's prefix and length sentences
+    // derive from the shared map-name vocabulary (the CS:GO copy adopts the
+    // four mover namespaces); the other three sentences read identically to
+    // CS2's, which keeps the kz_-only wording and the length parenthetical.
+    expect(csgoNaming.rules.map((rule) => rule.text)).toEqual([
+      `Map name must start with ${mapNamePrefixListText('csgo')}.`,
+      'Map name must only contain ASCII **alphanumeric characters** (and underscores).',
+      `Map name must **not exceed ${MAP_NAME_MAX_LENGTH} characters** in length.`,
+      'Map name must be identical with the workshop map name and vpk file name.',
+      'Course names can **only** contain ASCII characters (including spaces, punctuation, quotes, etc.) and be unique across all courses **on your map**.',
+    ])
+    expect(cs2Naming.rules.map((rule) => rule.text)[0]).toBe('Map name must start with `kz_`.')
+    expect(cs2Naming.rules.map((rule) => rule.text)[2]).toBe(
+      'Map name must **not exceed 27 characters** in length (including the `kz_` prefix).',
+    )
+
     // Everything else reads identically to CS2 minus the porting group…
     csgoSubmissionRulesSteps.forEach((step, i) => {
       const cs2Step = cs2WithoutPorting[i]!
-      if (step.key !== 'jumpstat') {
+      if (step.key !== 'jumpstat' && step.key !== 'naming') {
         expect(step.rules.map((rule) => rule.text)).toEqual(
           cs2Step.rules.map((rule) => rule.text),
         )

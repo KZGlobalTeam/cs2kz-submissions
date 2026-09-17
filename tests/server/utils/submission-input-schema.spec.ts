@@ -291,6 +291,75 @@ describe('SubmissionInputSchema', () => {
       ])
     }
   })
+
+  it('accepts a kz_-prefixed map name (the wire enforces the CS2 prefix rule)', () => {
+    expect(SubmissionInputSchema.safeParse(body({ mapName: 'kz_test_map' })).success).toBe(true)
+  })
+
+  it('rejects a foreign prefix on CS2 — skz_ is a CS:GO namespace', () => {
+    const result = SubmissionInputSchema.safeParse(body({ mapName: 'skz_test_map' }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Map name must start with `kz_`',
+          path: ['mapName'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a bare prefix on CS2 — the map name needs a name after kz_', () => {
+    const result = SubmissionInputSchema.safeParse(body({ mapName: 'kz_' }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Map name must only contain ASCII alphanumeric characters and underscores',
+          path: ['mapName'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a space in the map-name body on CS2', () => {
+    const result = SubmissionInputSchema.safeParse(body({ mapName: 'kz_my map' }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Map name must only contain ASCII alphanumeric characters and underscores',
+          path: ['mapName'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects an overlong map name on CS2 with the kz_ parenthetical', () => {
+    const result = SubmissionInputSchema.safeParse(body({ mapName: 'kz_' + 'a'.repeat(25) }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Map name must not exceed 27 characters (including the `kz_` prefix)',
+          path: ['mapName'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects an empty map name with exactly the required message', () => {
+    const result = SubmissionInputSchema.safeParse(body({ mapName: '' }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Map name is required',
+          path: ['mapName'],
+        }),
+      ])
+    }
+  })
 })
 
 describe('submissionInputSchemaFor', () => {
@@ -442,6 +511,79 @@ describe('CsgoSubmissionInputSchema', () => {
     if (!result.success) {
       expect(result.error.issues).toEqual([
         expect.objectContaining({ path: ['courses'] }),
+      ])
+    }
+  })
+
+  it.each(['kz_', 'skz_', 'vnl_', 'kzpro_'])(
+    'accepts the %s prefix on CS:GO (the wire enforces the four-namespace rule)',
+    (prefix) => {
+      const result = CsgoSubmissionInputSchema.safeParse(csgoBody({ mapName: `${prefix}test_map` }))
+      expect(result.success).toBe(true)
+    },
+  )
+
+  it('rejects a foreign prefix on CS:GO with the four-namespace message', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(csgoBody({ mapName: 'kjr_test_map' }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Map name must start with one of `kz_`, `skz_`, `vnl_`, `kzpro_`',
+          path: ['mapName'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a bare prefix on CS:GO — the map name needs a name after the prefix', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(csgoBody({ mapName: 'vnl_' }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Map name must only contain ASCII alphanumeric characters and underscores',
+          path: ['mapName'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects a space in the map-name body on CS:GO', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(csgoBody({ mapName: 'skz_my map' }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Map name must only contain ASCII alphanumeric characters and underscores',
+          path: ['mapName'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects an overlong map name on CS:GO without the kz_ parenthetical', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(csgoBody({ mapName: 'kz_' + 'a'.repeat(25) }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Map name must not exceed 27 characters',
+          path: ['mapName'],
+        }),
+      ])
+    }
+  })
+
+  it('rejects an empty map name with exactly the required message', () => {
+    const result = CsgoSubmissionInputSchema.safeParse(csgoBody({ mapName: '' }))
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues).toEqual([
+        expect.objectContaining({
+          message: 'Map name is required',
+          path: ['mapName'],
+        }),
       ])
     }
   })

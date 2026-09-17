@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import CourseEditorList from './CourseEditorList.vue'
 import MapperListField from './MapperListField.vue'
+import { mapNameSchemaFor } from '~/shared/schemas/map-name'
 import { useSubmissionForm, type SubmissionFormValue } from '~/composables/useSubmissionForm'
 import { apiGamePath, gamePath } from '~/shared/utils/games'
 
@@ -70,18 +71,10 @@ const courseSchema = z.object({
   mappers: z.array(mapperSchema).min(1, 'At least one mapper is required'),
 })
 
-const mapNameSchema = z
-  .string()
-  .min(1, 'Map name is required')
-  .refine((value) => value.startsWith('kz_'), 'Map name must start with `kz_`')
-  .refine(
-    (value) => /^kz_[A-Za-z0-9_]*$/.test(value),
-    'Map name must only contain ASCII alphanumeric characters and underscores',
-  )
-  .refine(
-    (value) => value.length <= 27,
-    'Map name must not exceed 27 characters (including the `kz_` prefix)',
-  )
+// The map-name rule lives in the shared per-game schema, so the form always
+// enforces exactly what the wire schema rejects: kz_-only on CS2, all four
+// mover namespaces on CS:GO, with the game's own messages.
+const mapNameSchema = mapNameSchemaFor(game.value)
 
 const workshopUrlSchema = z
   .string()
