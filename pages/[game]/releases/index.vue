@@ -2,6 +2,7 @@
 import type { TableColumn } from '@nuxt/ui'
 import type { PaginatedResult } from '~/shared/types/pagination'
 
+import { DISCORD_MESSAGE_MAX_LENGTH } from '~/shared/utils/discord-message'
 import { apiGamePath, gamePath } from '~/shared/utils/games'
 
 definePageMeta({
@@ -27,7 +28,19 @@ const {
   exportRelease,
   closeExport,
 } = useReleaseExport()
+const {
+  discordMessageId,
+  discordMessageOpen,
+  discordMessage,
+  discordMessageTitle,
+  fetchDiscordMessage,
+  closeDiscordMessage,
+} = useReleaseDiscordMessage()
 const copied = ref(false)
+const discordMessageCopied = ref(false)
+const discordMessageTooLong = computed(
+  () => (discordMessage.value?.length ?? 0) > DISCORD_MESSAGE_MAX_LENGTH,
+)
 
 /**
  * Legacy synchronous clipboard write (textarea + execCommand). Only used as a
@@ -57,35 +70,47 @@ function copyWithFallback(text: string): boolean {
   return ok
 }
 
-async function copyExport() {
-  if (!exportJson.value) return
-  const text = exportJson.value
-
+/** Writes text to the clipboard, preferring the async Clipboard API and
+ *  falling back to the legacy write. Resolves to whether the copy landed. */
+async function copyText(text: string): Promise<boolean> {
   // Primary: async Clipboard API. Its promise only resolves once the system
   // clipboard has actually been updated, and it works in secure contexts
   // (localhost + the deployed https site) within the click's user activation.
-  let ok = false
   if (navigator.clipboard?.writeText) {
     try {
       await navigator.clipboard.writeText(text)
-      ok = true
+      return true
     } catch {
-      ok = false
+      // fall through to the legacy write
     }
   }
 
   // Fallback: legacy synchronous write for non-secure contexts or when the
   // async API is blocked (e.g. denied permission, sandboxed iframe).
-  if (!ok) {
-    ok = copyWithFallback(text)
-  }
+  return copyWithFallback(text)
+}
 
-  if (ok) {
+async function copyExport() {
+  if (!exportJson.value) return
+
+  if (await copyText(exportJson.value)) {
     copied.value = true
     toast.add({ color: 'success', title: 'JSON copied to clipboard' })
     setTimeout(() => (copied.value = false), 2000)
   } else {
     toast.add({ color: 'error', title: 'Failed to copy JSON' })
+  }
+}
+
+async function copyDiscordMessage() {
+  if (!discordMessage.value) return
+
+  if (await copyText(discordMessage.value)) {
+    discordMessageCopied.value = true
+    toast.add({ color: 'success', title: 'Discord message copied to clipboard' })
+    setTimeout(() => (discordMessageCopied.value = false), 2000)
+  } else {
+    toast.add({ color: 'error', title: 'Failed to copy Discord message' })
   }
 }
 
@@ -197,6 +222,12 @@ async function confirmDeleteRelease() {
             />
             <UButton
               variant="outline"
+              label="Discord Message"
+              :loading="discordMessageId === row.original.id"
+              @click="fetchDiscordMessage(row.original.id, row.original.name)"
+            />
+            <UButton
+              variant="outline"
               label="Download Images"
               :loading="downloadingId === row.original.id"
               @click="downloadImages(row.original.id, row.original.name)"
@@ -243,6 +274,41 @@ async function confirmDeleteRelease() {
             :color="copied ? 'success' : 'primary'"
             :icon="copied ? 'i-lucide-check' : undefined"
             @click="copyExport"
+          />
+        </div>
+      </template>
+    </UModal>
+
+    <UModal
+      v-model:open="discordMessageOpen"
+      :title="discordMessageTitle"
+      :close="false"
+    >
+      <template #body>
+        <UAlert
+          v-if="discordMessageTooLong"
+          class="mb-3"
+          color="warning"
+          variant="subtle"
+          icon="i-lucide-triangle-alert"
+          :title="`This message is ${discordMessage?.length} characters, over Discord's ${DISCORD_MESSAGE_MAX_LENGTH}-character limit. Split it into two posts before sending.`"
+        />
+        <pre class="max-h-[60vh] overflow-auto whitespace-pre-wrap rounded-md bg-elevated p-3 text-xs leading-relaxed text-muted">{{ discordMessage }}</pre>
+      </template>
+
+      <template #footer>
+        <div class="flex flex-1 justify-end gap-2">
+          <UButton
+            variant="outline"
+            color="neutral"
+            label="Close"
+            @click="closeDiscordMessage"
+          />
+          <UButton
+            :label="discordMessageCopied ? 'Copied' : 'Copy'"
+            :color="discordMessageCopied ? 'success' : 'primary'"
+            :icon="discordMessageCopied ? 'i-lucide-check' : undefined"
+            @click="copyDiscordMessage"
           />
         </div>
       </template>

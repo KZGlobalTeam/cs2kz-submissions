@@ -8,6 +8,8 @@ interface CloudflareEnv {
   NUXT_STEAM_API_KEY?: string
   NUXT_DATABASE_URL?: string
   NUXT_DISCORD_WEBHOOK_URL?: string
+  NUXT_DISCORD_CS2_SERVER_OPERATOR_ROLE_ID?: string
+  NUXT_DISCORD_CSGO_SERVER_OPERATOR_ROLE_ID?: string
   NUXT_SESSION_SECRET?: string
   NUXT_SUPABASE_URL?: string
   NUXT_SUPABASE_SERVICE_ROLE_KEY?: string
@@ -39,6 +41,10 @@ function getCloudflareEnv(event?: H3Event): Partial<CloudflareEnv> {
 export interface AppConfig {
   databaseUrl: string | undefined
   discordWebhookUrl: string | undefined
+  /** Discord role ids pinged by the Release announcement, per game. Optional:
+   *  absent, the announcement falls back to a plain-text mention. */
+  discordCs2ServerOperatorRoleId: string | undefined
+  discordCsgoServerOperatorRoleId: string | undefined
   sessionSecret: string | undefined
   steamRealm: string | undefined
   steamReturnUrl: string | undefined
@@ -56,6 +62,8 @@ export function getAppConfig(event?: H3Event): AppConfig {
   return {
     databaseUrl: env.NUXT_DATABASE_URL ?? runtime.databaseUrl ?? undefined,
     discordWebhookUrl: env.NUXT_DISCORD_WEBHOOK_URL ?? runtime.discordWebhookUrl ?? undefined,
+    discordCs2ServerOperatorRoleId: env.NUXT_DISCORD_CS2_SERVER_OPERATOR_ROLE_ID ?? runtime.discordCs2ServerOperatorRoleId ?? undefined,
+    discordCsgoServerOperatorRoleId: env.NUXT_DISCORD_CSGO_SERVER_OPERATOR_ROLE_ID ?? runtime.discordCsgoServerOperatorRoleId ?? undefined,
     sessionSecret: env.NUXT_SESSION_SECRET ?? runtime.sessionSecret ?? undefined,
     steamRealm: env.NUXT_STEAM_REALM ?? runtime.steamRealm ?? undefined,
     steamReturnUrl: env.NUXT_STEAM_RETURN_URL ?? runtime.steamReturnUrl ?? undefined,

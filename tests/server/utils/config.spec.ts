@@ -22,3 +22,25 @@ describe('getAppConfig discord webhook', () => {
   })
 
 })
+describe('getAppConfig discord server operator role ids', () => {
+  afterEach(() => {
+    delete globalThis.__env__
+  })
+
+  it('resolves each game’s role id from the Cloudflare binding', () => {
+    globalThis.__env__ = {
+      NUXT_DISCORD_CS2_SERVER_OPERATOR_ROLE_ID: '111',
+      NUXT_DISCORD_CSGO_SERVER_OPERATOR_ROLE_ID: '222',
+    }
+
+    const config = getAppConfig()
+    expect(config.discordCs2ServerOperatorRoleId).toBe('111')
+    expect(config.discordCsgoServerOperatorRoleId).toBe('222')
+  })
+
+  it('resolves to empty strings when absent, falling back to plain-text mentions', () => {
+    const config = getAppConfig()
+    expect(config.discordCs2ServerOperatorRoleId).toBe('')
+    expect(config.discordCsgoServerOperatorRoleId).toBe('')
+  })
+})
